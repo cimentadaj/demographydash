@@ -1,6 +1,9 @@
-background_color <- "#F4F4F4"
+## https://github.com/Appsilon/shiny.semantic/blob/develop/examples/grid/app.R
+
+background_color <- "#FFFFFF"
 video_id <- "-EVgyaKO6vU"
 logo_url <- "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/UN_emblem_blue.svg/1205px-UN_emblem_blue.svg.png"
+## logo_url <- here::here("inst/app/www/un_logo.png")
 
 
 #' The application User-Interface
@@ -29,14 +32,34 @@ app_ui <- function(request) {
 #' @importFrom shiny div tags a icon
 #' @importFrom shiny.router route_link
 menu_ui <- function() {
-  div(
-    style = "display: flex; justify-content: center; padding: 10px 0;",
-    div(
-      class = "ui secondary menu",
-      tags$img(src = logo_url, style = "height: 50px; margin-right: 20px;"),
-      a(class = "item", style = "color: black;", href = route_link("index"), icon("home"), "Home"),
-      a(class = "item", style = "color: black;", href = route_link("data_loader"), "Data Loader"),
-      a(class = "item", style = "color: black;", href = route_link("analysis"), "Analysis")
+  shiny::div(
+    style = "width: 75%; margin: auto;",  # Constrain and center the entire content
+    shiny::div(
+      style = "display: flex; flex-direction: column; align-items: center; padding: 10px 0; width: 100%;",
+      shiny::div(
+        style = "text-align: left; width: 100%; border-bottom: 1px solid lightgrey;",
+        shiny::tags$img(src = logo_url, style = "height: 50px; margin-right: 20px;")
+      ),
+      shiny::div(
+        class = "ui secondary menu",
+        style = "width: 100%; justify-content: center; background-color: #333333;",
+        shiny::tags$style(HTML("
+          .item::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            border-right: 1px solid white;
+          }
+          .item:last-child::after {
+            border-right: none;
+          }
+        ")),
+        shiny::a(class = "item", style = "color: white; position: relative;", href = shiny.router::route_link("index"), "Home"),
+        shiny::a(class = "item", style = "color: white; position: relative;", href = shiny.router::route_link("data_loader"), "Data Loader"),
+        shiny::a(class = "item", style = "color: white; position: relative;", href = shiny.router::route_link("analysis"), "Analysis")
+      )
     )
   )
 }
@@ -47,16 +70,16 @@ menu_ui <- function() {
 #' @return A shiny UI div for the page layout.
 #' @importFrom shiny div
 page_ui <- function(content) {
-  div(
+  shiny::div(
     style = paste("background-color:", background_color, "; height: 100vh; display: flex; flex-direction: column;"),
     menu_ui(),
-    div(
+    shiny::div(
       style = "flex: 1; display: flex; justify-content: center; align-items: center;",
-      div(
+      shiny::div(
         class = "ui container",
-        div(
+        shiny::div(
           class = "ui grid",
-          div(class = "twelve wide column centered", div(class = "ui segment", content))
+          shiny::div(class = "twelve wide column centered", content) # Removed 'ui segment' class here
         )
       )
     )

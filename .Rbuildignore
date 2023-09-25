@@ -1,3 +1,5 @@
 ^LICENSE\.md$
 ^README\.Rmd$
 ^dev
+^app\.R$
+^rsconnect$
