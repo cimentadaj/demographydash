@@ -13,6 +13,7 @@ Imports:
     datasets,
     ggplot2,
     golem (>= 0.4.1),
+    OPPPserver,
     pkgload,
     scales,
     shiny (>= 1.7.4),

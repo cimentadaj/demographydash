@@ -15,37 +15,6 @@ mySimpleGrid <- function() {
   )
 }
 
-#' Generate a tabset for the application
-#'
-#' @return A tabset UI component for the application
-#' @importFrom shiny.semantic tabset
-#' @importFrom untheme plotWithDownloadButtonsUI
-#' @importFrom shiny actionButton div
-#' @noRd
-app_tabset <- function() {
-  div(
-    tabset(
-      tabs = list(
-        list(
-          menu = "Tab 1",
-          content = plotWithDownloadButtonsUI("plot1"),
-          id = "first_tab"
-        ),
-        list(
-          menu = "Tab 2",
-          content = plotWithDownloadButtonsUI("plot2"),
-          id = "second_tab"
-        ),
-        list(
-          menu = "Tab 3",
-          content = plotWithDownloadButtonsUI("plot3", radio_choices = c("Absolute", "Percentage")),
-          id = "third_tab"
-        )
-      )
-    )
-  )
-}
-
 # Define the run_simulation function
 run_simulation <- function(filtered_data) {
   message("Running simulation")
@@ -55,28 +24,86 @@ run_simulation <- function(filtered_data) {
   list(mtcars = filtered_data, iris = datasets::iris)
 }
 
+
+#' The application User-Interface
+#'
+#' @return A shiny semantic UI for the application.
+#' @importFrom shiny div selectInput actionButton numericInput
+#' @importFrom shiny.semantic label icon
+#' @noRd
+input_page <- function() {
+  div(
+    div(
+      class = "field",
+      icon("earth-asia"),
+      label(
+        class = "main label",
+        "Select a country"
+      ),
+      selectInput(
+        "wpp_country",
+        NULL,
+        ## choices = OPPPserver::get_wpp_countries(),
+        choices = c("Burundi", "Comoros", "Djibouti"),
+        selected = 1
+      )
+    ),
+    div(
+      class = "two fields",
+      div(
+        class = "field",
+        icon("calendar"),
+        label(
+          class = "main label",
+          "Starting Year"
+        ),
+        selectInput(
+          "wpp_starting_year",
+          NULL,
+          choices = 2023:2099,
+          selected = 2023
+        )
+      ),
+      div(
+        class = "field",
+        icon("calendar"),
+        label(
+          class = "main label",
+          "Ending Year"
+        ),
+        selectInput(
+          "wpp_ending_year",
+          NULL,
+          choices = 2024:2100,
+          selected = 2024
+        )
+      )
+    )
+  )
+}
+
 #' The application User-Interface
 #'
 #' @param request Internal parameter for `{shiny}`.
 #' @return A shiny semantic UI for the application.
-#' @importFrom shiny div selectInput actionButton numericInput
+#' @importFrom shiny div selectInput actionButton numericInput uiOutput
 #' @importFrom shinyjs useShinyjs hidden
-#' @importFrom shiny.semantic main_panel
+#' @importFrom shiny.semantic main_panel label action_button icon
 #' @importFrom untheme fluidUnTheme
 #' @importFrom shinycssloaders withSpinner
 #' @noRd
-# The application User-Interface
 app_ui <- function(request) {
   fluidUnTheme(
     useShinyjs(),
     main_panel(
       div(
         id = "step1",
-        selectInput("cylinders", "Select Number of Cylinders:",
-          choices = unique(datasets::mtcars$cyl),
-          selected = 6
-        ),
-        actionButton("forward", "Forward")
+        class = "ui raised very padded text container segment",
+        div(
+          class = "ui form",
+          input_page(),
+          action_button("forward", "Next", icon = icon("arrow-right"), class = "ui blue button")
+        )
       ),
       hidden(
         div(

@@ -1,9 +1,41 @@
+#' Generate a tabset for the application
+#'
+#' @return A tabset UI component for the application
+#' @importFrom shiny.semantic tabset
+#' @importFrom untheme plotWithDownloadButtonsUI
+#' @importFrom shiny actionButton div
+#' @noRd
+app_tabset <- function() {
+  div(
+    tabset(
+      tabs = list(
+        list(
+          menu = "Tab 1",
+          content = plotWithDownloadButtonsUI("plot1"),
+          id = "first_tab"
+        ),
+        list(
+          menu = "Tab 2",
+          content = plotWithDownloadButtonsUI("plot2"),
+          id = "second_tab"
+        ),
+        list(
+          menu = "Tab 3",
+          content = plotWithDownloadButtonsUI("plot3", radio_choices = c("Absolute", "Percentage")),
+          id = "third_tab"
+        )
+      )
+    )
+  )
+}
+
 #' Generate the plot modules after simulation
 #'
 #' @param sim_res List with datasets for simulation.
+#' @importFrom shiny callModule
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
-call_modules <- function(sim_res) {
+plots_tabset <- function(sim_res) {
   callModule(
     plotWithDownloadButtons,
     "plot1",
@@ -25,7 +57,6 @@ call_modules <- function(sim_res) {
     update_ggplot_func = update_ggplot_func
   )
 }
-
 
 #' Create a basic scatter plot
 #'
@@ -61,12 +92,12 @@ update_ggplot_func <- function(ggplot_obj, scale_type) {
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
-#' @import shiny
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
 app_server <- function(input, output, session) {
   reactive_mtcars <- reactive({
-    datasets::mtcars[datasets::mtcars$cyl == input$cylinders, ]
+    datasets::mtcars[datasets::mtcars$cyl == 4, ]
   })
 
   output$plot0 <- renderPlot({
@@ -100,7 +131,7 @@ app_server <- function(input, output, session) {
     hide("step2")
     show("step3")
 
-    call_modules(simulation_results)
+    plots_tabset(simulation_results)
     updateNumericInput(session, "step", value = 3)
   })
 
