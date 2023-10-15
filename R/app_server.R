@@ -51,7 +51,8 @@ plots_tabset <- function(sim_res) {
   )
 
   callModule(
-    plotWithDownloadButtons, "plot3",
+    plotWithDownloadButtons,
+    "plot3",
     data = sim_res()$mtcars,
     ggplot_obj = create_scatter_plot(sim_res()$mtcars, "mpg", "wt"),
     update_ggplot_func = update_ggplot_func
