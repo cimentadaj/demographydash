@@ -10,14 +10,15 @@ Description: This dashboard aims to make demographic analysis avialable to users
 License: MIT + file LICENSE
 Imports:
     config (>= 0.3.2),
+    datasets,
+    ggplot2,
     golem (>= 0.4.1),
     pkgload,
+    scales,
     shiny (>= 1.7.4),
-    shiny.router,
     shiny.semantic,
-    shinycssloaders,
     shinyjs,
-    utils
+    untheme
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3
