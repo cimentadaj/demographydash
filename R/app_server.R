@@ -61,7 +61,7 @@ update_ggplot_func <- function(ggplot_obj, scale_type) {
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
-#' @importFrom shiny renderPlot observeEvent callModule renderTable reactive reactiveVal updateNumericInput
+#' @import shiny
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
 app_server <- function(input, output, session) {
@@ -92,8 +92,10 @@ app_server <- function(input, output, session) {
   simulation_results <- reactiveVal()
 
   observeEvent(input$begin, {
-
-    simulation_results(run_simulation(reactive_mtcars())) # Update simulation_results
+    output$app_tabset <- renderUI({
+      simulation_results(run_simulation(reactive_mtcars())) # Update simulation_results
+      app_tabset()
+    })
 
     hide("step2")
     show("step3")
@@ -108,4 +110,3 @@ app_server <- function(input, output, session) {
     updateNumericInput(session, "step", value = 2)
   })
 }
-

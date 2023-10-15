@@ -63,6 +63,7 @@ run_simulation <- function(filtered_data) {
 #' @importFrom shinyjs useShinyjs hidden
 #' @importFrom shiny.semantic main_panel
 #' @importFrom untheme fluidUnTheme
+#' @importFrom shinycssloaders withSpinner
 #' @noRd
 # The application User-Interface
 app_ui <- function(request) {
@@ -89,7 +90,7 @@ app_ui <- function(request) {
         div(
           id = "step3",
           actionButton("back_to_step2", "Back"),
-          app_tabset()
+          withSpinner(uiOutput("app_tabset"))
         )
       ),
       hidden(

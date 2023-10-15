@@ -3,3 +3,4 @@
 ^dev
 ^app\.R$
 ^rsconnect$
+^Makefile$

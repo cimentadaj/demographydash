@@ -17,6 +17,7 @@ Imports:
     scales,
     shiny (>= 1.7.4),
     shiny.semantic,
+    shinycssloaders,
     shinyjs,
     untheme
 Encoding: UTF-8
