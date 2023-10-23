@@ -1,12 +1,3 @@
-# Define the run_simulation function
-run_simulation <- function(filtered_data) {
-  message("Running simulation")
-  Sys.sleep(10)
-  # For simplicity, let's assume the simulation returns the same dataset
-  # In reality, you'd have your simulation logic here
-  list(mtcars = filtered_data, iris = datasets::iris)
-}
-
 #' Create a field set with a given icon, label, and selectInput
 #'
 #' @param icon_name Name of the icon.
