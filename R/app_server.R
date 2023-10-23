@@ -16,7 +16,7 @@ app_tabset <- function() {
         ),
         list(
           menu = "Tab 2",
-          content = plotWithDownloadButtonsUI("plot2", radio_choices = c("Percent", "Count")),
+          content = plotWithDownloadButtonsUI("plot2", shiny.semantic::multiple_radio("scaleType", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
           id = "second_tab"
         ),
         list(
@@ -29,19 +29,13 @@ app_tabset <- function() {
   )
 }
 
-plotWithDownloadButtonsUI <- function(id, radio_choices = NULL) {
+plotWithDownloadButtonsUI <- function(id, radio_button = NULL) {
   ns <- shiny::NS(id)
-
-  button <- NULL
-
-  if (!is.null(radio_choices)) {
-    button <- shiny.semantic::multiple_radio(ns("scaleType"), "Scale Type", choices = radio_choices, type = "inline")
-  }
 
   layout <-
     shiny.semantic::sidebar_layout(
       shiny.semantic::sidebar_panel(
-        button,
+        radio_button,
         shiny::br(),
         shiny::downloadButton(ns("downloadPlot"), "Download Plot"),
         shiny::downloadButton(ns("downloadData"), "Download Data")
