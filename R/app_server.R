@@ -2,7 +2,6 @@
 #'
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset
-#' @importFrom untheme plotWithDownloadButtonsUI
 #' @importFrom shiny actionButton div
 #' @noRd
 app_tabset <- function() {
@@ -49,8 +48,6 @@ plotWithDownloadButtonsUI <- function(id, radio_button = NULL) {
   layout
 }
 
-
-
 #' UI component for step one
 #'
 #' @return A div containing UI elements for step one
@@ -96,28 +93,37 @@ step_two_ui <- function() {
 #' @importFrom shiny callModule
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
-plots_tabset <- function(sim_res, input_scale) {
-  callModule(
-    plotWithDownloadButtons,
-    "plot1",
-    data = sim_res()$population_by_age_and_sex,
-    ggplot_obj = create_pop_pyramid(sim_res()$population_by_age_and_sex)
-  )
+plots_tabset <- function(sim_res_reactive, input_reactive, age_group_dt_reactive) {
+  observe({
+    # Access the values of reactive expressions within a reactive context
+    sim_res <- sim_res_reactive()
+    input <- input_reactive()
+    age_group_dt <- age_group_dt_reactive()
 
-  callModule(
-    plotWithDownloadButtons,
-    "plot2",
-    data = sim_res()$population_by_broad_age_group,
-    ggplot_obj = create_age_group_plot(sim_res()$population_by_broad_age_group)
-  )
+    # Now you can use sim_res, input, and age_group_dt as normal variables within this reactive context
 
-  callModule(
-    plotWithDownloadButtons,
-    "plot3",
-    data = sim_res()$mtcars,
-    ggplot_obj = NULL,
-    update_ggplot_func = update_ggplot_func
-  )
+    callModule(
+      plotWithDownloadButtons,
+      "plot1",
+      data = sim_res$population_by_age_and_sex,
+      ggplot_obj = create_pop_pyramid(sim_res$population_by_age_and_sex)
+    )
+
+    callModule(
+      plotWithDownloadButtons,
+      "plot2",
+      data = age_group_dt,
+      ggplot_obj = create_age_group_plot(age_group_dt)
+    )
+
+    callModule(
+      plotWithDownloadButtons,
+      "plot3",
+      data = sim_res$mtcars,
+      ggplot_obj = NULL,
+      update_ggplot_func = update_ggplot_func
+    )
+  })
 }
 
 
@@ -175,7 +181,6 @@ app_server <- function(input, output, session) {
     show("step2")
   })
 
-
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
 
@@ -208,8 +213,19 @@ app_server <- function(input, output, session) {
     show("step4")
 
     print(names(input))
-    print(input[["plot2-scaleType"]])
-    plots_tabset(simulation_results, input$scaleType)
+    print(input[["scaleType"]])
+
+    age_group_dt <- reactive({
+      req(input$scaleType)
+      res <- prepare_age_group(
+        simulation_results()$population_by_broad_age_group,
+        input$scaleType
+      )
+      res
+    })
+
+    plots_tabset(simulation_results, reactive(input), age_group_dt)
+
   })
 
   observeEvent(input$back_to_step3, {

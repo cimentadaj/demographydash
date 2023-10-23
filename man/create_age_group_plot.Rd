@@ -4,7 +4,7 @@
 \alias{create_age_group_plot}
 \title{Create Age Group Plot}
 \usage{
-create_age_group_plot(dt)
+create_age_group_plot(pop_dt)
 }
 \arguments{
 \item{dt}{Data table with population data}

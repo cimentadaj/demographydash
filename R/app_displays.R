@@ -40,17 +40,35 @@ create_pop_pyramid <- function(dt) {
     )
 }
 
+
+prepare_age_group <- function(dt, input_scale) {
+  print(input_scale)
+  y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
+
+  pop_dt <-
+    data.table::melt(
+      dt,
+      id.vars = c("year", "age"),
+      measure.vars = c("pop", "pop_percent"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
+  print(pop_dt)
+
+  pop_dt
+}
+
 #' Create Age Group Plot
 #'
 #' @param dt Data table with population data
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme
 #' @return A ggplot2 object
 #' @export
-create_age_group_plot <- function(dt) {
-  ## y_axis <- ifelse(type_col == "Percent", "pop_percent", "pop")
-  y_axis <- "pop_percent"
-  dt %>%
-    ggplot(aes_string("year", y_axis, color = "age")) +
+create_age_group_plot <- function(pop_dt) {
+  pop_dt %>%
+    ggplot(aes_string("year", "value", color = "age")) +
     geom_line() +
     theme_minimal() +
     theme(
