@@ -16,15 +16,82 @@ app_tabset <- function() {
         ),
         list(
           menu = "Tab 2",
-          content = plotWithDownloadButtonsUI("plot2"),
+          content = plotWithDownloadButtonsUI("plot2", radio_choices = c("Percent", "Count")),
           id = "second_tab"
         ),
         list(
           menu = "Tab 3",
-          content = plotWithDownloadButtonsUI("plot3", radio_choices = c("Absolute", "Percentage")),
+          content = plotWithDownloadButtonsUI("plot3"),
           id = "third_tab"
         )
       )
+    )
+  )
+}
+
+plotWithDownloadButtonsUI <- function(id, radio_choices = NULL) {
+  ns <- shiny::NS(id)
+
+  button <- NULL
+
+  if (!is.null(radio_choices)) {
+    button <- shiny.semantic::multiple_radio(ns("scaleType"), "Scale Type", choices = radio_choices, type = "inline")
+  }
+
+  layout <-
+    shiny.semantic::sidebar_layout(
+      shiny.semantic::sidebar_panel(
+        button,
+        shiny::br(),
+        shiny::downloadButton(ns("downloadPlot"), "Download Plot"),
+        shiny::downloadButton(ns("downloadData"), "Download Data")
+      ),
+      shiny.semantic::main_panel(
+        shiny::plotOutput(ns("plot"), height = "600px", width = "900px"),
+        width = 4
+      )
+    )
+
+  layout
+}
+
+
+
+#' UI component for step one
+#'
+#' @return A div containing UI elements for step one
+#' @importFrom shiny actionButton plotOutput tableOutput
+#' @importFrom shiny.semantic grid
+#' @noRd
+step_one_ui <- function() {
+  div(
+    class = "ui raised very padded container segment",
+    style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
+    div(
+      style = "flex: 3;",
+      plotOutput("plot_pop", height = "550px")
+    ),
+    div(
+      style = "flex: 1;",
+      shiny.semantic::semantic_DTOutput("table_pop", height = "400px")
+    )
+  )
+}
+
+
+#' UI component for step two
+#'
+#' @return A div containing UI elements for step two
+#' @importFrom shiny actionButton plotOutput tableOutput
+#' @importFrom shiny.semantic grid
+#' @noRd
+step_two_ui <- function() {
+  div(
+    class = "ui raised very padded container segment",
+    style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
+    div(
+      style = "flex: 3;",
+      plotOutput("plot_tfr", height = "550px")
     )
   )
 }
@@ -35,48 +102,37 @@ app_tabset <- function() {
 #' @importFrom shiny callModule
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
-plots_tabset <- function(sim_res) {
+plots_tabset <- function(sim_res, input_scale) {
   callModule(
     plotWithDownloadButtons,
     "plot1",
-    data = sim_res()$mtcars,
-    ggplot_obj = create_scatter_plot(sim_res()$mtcars, "mpg", "wt")
+    data = sim_res()$population_by_age_and_sex,
+    ggplot_obj = create_pop_pyramid(sim_res()$population_by_age_and_sex)
   )
 
   callModule(
     plotWithDownloadButtons,
     "plot2",
-    data = sim_res()$iris,
-    ggplot_obj = create_scatter_plot(sim_res()$iris, "Sepal.Length", "Sepal.Width")
+    data = sim_res()$population_by_broad_age_group,
+    ggplot_obj = create_age_group_plot(sim_res()$population_by_broad_age_group)
   )
 
   callModule(
     plotWithDownloadButtons,
     "plot3",
     data = sim_res()$mtcars,
-    ggplot_obj = create_scatter_plot(sim_res()$mtcars, "mpg", "wt"),
+    ggplot_obj = NULL,
     update_ggplot_func = update_ggplot_func
   )
 }
 
-#' Create a basic scatter plot
-#'
-#' @param data The data frame to be used for plotting.
-#' @param x_var The name of the column to be used for the x-axis.
-#' @param y_var The name of the column to be used for the y-axis.
-#' @import ggplot2
-#' @return A ggplot2 object
-#' @noRd
-create_scatter_plot <- function(data, x_var, y_var) {
-  ggplot(data, aes_string(x = x_var, y = y_var)) +
-    geom_point()
-}
 
 #' Update a ggplot object's y-axis to percentage scale
 #'
 #' @param ggplot_obj The ggplot2 object to be updated.
 #' @param scale_type The type of scale to be applied.
 #' @importFrom scales percent
+#' @importFrom ggplot2 scale_y_continuous
 #' @return An updated ggplot2 object
 #' @noRd
 update_ggplot_func <- function(ggplot_obj, scale_type) {
@@ -97,48 +153,75 @@ update_ggplot_func <- function(ggplot_obj, scale_type) {
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
 app_server <- function(input, output, session) {
-  reactive_mtcars <- reactive({
-    datasets::mtcars[datasets::mtcars$cyl == 4, ]
-  })
+  reactive_pop <- reactive(OPPPserver::get_wpp_pop(input$wpp_country, input$wpp_starting_year))
+  reactive_tfr <- reactive(OPPPserver::get_wpp_tfr(input$wpp_country))
+  output$plot_pop <- renderPlot(create_pop_pyramid(reactive_pop()))
+  output$plot_tfr <- renderPlot(create_tfr_plot(reactive_tfr()))
+  output$table_pop <- DT::renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
 
-  output$plot0 <- renderPlot({
-    data1 <- reactive_mtcars()
-    create_scatter_plot(data1, "mpg", "wt")
-  })
-
-  output$myTable <- renderTable(reactive_mtcars()[1:5, 1:3])
-
-  observeEvent(input$forward, {
+  observeEvent(input$forward_step2, {
+    output$step_one_ui <- renderUI(step_one_ui())
     hide("step1")
     show("step2")
-    updateNumericInput(session, "step", value = 2)
+  })
+
+  observeEvent(input$forward_step3, {
+    output$step_two_ui <- renderUI(step_two_ui())
+    hide("step2")
+    show("step3")
   })
 
   observeEvent(input$back_to_step1, {
     hide("step2")
     show("step1")
-    updateNumericInput(session, "step", value = 1)
   })
+
+  observeEvent(input$back_to_step2, {
+    hide("step3")
+    show("step2")
+  })
+
 
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
 
   observeEvent(input$begin, {
     output$app_tabset <- renderUI({
-      simulation_results(run_simulation(reactive_mtcars())) # Update simulation_results
+      library(OPPPserver)
+
+      start_year <- ifelse(
+        as.numeric(input$wpp_starting_year) %in% 2022:2023,
+        2021,
+        as.numeric(input$wpp_starting_year)
+      )
+
+      print(input$wpp_country)
+      print(start_year)
+      print(input$wpp_ending_year)
+
+      forecast <<-
+        OPPPserver::run_forecast(
+          country = input$wpp_country,
+          start_year = start_year,
+          end_year = as.numeric(input$wpp_ending_year)
+        )
+
+      simulation_results(forecast) # Update simulation_results
       app_tabset()
     })
 
-    hide("step2")
-    show("step3")
+    hide("step3")
+    show("step4")
 
-    plots_tabset(simulation_results)
-    updateNumericInput(session, "step", value = 3)
+    print(names(input))
+    print(input[["plot2-scaleType"]])
+    plots_tabset(simulation_results, input$scaleType)
   })
 
-  observeEvent(input$back_to_step2, {
-    hide("step3")
-    show("step2")
-    updateNumericInput(session, "step", value = 2)
+  observeEvent(input$back_to_step3, {
+    hide("step4")
+    show("step3")
+
+    OPPPserver::remove_forecast(forecast)
   })
 }

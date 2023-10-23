@@ -1,20 +1,3 @@
-#' Define a simple grid layout for the application
-#'
-#' @return A grid template for shiny.semantic layout
-#' @importFrom shiny.semantic grid_template
-#' @noRd
-mySimpleGrid <- function() {
-  grid_template(
-    default = list(
-      areas = rbind(
-        c("center", "right")
-      ),
-      rows_height = c("auto"),
-      cols_width = c("2fr", "1fr")
-    )
-  )
-}
-
 # Define the run_simulation function
 run_simulation <- function(filtered_data) {
   message("Running simulation")
@@ -57,7 +40,13 @@ create_field_set <- function(icon_name, label_text, input_id, input_choices, inp
 #' @noRd
 input_page <- function() {
   div(
-    create_field_set("earth-asia", "Select a country", "wpp_country", c("Burundi", "Comoros", "Djibouti"), 1),
+    create_field_set(
+      "globe",
+      "Select a country",
+      "wpp_country",
+      OPPPserver::get_wpp_countries(),
+      NULL
+    ),
     div(
       class = "two fields",
       create_field_set("calendar", "Starting Year", "wpp_starting_year", 2023:2099, 2023),
@@ -66,33 +55,12 @@ input_page <- function() {
   )
 }
 
-#' UI component for step one
-#'
-#' @return A div containing UI elements for step one
-#' @importFrom shiny actionButton plotOutput tableOutput
-#' @importFrom shiny.semantic grid
-#' @noRd
-step_one_ui <- function() {
-  div(
-    id = "step1",
-    grid(
-      mySimpleGrid(),
-      container_style = "border: 3px solid #4D4D4D",
-      area_styles = list(
-        center = "background: #4D4D4D",
-        right = "border-left: 3px solid #4D4D4D"
-      ),
-      center = plotOutput("plot0"), # Replace with your plot
-      right = tableOutput("myTable") # Replace with your table
-    )
-  )
-}
 
 #' The application User-Interface
 #'
 #' @param request Internal parameter for `{shiny}`.
 #' @return A shiny semantic UI for the application.
-#' @importFrom shiny div selectInput actionButton numericInput uiOutput
+#' @importFrom shiny div selectInput actionButton numericInput uiOutput br
 #' @importFrom shinyjs useShinyjs hidden
 #' @importFrom shiny.semantic main_panel action_button
 #' @importFrom untheme fluidUnTheme
@@ -108,21 +76,37 @@ app_ui <- function(request) {
         div(
           class = "ui form",
           input_page(),
-          action_button("forward", "Next", icon = icon("arrow-right"), class = "ui blue button")
+          action_button("forward_step2", "Next", class = "ui blue button")
         )
       ),
       hidden(
         div(
           id = "step2",
-          actionButton("back_to_step1", "Back"),
-          step_one_ui(),
-          actionButton("begin", "Begin")
+          div(
+            style = "display: flex; gap: 10px;", # 20px gap between buttons
+            action_button("back_to_step1", "Back", class = "ui grey button"),
+            action_button("forward_step3", "Forward", class = "ui blue button")
+          ),
+          br(),
+          withSpinner(uiOutput("step_one_ui")),
         )
       ),
       hidden(
         div(
           id = "step3",
-          actionButton("back_to_step2", "Back"),
+          div(
+            style = "display: flex; gap: 10px;", # 20px gap between buttons
+            action_button("back_to_step2", "Back", class = "ui grey button"),
+            action_button("begin", "Calculate", class = "ui blue button")
+          ),
+          br(),
+          withSpinner(uiOutput("step_two_ui")),
+        )
+      ),
+      hidden(
+        div(
+          id = "step4",
+          action_button("back_to_step3", "Back", class = "ui grey button"),
           withSpinner(uiOutput("app_tabset"))
         )
       ),
