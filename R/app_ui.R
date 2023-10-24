@@ -5,8 +5,7 @@
 #' @param input_id ID for the select input.
 #' @param input_choices Choices for the select input.
 #' @param input_selected Selected choice for the select input.
-#' @importFrom shiny.semantic icon label
-#' @importFrom shiny selectInput
+#' @importFrom shiny.semantic icon label selectInput
 #' @noRd
 create_field_set <- function(icon_name, label_text, input_id, input_choices, input_selected) {
   div(
@@ -51,9 +50,9 @@ input_page <- function() {
 #'
 #' @param request Internal parameter for `{shiny}`.
 #' @return A shiny semantic UI for the application.
-#' @importFrom shiny div selectInput actionButton numericInput uiOutput br
+#' @importFrom shiny div actionButton numericInput uiOutput br
 #' @importFrom shinyjs useShinyjs hidden
-#' @importFrom shiny.semantic main_panel action_button
+#' @importFrom shiny.semantic main_panel action_button selectInput
 #' @importFrom untheme fluidUnTheme
 #' @importFrom shinycssloaders withSpinner
 #' @noRd

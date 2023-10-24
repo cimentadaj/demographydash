@@ -1,9 +1,14 @@
 #' Create Population Pyramid Plot
 #'
-#' @param dt Data table with population data
+#' This function takes a data table and an optional input year to create a population pyramid plot.
+#'
+#' @param dt Data table with population data.
+#' @param input_year The input year to filter the data on, default is NULL.
+#'
 #' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme
 #' @importFrom data.table melt
-#' @return A ggplot2 object
+#'
+#' @return A ggplot2 object.
 #' @export
 create_pop_pyramid <- function(dt, input_year = NULL) {
   if (!is.null(input_year)) {
@@ -54,9 +59,15 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
 
 #' Create Age Group Plot
 #'
-#' @param dt Data table with population data
+#' This function takes a data table and an input scale to create an age group plot.
+#'
+#' @param dt Data table with population data.
+#' @param input_scale The type of scale to be applied.
+#'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme
-#' @return A ggplot2 object
+#' @importFrom data.table melt
+#'
+#' @return A ggplot2 object.
 #' @export
 create_age_group_plot <- function(dt, input_scale) {
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
@@ -84,9 +95,13 @@ create_age_group_plot <- function(dt, input_scale) {
 
 #' Create Total Fertility Rate Plot
 #'
-#' @param dt Data table with fertility rate data
+#' This function takes a data table to create a total fertility rate plot.
+#'
+#' @param dt Data table with fertility rate data.
+#'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
-#' @return A ggplot2 object
+#'
+#' @return A ggplot2 object.
 #' @export
 create_tfr_plot <- function(dt) {
   year <- NULL
@@ -102,11 +117,16 @@ create_tfr_plot <- function(dt) {
     ) +
     theme_minimal()
 }
+
 #' Prepare Population Age Groups Table
 #'
-#' @param wpp_dt Data table with population data
+#' This function takes a data table to prepare a population age groups table.
+#'
+#' @param wpp_dt Data table with population data.
+#'
 #' @importFrom shiny.semantic semantic_DT
-#' @return A shiny.semantic DataTable object
+#'
+#' @return A shiny.semantic DataTable object.
 #' @export
 prepare_pop_agegroups_table <- function(wpp_dt) {
   wpp_dt$population <- wpp_dt$popF + wpp_dt$popM

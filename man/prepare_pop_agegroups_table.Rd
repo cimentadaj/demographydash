@@ -7,11 +7,11 @@
 prepare_pop_agegroups_table(wpp_dt)
 }
 \arguments{
-\item{wpp_dt}{Data table with population data}
+\item{wpp_dt}{Data table with population data.}
 }
 \value{
-A shiny.semantic DataTable object
+A shiny.semantic DataTable object.
 }
 \description{
-Prepare Population Age Groups Table
+This function takes a data table to prepare a population age groups table.
 }

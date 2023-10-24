@@ -7,11 +7,11 @@
 create_tfr_plot(dt)
 }
 \arguments{
-\item{dt}{Data table with fertility rate data}
+\item{dt}{Data table with fertility rate data.}
 }
 \value{
-A ggplot2 object
+A ggplot2 object.
 }
 \description{
-Create Total Fertility Rate Plot
+This function takes a data table to create a total fertility rate plot.
 }

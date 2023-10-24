@@ -7,11 +7,13 @@
 create_age_group_plot(dt, input_scale)
 }
 \arguments{
-\item{dt}{Data table with population data}
+\item{dt}{Data table with population data.}
+
+\item{input_scale}{The type of scale to be applied.}
 }
 \value{
-A ggplot2 object
+A ggplot2 object.
 }
 \description{
-Create Age Group Plot
+This function takes a data table and an input scale to create an age group plot.
 }

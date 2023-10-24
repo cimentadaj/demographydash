@@ -7,11 +7,13 @@
 create_pop_pyramid(dt, input_year = NULL)
 }
 \arguments{
-\item{dt}{Data table with population data}
+\item{dt}{Data table with population data.}
+
+\item{input_year}{The input year to filter the data on, default is NULL.}
 }
 \value{
-A ggplot2 object
+A ggplot2 object.
 }
 \description{
-Create Population Pyramid Plot
+This function takes a data table and an optional input year to create a population pyramid plot.
 }
