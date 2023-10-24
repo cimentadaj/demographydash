@@ -5,15 +5,23 @@
 #' @importFrom data.table melt
 #' @return A ggplot2 object
 #' @export
-create_pop_pyramid <- function(dt) {
+create_pop_pyramid <- function(dt, input_year = NULL) {
+  if (!is.null(input_year)) {
+    id_vars <- c("year", "age")
+  } else {
+    id_vars <- c("age")
+  }
+
   pop_dt <-
     data.table::melt(
       dt,
-      id.vars = "age",
+      id.vars = id_vars,
       measure.vars = c("popF", "popM"),
       variable.name = "gender",
       value.name = "population"
     )
+
+  print(pop_dt)
 
   pop_dt$age <- as.factor(pop_dt$age)
 
@@ -23,6 +31,11 @@ create_pop_pyramid <- function(dt) {
   age <- NULL
   population <- NULL
   gender <- NULL
+
+  if (!is.null(input_year)) {
+    pop_dt <- pop_dt[pop_dt$year == as.numeric(input_year), ]
+  } else {
+  }
 
   pop_dt %>%
     ggplot(aes(x = age, y = population, fill = gender)) +

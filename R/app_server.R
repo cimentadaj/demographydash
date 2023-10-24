@@ -10,12 +10,12 @@ app_tabset <- function() {
       tabs = list(
         list(
           menu = "Tab 1",
-          content = plotWithDownloadButtonsUI("plot1"),
+          content = plotWithDownloadButtonsUI("plot1", uiOutput("pop_age_sex_years_ui")),
           id = "first_tab"
         ),
         list(
           menu = "Tab 2",
-          content = plotWithDownloadButtonsUI("plot2", shiny.semantic::multiple_radio("scaleType", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+          content = plotWithDownloadButtonsUI("plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
           id = "second_tab"
         ),
         list(
@@ -93,35 +93,23 @@ step_two_ui <- function() {
 #' @importFrom shiny callModule
 #' @importFrom untheme plotWithDownloadButtons
 #' @noRd
-plots_tabset <- function(pyramid_plot_reactive, age_group_plot_reactive) {
+plots_tabset <- function(...) {
   observe({
-    pyramid_plot <- pyramid_plot_reactive()
-    age_group_plot <- age_group_plot_reactive()
+    args <- list(...)
+    tab_counter <- 0
 
-    callModule(
-      plotWithDownloadButtons,
-      "plot1",
-      data = pyramid_plot$data,
-      ggplot_obj = pyramid_plot
-    )
+    lapply(args, function(arg_reactive) {
+      tab_counter <<- tab_counter + 1
+      plot_data <- arg_reactive()
 
-    callModule(
-      plotWithDownloadButtons,
-      "plot2",
-      data = age_group_plot$data,
-      ggplot_obj = age_group_plot
-    )
-
-    callModule(
-      plotWithDownloadButtons,
-      "plot3",
-      data = sim_res$mtcars,
-      ggplot_obj = NULL,
-      update_ggplot_func = update_ggplot_func
-    )
+      callModule(
+        plotWithDownloadButtons,
+        paste0("plot", tab_counter),
+        ggplot_obj = plot_data
+      )
+    })
   })
 }
-
 
 #' Update a ggplot object's y-axis to percentage scale
 #'
@@ -181,7 +169,8 @@ app_server <- function(input, output, session) {
   simulation_results <- reactiveVal()
 
   observeEvent(input$begin, {
-    output$app_tabset <- renderUI({
+
+    forecast_res <- reactive({
       library(OPPPserver)
 
       start_year <- ifelse(
@@ -190,10 +179,6 @@ app_server <- function(input, output, session) {
         as.numeric(input$wpp_starting_year)
       )
 
-      print(input$wpp_country)
-      print(start_year)
-      print(input$wpp_ending_year)
-
       forecast <<-
         OPPPserver::run_forecast(
           country = input$wpp_country,
@@ -201,22 +186,44 @@ app_server <- function(input, output, session) {
           end_year = as.numeric(input$wpp_ending_year)
         )
 
-      simulation_results(forecast) # Update simulation_results
+      forecast
+    })
+
+    output$app_tabset <- renderUI({
+      simulation_results(forecast_res()) # Update simulation_results
       app_tabset()
     })
 
     hide("step3")
     show("step4")
 
-    pyramid_plot <- reactive({
+    pop_age_sex_years <- reactive({
       req(simulation_results())
-      create_pop_pyramid(simulation_results()$population_by_age_and_sex)
+      unique(simulation_results()$population_by_age_and_sex$year)
+    })
+
+    output$pop_age_sex_years_ui <- renderUI({
+      shiny.semantic::selectInput(
+        inputId = "pop_age_sex_years",
+        label = "Select year",
+        choices = pop_age_sex_years(),
+        selected = pop_age_sex_years()[1]
+      )
+    })
+
+    pyramid_plot <- reactive({
+      req(simulation_results(), input$pop_age_sex_years)
+      create_pop_pyramid(
+        simulation_results()$population_by_age_and_sex,
+        input$pop_age_sex_years
+      )
     })
 
     age_group_plot <- reactive({
+      req(input$radio_population_by_broad_age_group)
       create_age_group_plot(
         simulation_results()$population_by_broad_age_group,
-        input$scaleType
+        input$radio_population_by_broad_age_group
       )
     })
 
