@@ -106,7 +106,6 @@ plots_tabset <- function(...) {
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
 #' @export
 app_server <- function(input, output, session) {
-
   library(OPPPserver)
   # Reactive expressions for population and total fertility rate data
   reactive_pop <- reactive(get_wpp_pop(input$wpp_country, input$wpp_starting_year))
@@ -120,13 +119,16 @@ app_server <- function(input, output, session) {
   output$table_pop <- DT::renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
 
   # Handle navigation between steps
-  handle_navigation(input, output)
+  handle_navigation(reactive_pop, reactive_tfr, input, output)
 
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
 
   # Begin simulation on button click
   observeEvent(input$begin, {
+    hide("step3")
+    show("step4")
+
     begin_simulation(input, simulation_results, output)
   })
 }
@@ -139,17 +141,25 @@ app_server <- function(input, output, session) {
 #' @importFrom shinyjs hide show
 #' @importFrom shiny renderUI
 #' @noRd
-handle_navigation <- function(input, output) {
+handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
   observeEvent(input$forward_step2, {
-    output$step_one_ui <- renderUI(step_one_ui())
     hide("step1")
     show("step2")
+
+    # Added this twice because it allows the spinner around step_one_ui to
+    # register the time spent
+    create_pop_pyramid(reactive_pop())
+    output$step_one_ui <- renderUI(step_one_ui())
   })
 
   observeEvent(input$forward_step3, {
-    output$step_two_ui <- renderUI(step_two_ui())
     hide("step2")
     show("step3")
+
+    # Added this twice because it allows the spinner around step_two_ui to
+    # register the time spent
+    create_tfr_plot(reactive_tfr())
+    output$step_two_ui <- renderUI(step_two_ui())
   })
 
   observeEvent(input$back_to_step1, {
@@ -180,7 +190,9 @@ handle_navigation <- function(input, output) {
 #' @importFrom shinyjs hide show
 #' @noRd
 begin_simulation <- function(input, simulation_results, output) {
+
   forecast_res <- reactive({
+    # TODO: update 2021 year
     start_year <- ifelse(
       as.numeric(input$wpp_starting_year) %in% 2022:2023,
       2021,
@@ -195,12 +207,9 @@ begin_simulation <- function(input, simulation_results, output) {
   })
 
   output$app_tabset <- renderUI({
-    simulation_results(forecast_res())  # Update simulation_results
+    simulation_results(forecast_res()) # Update simulation_results
     app_tabset()
   })
-
-  hide("step3")
-  show("step4")
 
   pop_age_sex_years <- reactive({
     req(simulation_results())

@@ -39,7 +39,6 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
 
   if (!is.null(input_year)) {
     pop_dt <- pop_dt[pop_dt$year == as.numeric(input_year), ]
-  } else {
   }
 
   pop_dt %>%
