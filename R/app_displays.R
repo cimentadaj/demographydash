@@ -92,6 +92,44 @@ create_age_group_plot <- function(dt, input_scale) {
 }
 
 
+#' Create Pop Age Group Time Plot
+#'
+#' This function takes a data table and an input of age group to create a time age group plot.
+#'
+#' @param dt Data table with population data.
+#' @param input_age The age group to subset
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon
+#' @importFrom data.table melt
+#'
+#' @return A ggplot2 object.
+#' @export
+create_pop_time_plot <- function(dt, input_age) {
+  pop_dt <-
+    data.table::melt(
+      dt,
+      id.vars = c("year", "age", "un_pop_95low", "un_pop_95high"),
+      measure.vars = c("pop", "un_pop_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  pop_dt <- pop_dt[pop_dt$age == input_age, ]
+
+  year <- NULL
+  value <- NULL
+  type_value <- NULL
+  un_pop_95low <- NULL
+  un_pop_95high <- NULL
+
+  pop_dt %>%
+    ggplot(aes(year, value, color = type_value, group = type_value)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = un_pop_95low, ymax = un_pop_95high), alpha = 1 / 5) +
+    theme_minimal()
+}
+
+
 #' Create Total Fertility Rate Plot
 #'
 #' This function takes a data table to create a total fertility rate plot.

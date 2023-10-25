@@ -25,7 +25,7 @@ app_tabset <- function() {
   tabs <- list(
     create_tab("Tab 1", "plot1", uiOutput("pop_age_sex_years_ui")),
     create_tab("Tab 2", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-    create_tab("Tab 3", "plot3")
+    create_tab("Tab 3", "plot3", uiOutput("age_pop_time_ui"))
   )
 
   div(tabset(tabs = tabs))
@@ -106,6 +106,8 @@ plots_tabset <- function(...) {
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
 #' @export
 app_server <- function(input, output, session) {
+  # TODO: remove this and import directly run_forecast. Need to fix
+  # dependency issue
   library(OPPPserver)
   # Reactive expressions for population and total fertility rate data
   reactive_pop <- reactive(get_wpp_pop(input$wpp_country, input$wpp_starting_year))
@@ -241,5 +243,24 @@ begin_simulation <- function(input, simulation_results, output) {
     )
   })
 
-  plots_tabset(pyramid_plot, age_group_plot)
+  age_pop_time <- reactive({
+    req(simulation_results())
+    ages <- unique(simulation_results()$population_by_time$age)
+  })
+
+  output$age_pop_time_ui <- renderUI({
+    selectInput(
+      inputId = "age_pop_time",
+      label = "Select age group",
+      choices = age_pop_time(),
+      selected = age_pop_time()[1]
+    )
+  })
+
+  pop_time_plot <- reactive({
+    req(input$age_pop_time)
+    create_pop_time_plot(simulation_results()$population_by_time, input$age_pop_time)
+  })
+
+  plots_tabset(pyramid_plot, age_group_plot, pop_time_plot)
 }
