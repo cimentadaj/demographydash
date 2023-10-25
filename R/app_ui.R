@@ -45,7 +45,6 @@ input_page <- function() {
   )
 }
 
-
 #' The application User-Interface
 #'
 #' @param request Internal parameter for `{shiny}`.
@@ -102,7 +101,8 @@ app_ui <- function(request) {
       ),
       hidden(
         numericInput("step", label = NULL, value = 1)
-      )
+      ),
+      width = NULL
     )
   )
 }
