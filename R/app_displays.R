@@ -5,8 +5,10 @@
 #' @param dt Data table with population data.
 #' @param input_year The input year to filter the data on, default is NULL.
 #'
-#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme
+#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_discrete scale_y_continuous element_blank
 #' @importFrom data.table melt
+#' @importFrom plotly ggplotly layout
+#' @importFrom scales cut_short_scale label_number
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -41,19 +43,24 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
     pop_dt <- pop_dt[pop_dt$year == as.numeric(input_year), ]
   }
 
-  pop_dt %>%
+  plt <-
+    pop_dt %>%
     ggplot(aes(x = age, y = population, fill = gender)) +
-    geom_bar(stat = "identity") +
-    coord_flip() +
-    labs(
-      title = NULL,
-      x = "Age",
-      y = "Population(in millions)"
+    geom_bar(alpha = 0.7, stat = "identity") +
+    scale_x_discrete(
+      breaks = seq(0, 100, by = 5)
     ) +
-    theme_minimal() +
+    scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
+    coord_flip() +
+    labs(title = NULL, x = "Age", y = "Population") +
+    theme_minimal(base_size = 16) + # Increase font sizes
     theme(
-      legend.position = "bottom"
+      legend.position = "top",
+      panel.grid.major.y = element_blank(), # Remove horizontal grid lines
+      panel.grid.major.x = element_blank() # Remove horizontal grid lines
     )
+
+  list(gg = plt, plotly = ggplotly(plt))
 }
 
 #' Create Age Group Plot
@@ -82,13 +89,16 @@ create_age_group_plot <- function(dt, input_scale) {
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
 
-  pop_dt %>%
+  plt <-
+    pop_dt %>%
     ggplot(aes_string("year", "value", color = "age")) +
     geom_line() +
-    theme_minimal() +
+    theme_minimal(base_size = 16) +
     theme(
       legend.position = "bottom"
     )
+
+  list(gg = plt, plotly = ggplotly(plt))
 }
 
 
@@ -122,11 +132,14 @@ create_pop_time_plot <- function(dt, input_age) {
   un_pop_95low <- NULL
   un_pop_95high <- NULL
 
-  pop_dt %>%
+  plt <-
+    pop_dt %>%
     ggplot(aes(year, value, color = type_value, group = type_value)) +
     geom_line() +
     geom_ribbon(aes(ymin = un_pop_95low, ymax = un_pop_95high), alpha = 1 / 5) +
-    theme_minimal()
+    theme_minimal(base_size = 16)
+
+  list(gg = plt, plotly = ggplotly(plt))
 }
 
 
@@ -137,6 +150,7 @@ create_pop_time_plot <- function(dt, input_age) {
 #' @param dt Data table with fertility rate data.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
+#' @importFrom plotly ggplotly
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -144,15 +158,18 @@ create_tfr_plot <- function(dt) {
   year <- NULL
   tfr <- NULL
 
-  dt %>%
+  plt <-
+    dt %>%
     ggplot(aes(x = year, y = tfr)) +
-    geom_line(size = 3) +
+    geom_line(size = 2, alpha = 0.7) +
     labs(
       title = NULL,
       x = "Time",
       y = "Total Fertility Rate"
     ) +
-    theme_minimal()
+    theme_minimal(base_size = 16)
+
+  list(gg = plt, plotly = ggplotly(plt))
 }
 
 #' Prepare Population Age Groups Table

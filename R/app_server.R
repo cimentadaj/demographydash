@@ -34,8 +34,9 @@ app_tabset <- function() {
 #' UI component for step one
 #'
 #' @return A div containing UI elements for step one
-#' @importFrom shiny actionButton plotOutput tableOutput
+#' @importFrom shiny actionButton tableOutput
 #' @importFrom shiny.semantic grid
+#' @importFrom plotly plotlyOutput
 #' @export
 step_one_ui <- function() {
   div(
@@ -43,7 +44,7 @@ step_one_ui <- function() {
     style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
     div(
       style = "flex: 3;",
-      plotOutput("plot_pop", height = "550px")
+      plotlyOutput("plot_pop", height = "700px")
     ),
     div(
       style = "flex: 1;",
@@ -55,8 +56,9 @@ step_one_ui <- function() {
 #' UI component for step two
 #'
 #' @return A div containing UI elements for step two
-#' @importFrom shiny actionButton plotOutput tableOutput
+#' @importFrom shiny actionButton tableOutput
 #' @importFrom shiny.semantic grid
+#' @importFrom plotly plotlyOutput
 #' @export
 step_two_ui <- function() {
   div(
@@ -64,7 +66,7 @@ step_two_ui <- function() {
     style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
     div(
       style = "flex: 3;",
-      plotOutput("plot_tfr", height = "550px")
+      plotlyOutput("plot_tfr", height = "550px")
     )
   )
 }
@@ -104,6 +106,7 @@ plots_tabset <- function(...) {
 #' @importFrom shinyjs hide show
 #' @importFrom untheme plotWithDownloadButtons
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
+#' @importFrom plotly renderPlotly
 #' @export
 app_server <- function(input, output, session) {
   # TODO: remove this and import directly run_forecast. Need to fix
@@ -114,8 +117,8 @@ app_server <- function(input, output, session) {
   reactive_tfr <- reactive(get_wpp_tfr(input$wpp_country))
 
   # Render plots for population pyramid and total fertility rate
-  output$plot_pop <- renderPlot(create_pop_pyramid(reactive_pop()))
-  output$plot_tfr <- renderPlot(create_tfr_plot(reactive_tfr()))
+  output$plot_pop <- renderPlotly(create_pop_pyramid(reactive_pop())$plotly)
+  output$plot_tfr <- renderPlotly(create_tfr_plot(reactive_tfr())$plotly)
 
   # Render population table
   output$table_pop <- DT::renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
