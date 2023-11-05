@@ -142,6 +142,49 @@ create_pop_time_plot <- function(dt, input_age) {
   list(gg = plt, plotly = ggplotly(plt))
 }
 
+#' Create forecasted TFR plot
+#'
+#' This function takes a data table to create a projected TFR plot.
+#'
+#' @param dt Data table with population data.
+#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous
+#' @importFrom data.table melt
+#'
+#' @return A ggplot2 object.
+#' @export
+create_tfr_projected_plot <- function(dt, end_year) {
+  tfr_dt <-
+    data.table::melt(
+      dt,
+      id.vars = c("year", "un_tfr_95low", "un_tfr_95high"),
+      measure.vars = c("tfr", "un_tfr_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
+
+  year <- NULL
+  value <- NULL
+  type_value <- NULL
+  un_tfr_95low <- NULL
+  un_tfr_95high <- NULL
+
+  plt <-
+    tfr_dt %>%
+    ggplot(aes(year, value, group = type_value)) +
+    geom_line(aes(color = type_value)) +
+    geom_ribbon(aes(ymin = un_tfr_95low, ymax = un_tfr_95high), alpha = 1 / 5) +
+    scale_y_continuous(name = "Projected TFR") +
+    theme_minimal(base_size = 16)
+
+  list(gg = plt, plotly = ggplotly(plt))
+}
+
+
+
 
 #' Create Total Fertility Rate Plot
 #'

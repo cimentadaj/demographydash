@@ -25,7 +25,8 @@ app_tabset <- function() {
   tabs <- list(
     create_tab("Tab 1", "plot1", uiOutput("pop_age_sex_years_ui")),
     create_tab("Tab 2", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-    create_tab("Tab 3", "plot3", uiOutput("age_pop_time_ui"))
+    create_tab("Tab 3", "plot3", uiOutput("age_pop_time_ui")),
+    create_tab("Tab 4", "plot4")
   )
 
   div(tabset(tabs = tabs))
@@ -195,7 +196,6 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #' @importFrom shinyjs hide show
 #' @noRd
 begin_simulation <- function(input, simulation_results, output) {
-
   forecast_res <- reactive({
     # TODO: update 2021 year
     start_year <- ifelse(
@@ -265,5 +265,9 @@ begin_simulation <- function(input, simulation_results, output) {
     create_pop_time_plot(simulation_results()$population_by_time, input$age_pop_time)
   })
 
-  plots_tabset(pyramid_plot, age_group_plot, pop_time_plot)
+  tfr_projected_plot <- reactive({
+    create_tfr_projected_plot(simulation_results()$tfr_by_time, as.numeric(input$wpp_ending_year))
+  })
+
+  plots_tabset(pyramid_plot, age_group_plot, pop_time_plot, tfr_projected_plot)
 }
