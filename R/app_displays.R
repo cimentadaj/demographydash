@@ -448,3 +448,54 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
 
   list(gg = plt, plotly = ggplotly(plt))
 }
+
+#' Create an Interactive Population Aging and Size Plot
+#'
+#' This function takes a dataset and an end year to plot population aging and size data
+#' up to the specified year. It plots both projected and UN data for population
+#' and the percentage of the population that is 65 years or older. The plot is interactive,
+#' allowing users to hover over the lines to see data values.
+#'
+#' @param dt A data frame containing the columns 'year', 'pop', 'percent65',
+#'   'un_pop_median', and 'un_percent65'.
+#' @param end_year A numeric value specifying the last year to include in the plot.
+#'
+#' @return An interactive plotly object.
+#'
+#' @importFrom ggplot2 scale_x_continuous
+#' @importFrom stats setNames
+#' @export
+create_pop_aging_pop_size_plot <- function(dt, end_year) {
+  data <- dt[dt$year <= end_year]
+
+  # Prepare the projection data
+  proj_data <- data[, c("year", "pop", "percent65")]
+  # Adding a column for the legend
+  proj_data$source <- 'Projection'
+
+  # Prepare the UN data
+  un_data <- data[, c("year", "un_pop_median", "un_percent65")]
+  # Adding a column for the legend
+  un_data$source <- 'UN Data'
+  names(un_data) <- names(proj_data)
+
+  # Combine the datasets for plotting
+  combined_data <- rbind(proj_data, un_data)
+
+  # Add text for ggplotly to display on hover
+  combined_data$text <- paste("Year:", combined_data$year)
+
+  # Map the color to the source to create a legend, and use group to differentiate lines
+  plt <-
+    ggplot(combined_data, aes(x = percent65, y = pop, color = source, group = source, text = text)) +
+    geom_line() +
+    labs(x = "Population Age 65+", y = "Population Size") +
+    ## scale_x_continuous(labels = scales::percent) +
+    theme_minimal(base_size = 16)
+
+  percent65 <- NULL
+  pop <- NULL
+  text <- NULL
+
+  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color", "text")))
+}

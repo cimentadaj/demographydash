@@ -29,7 +29,8 @@ app_tabset <- function() {
     create_tab("Projected TFR", "plot4"),
     create_tab("Rate of Population Growth", "plot5"),
     create_tab("Death and Birth Projections", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
-    create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline"))
+    create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
+    create_tab("Population size and Aging", "plot8")
   )
 
   div(tabset(tabs = tabs))
@@ -304,6 +305,13 @@ begin_simulation <- function(input, simulation_results, output) {
     )
   })
 
+  pop_size_aging_plot <- reactive({
+    create_pop_aging_pop_size_plot(
+      simulation_results()$pop_aging_and_pop_size,
+      as.numeric(input$wpp_ending_year)
+    )
+  })
+
   plots_tabset(
     pyramid_plot,
     age_group_plot,
@@ -311,6 +319,7 @@ begin_simulation <- function(input, simulation_results, output) {
     tfr_projected_plot,
     annual_growth_plot,
     deaths_births_plot,
-    yadr_oadr_plot
+    yadr_oadr_plot,
+    pop_size_aging_plot
   )
 }
