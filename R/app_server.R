@@ -23,10 +23,13 @@ create_tab <- function(tab_name, plot_ui_id, extra_ui = NULL) {
 #' @export
 app_tabset <- function() {
   tabs <- list(
-    create_tab("Tab 1", "plot1", uiOutput("pop_age_sex_years_ui")),
-    create_tab("Tab 2", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-    create_tab("Tab 3", "plot3", uiOutput("age_pop_time_ui")),
-    create_tab("Tab 4", "plot4")
+    create_tab("Projected Population", "plot1", uiOutput("pop_age_sex_years_ui")),
+    create_tab("Population by Age Group", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+    create_tab("Population Over Time", "plot3", uiOutput("age_pop_time_ui")),
+    create_tab("Projected TFR", "plot4"),
+    create_tab("Rate of Population Growth", "plot5"),
+    create_tab("Death and Birth Projections", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
+    create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline"))
   )
 
   div(tabset(tabs = tabs))
@@ -207,7 +210,8 @@ begin_simulation <- function(input, simulation_results, output) {
     run_forecast(
       country = input$wpp_country,
       start_year = start_year,
-      end_year = as.numeric(input$wpp_ending_year)
+      end_year = as.numeric(input$wpp_ending_year),
+      output_dir = "/tmp/hasdaney213/"
     )
   })
 
@@ -266,8 +270,47 @@ begin_simulation <- function(input, simulation_results, output) {
   })
 
   tfr_projected_plot <- reactive({
-    create_tfr_projected_plot(simulation_results()$tfr_by_time, as.numeric(input$wpp_ending_year))
+    create_tfr_projected_plot(
+      simulation_results()$tfr_by_time,
+      as.numeric(input$wpp_ending_year)
+    )
   })
 
-  plots_tabset(pyramid_plot, age_group_plot, pop_time_plot, tfr_projected_plot)
+  annual_growth_plot <- reactive({
+    create_annual_growth_plot(
+      simulation_results()$annual_growth_rate,
+      as.numeric(input$wpp_ending_year)
+    )
+  })
+
+  deaths_births_plot <- reactive({
+    type_value <- tolower(strsplit(input$radio_death_births, " ")[[1]])
+    create_deaths_births_plot(
+      simulation_results()$births_counts_rates,
+      simulation_results()$deaths_counts_rates,
+      type_value[1],
+      type_value[2],
+      as.numeric(input$wpp_ending_year)
+    )
+  })
+
+  yadr_oadr_plot <- reactive({
+    type_value <- tolower(input$radio_yadr_oadr)
+    create_yadr_oadr_plot(
+      simulation_results()$oadr,
+      simulation_results()$yadr,
+      type_value,
+      as.numeric(input$wpp_ending_year)
+    )
+  })
+
+  plots_tabset(
+    pyramid_plot,
+    age_group_plot,
+    pop_time_plot,
+    tfr_projected_plot,
+    annual_growth_plot,
+    deaths_births_plot,
+    yadr_oadr_plot
+  )
 }

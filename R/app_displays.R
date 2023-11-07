@@ -20,7 +20,7 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
   }
 
   pop_dt <-
-    data.table::melt(
+    melt(
       dt,
       id.vars = id_vars,
       measure.vars = c("popF", "popM"),
@@ -72,6 +72,7 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme
 #' @importFrom data.table melt
+#' @importFrom plotly ggplotly layout
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -79,7 +80,7 @@ create_age_group_plot <- function(dt, input_scale) {
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
 
   pop_dt <-
-    data.table::melt(
+    melt(
       dt,
       id.vars = c("year", "age"),
       measure.vars = c("pop", "pop_percent"),
@@ -111,12 +112,13 @@ create_age_group_plot <- function(dt, input_scale) {
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon
 #' @importFrom data.table melt
+#' @importFrom plotly ggplotly layout
 #'
 #' @return A ggplot2 object.
 #' @export
 create_pop_time_plot <- function(dt, input_age) {
   pop_dt <-
-    data.table::melt(
+    melt(
       dt,
       id.vars = c("year", "age", "un_pop_95low", "un_pop_95high"),
       measure.vars = c("pop", "un_pop_median"),
@@ -151,12 +153,13 @@ create_pop_time_plot <- function(dt, input_age) {
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous
 #' @importFrom data.table melt
+#' @importFrom plotly ggplotly layout
 #'
 #' @return A ggplot2 object.
 #' @export
 create_tfr_projected_plot <- function(dt, end_year) {
   tfr_dt <-
-    data.table::melt(
+    melt(
       dt,
       id.vars = c("year", "un_tfr_95low", "un_tfr_95high"),
       measure.vars = c("tfr", "un_tfr_median"),
@@ -183,7 +186,37 @@ create_tfr_projected_plot <- function(dt, end_year) {
   list(gg = plt, plotly = ggplotly(plt))
 }
 
+#' Create Annual Growth Rate Time Plot by Age
+#'
+#' This function takes a data table to create an annual growth rate time plot by age.
+#'
+#' @param dt Data table with annual growth data.
+#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#'
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon
+#' @importFrom data.table melt
+#' @importFrom plotly ggplotly layout
+#'
+#' @return A ggplot2 object.
+#' @export
+create_annual_growth_plot <- function(dt, end_year) {
+  dt <- dt[dt$year <= as.numeric(end_year), ]
+  dt$value <- dt$growth_rate
+  dt$type_value <- dt$age
 
+  year <- NULL
+  value <- NULL
+  type_value <- NULL
+
+  plt <-
+    dt %>%
+    ggplot(aes(year, value, color = type_value, group = type_value)) +
+    geom_line() +
+    scale_y_continuous(name = "Annual Rate of Population Growth") +
+    theme_minimal(base_size = 16)
+
+  list(gg = plt, plotly = ggplotly(plt))
+}
 
 
 #' Create Total Fertility Rate Plot
@@ -276,4 +309,142 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
     searching = FALSE, # Disable searching
     info = FALSE # Disable info like "Showing 1 of N"
   ))
+}
+
+#' Plot births/deaths data with median and confidence intervals
+#'
+#' This function plots the number of births or deaths along with median and confidence intervals
+#' using the ggplot2 package. Data is filtered up to a specified end year.
+#'
+#' @param forecast_birth A data.table of birth data.
+#' @param forecast_death A data.table of death data.
+#' @param data_type A character string indicating the type of data to plot ("births" or "deaths").
+#' @param value_type A character string indicating the type of value to plot ("count" or "rate").
+#' @param end_year An integer specifying the upper year limit for the data to be plotted.
+#' @return A ggplot object.
+#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal
+#' @importFrom plotly ggplotly
+#' @importFrom data.table setnames .SD :=
+#'
+#' @export
+create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type, value_type, end_year) {
+  # Validate input
+  if (!(data_type %in% c("birth", "death")) | !(value_type %in% c("counts", "rates"))) {
+    stop("Invalid data_type or value_type")
+  }
+
+  # Select appropriate data.table based on data_type
+  if (data_type == "birth") {
+    data <- forecast_birth
+  } else {
+    data <- forecast_death
+  }
+
+  # Filter data up to the specified end year
+  data <- data[year <= end_year]
+
+  # Set type based on data_type and value_type
+  type <- ifelse(value_type == "counts", data_type, paste0("c", substr(data_type, 1, 1), "r"))
+
+  # Ensure that median and CI columns are numeric
+  cols_to_convert <- grep("^un_", names(data), value = TRUE)
+  data[, (cols_to_convert) := lapply(.SD, as.numeric), .SDcols = cols_to_convert]
+
+  cols <- c("year", grep(type, names(data), value = TRUE))
+
+  data <- data[, cols, with = FALSE]
+
+  melt_data <-
+    melt(
+      data,
+      id.vars = c("year", grep("high|low", names(data), value = TRUE)),
+      measure.vars = names(data)[2:3],
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  # Rename columns that contain "high" or "low"
+  setnames(melt_data, old = grep("high", names(melt_data), value = TRUE), new = "high")
+  setnames(melt_data, old = grep("low", names(melt_data), value = TRUE), new = "low")
+
+  # Plot the data
+  plt <-
+    ggplot(
+      melt_data,
+      aes(x = year, y = value, group = type_value, color = type_value)
+    ) +
+    geom_line() +
+    geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
+    labs(x = "Year", y = paste(tools::toTitleCase(data_type), value_type), color = "Type") +
+    theme_minimal()
+
+  year <- NULL
+  value <- NULL
+  type_value <- NULL
+  low <- NULL
+  high <- NULL
+  data_type <- NULL
+
+  list(gg = plt, plotly = ggplotly(plt))
+}
+
+
+#' Plot YADR/OADR data with median and confidence intervals
+#'
+#' This function plots the YADR/OADR along with the UN median and confidence intervals
+#' using the ggplot2 package. Data is filtered up to a specified end year.
+#'
+#' @param oadr A data.table of OADR data.
+#' @param yadr A data.table of YADR data.
+#' @param data_type A character string indicating the type of data to plot ("yadr" or "oadr").
+#' @param end_year An integer specifying the upper year limit for the data to be plotted.
+#' @return A ggplot object.
+#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal
+#' @importFrom plotly ggplotly
+#'
+#' @export
+create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
+  # Select appropriate data.table based on data_type
+  data <- if (data_type == "yadr") {
+    yadr
+  } else {
+    oadr
+  }
+
+  names(data) <- c("year", data_type, paste0("un_", data_type, "_median"), "low", "high")
+
+  # Filter data up to the specified end year
+  data <- data[year <= end_year]
+
+  melt_data <-
+    melt(
+      data,
+      id.vars = c("year", grep("high|low", names(data), value = TRUE)),
+      measure.vars = names(data)[2:3],
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  melt_data$low <- as.numeric(melt_data$low)
+  melt_data$high <- as.numeric(melt_data$high)
+
+  # Plot the data
+  plt <-
+    ggplot(
+      melt_data,
+      aes(x = year, y = value, group = type_value, color = type_value)
+    ) +
+    geom_line() +
+    geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
+    labs(x = "Year", y = toupper(data_type), color = "Type") +
+    theme_minimal()
+
+  year <- NULL
+  value <- NULL
+  type_value <- NULL
+  low <- NULL
+  high <- NULL
+  data_type <- NULL
+
+  list(gg = plt, plotly = ggplotly(plt))
 }
