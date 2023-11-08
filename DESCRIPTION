@@ -24,7 +24,8 @@ Imports:
     shinycssloaders,
     shinyjs,
     untheme,
-    plotly
+    plotly,
+    rlang
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.3

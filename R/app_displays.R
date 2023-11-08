@@ -5,7 +5,7 @@
 #' @param dt Data table with population data.
 #' @param input_year The input year to filter the data on, default is NULL.
 #'
-#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_discrete scale_y_continuous element_blank
+#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #' @importFrom scales cut_short_scale label_number
@@ -28,37 +28,41 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
       value.name = "population"
     )
 
-  print(pop_dt)
-
   pop_dt$age <- as.factor(pop_dt$age)
 
   males <- pop_dt[["gender"]] == "popM"
   pop_dt[males, "population"] <- -pop_dt[males, "population"]
 
-  age <- NULL
-  population <- NULL
-  gender <- NULL
-
   if (!is.null(input_year)) {
     pop_dt <- pop_dt[pop_dt$year == as.numeric(input_year), ]
   }
 
+  pop_dt$sex <- pop_dt$gender
+  pop_dt$gender <- NULL
+
+  pop_dt[sex == "popM", sex := "Males"]
+  pop_dt[sex == "popF", sex := "Females"]
+
+  names(pop_dt) <- tools::toTitleCase(names(pop_dt))
+
   plt <-
     pop_dt %>%
-    ggplot(aes(x = age, y = population, fill = gender)) +
+    ggplot(aes_string(x = "Age", y = "Population", fill = "Sex")) +
     geom_bar(alpha = 0.7, stat = "identity") +
     scale_x_discrete(
       breaks = seq(0, 100, by = 5)
     ) +
     scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
     coord_flip() +
-    labs(title = NULL, x = "Age", y = "Population") +
+    labs(title = "Population by Age and Sex") +
     theme_minimal(base_size = 16) + # Increase font sizes
     theme(
       legend.position = "top",
       panel.grid.major.y = element_blank(), # Remove horizontal grid lines
       panel.grid.major.x = element_blank() # Remove horizontal grid lines
     )
+
+  sex <- NULL
 
   list(gg = plt, plotly = ggplotly(plt))
 }
@@ -73,6 +77,7 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
+#' @importFrom rlang sym !!
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -89,15 +94,25 @@ create_age_group_plot <- function(dt, input_scale) {
     )
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
+  type_pop <- paste0("Population (", input_scale, ")")
+  names(pop_dt) <- c("Year", "Age", "type_value", type_pop)
 
   plt <-
     pop_dt %>%
-    ggplot(aes_string("year", "value", color = "age")) +
+    ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
     theme_minimal(base_size = 16) +
+    labs(title = "Projected Population by Years and Age Groups", color = "Age Group") +
     theme(
       legend.position = "bottom"
     )
+
+  if (input_scale == "Percent") {
+    plt <- plt + scale_y_continuous(labels = scales::label_percent(scale = 1))
+  }
+
+  Year <- NULL
+  Age <- NULL
 
   list(gg = plt, plotly = ggplotly(plt))
 }
@@ -128,20 +143,35 @@ create_pop_time_plot <- function(dt, input_age) {
 
   pop_dt <- pop_dt[pop_dt$age == input_age, ]
 
-  year <- NULL
-  value <- NULL
+  pop_dt[type_value == "pop", type_value := "Forecast"]
+  pop_dt[type_value == "un_pop_median", type_value := "UN Median"]
+
+  print(pop_dt)
+  names(pop_dt) <- c(
+    "Year",
+    "Age",
+    "un_pop_95low",
+    "un_pop_95high",
+    "Type",
+    "Population"
+  )
+
+  plt <-
+    pop_dt %>%
+    ggplot(aes(Year, Population, color = Type, group = Type)) +
+    geom_line() +
+    geom_ribbon(aes(ymin = un_pop_95low, ymax = un_pop_95high), alpha = 1 / 5) +
+    labs(title = "Projected Population by Years for Selected Age Groups") +
+    theme_minimal(base_size = 16)
+
+  Year <- NULL
+  Type <- NULL
+  Population <- NULL
   type_value <- NULL
   un_pop_95low <- NULL
   un_pop_95high <- NULL
 
-  plt <-
-    pop_dt %>%
-    ggplot(aes(year, value, color = type_value, group = type_value)) +
-    geom_line() +
-    geom_ribbon(aes(ymin = un_pop_95low, ymax = un_pop_95high), alpha = 1 / 5) +
-    theme_minimal(base_size = 16)
-
-  list(gg = plt, plotly = ggplotly(plt))
+  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "group")))
 }
 
 #' Create forecasted TFR plot
@@ -168,22 +198,26 @@ create_tfr_projected_plot <- function(dt, end_year) {
     )
 
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
+  tfr_dt[type_value == "tfr", type_value := "Forecast"]
+  tfr_dt[type_value == "un_tfr_median", type_value := "UN Median"]
 
-  year <- NULL
-  value <- NULL
-  type_value <- NULL
-  un_tfr_95low <- NULL
-  un_tfr_95high <- NULL
+  names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
 
   plt <-
-    tfr_dt %>%
-    ggplot(aes(year, value, group = type_value)) +
-    geom_line(aes(color = type_value)) +
+    ggplot(tfr_dt, aes(Year, TFR, group = Type)) +
+    geom_line(aes(color = Type)) +
     geom_ribbon(aes(ymin = un_tfr_95low, ymax = un_tfr_95high), alpha = 1 / 5) +
-    scale_y_continuous(name = "Projected TFR") +
+    labs(title = "Projected Total Fertility Rate by Years") +
     theme_minimal(base_size = 16)
 
-  list(gg = plt, plotly = ggplotly(plt))
+  Year <- NULL
+  TFR <- NULL
+  Type <- NULL
+  un_tfr_95low <- NULL
+  un_tfr_95high <- NULL
+  type_value <- NULL
+
+  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "group")))
 }
 
 #' Create Annual Growth Rate Time Plot by Age
@@ -202,20 +236,26 @@ create_tfr_projected_plot <- function(dt, end_year) {
 create_annual_growth_plot <- function(dt, end_year) {
   dt <- dt[dt$year <= as.numeric(end_year), ]
   dt$value <- dt$growth_rate
+  dt$growth_rate <- NULL
   dt$type_value <- dt$age
+  dt$age <- NULL
 
-  year <- NULL
-  value <- NULL
-  type_value <- NULL
+
+  names(dt) <- c("Year", "Population Growth Rate", "Age")
 
   plt <-
     dt %>%
-    ggplot(aes(year, value, color = type_value, group = type_value)) +
+    ggplot(aes(Year, `Population Growth Rate`, color = Age, group = Age)) +
     geom_line() +
-    scale_y_continuous(name = "Annual Rate of Population Growth") +
+    labs(title = "Population Growth Rate by Years and Age Groups") +
     theme_minimal(base_size = 16)
 
-  list(gg = plt, plotly = ggplotly(plt))
+  Year <- NULL
+  `Population Growth Rate` <- NULL
+  Age <- NULL
+
+
+  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color")))
 }
 
 
@@ -231,16 +271,18 @@ create_annual_growth_plot <- function(dt, end_year) {
 #' @return A ggplot2 object.
 #' @export
 create_tfr_plot <- function(dt) {
-  year <- NULL
-  tfr <- NULL
+  Year <- NULL
+  TFR <- NULL
+
+  names(dt) <- c("Year", "TFR")
 
   plt <-
     dt %>%
-    ggplot(aes(x = year, y = tfr)) +
+    ggplot(aes(x = Year, y = TFR)) +
     geom_line(size = 2, alpha = 0.7) +
     labs(
-      title = NULL,
-      x = "Time",
+      title = "Total Fertility Rate by Year",
+      x = "Year",
       y = "Total Fertility Rate"
     ) +
     theme_minimal(base_size = 16)
@@ -297,12 +339,14 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
   )
 
   # Calculate percentage
-  total_population <- sum(summary_table$population)
-  summary_table$percentage <- round(c(summary_table$population[1:nrow(summary_table) - 1] / total_population * 100, 100), 0)
+  len_pop <- length(summary_table$population)
+  total_population <- sum(summary_table$population[-len_pop])
+  summary_table$percentage <- round(c(summary_table$population[1:(nrow(summary_table) - 1)] / total_population * 100, 100), 0)
 
   summary_table$population <- NULL
   names(summary_table) <- c("Age groups", "Population", "Percentage")
   row.names(summary_table) <- NULL
+  summary_table$Percentage <- paste0(summary_table$Percentage, "%")
 
   shiny.semantic::semantic_DT(summary_table, options = list(
     paging = FALSE, # Disable pagination
@@ -367,25 +411,40 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
   setnames(melt_data, old = grep("high", names(melt_data), value = TRUE), new = "high")
   setnames(melt_data, old = grep("low", names(melt_data), value = TRUE), new = "low")
 
+  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
+
+  title_plt <- paste0(
+    ifelse(value_type == "rates", "Crude ", ""),
+    tools::toTitleCase(data_type),
+    " ",
+    tools::toTitleCase(value_type),
+    " by Years"
+  )
+
+  var_name <- paste(tools::toTitleCase(data_type), tools::toTitleCase(value_type))
+
+  names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+
   # Plot the data
   plt <-
     ggplot(
       melt_data,
-      aes(x = year, y = value, group = type_value, color = type_value)
+      aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
     ) +
     geom_line() +
     geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
-    labs(x = "Year", y = paste(tools::toTitleCase(data_type), value_type), color = "Type") +
-    theme_minimal()
+    labs(
+      title = title_plt,
+    ) +
+    theme_minimal(base_size = 16)
 
+  Year <- NULL
+  Type <- NULL
   year <- NULL
-  value <- NULL
-  type_value <- NULL
   low <- NULL
   high <- NULL
-  data_type <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt))
+  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color")))
 }
 
 
@@ -428,74 +487,134 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
   melt_data$low <- as.numeric(melt_data$low)
   melt_data$high <- as.numeric(melt_data$high)
 
+  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
+
+  data_type_long <- ifelse(data_type == "yadr", "Young Age Dependency Ratio", "Old Age Dependency Ratio")
+
+  title_plt <- paste0(
+    data_type_long,
+    " by Years"
+  )
+
+  var_name <- paste0(data_type_long, " (", toupper(data_type), ")")
+  names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+
   # Plot the data
   plt <-
     ggplot(
       melt_data,
-      aes(x = year, y = value, group = type_value, color = type_value)
+      aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
     ) +
     geom_line() +
     geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
-    labs(x = "Year", y = toupper(data_type), color = "Type") +
-    theme_minimal()
+    labs(
+      title = paste0(data_type_long, " by Years"),
+      subtitle = "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64"
+    ) +
+    theme_minimal(base_size = 16)
 
   year <- NULL
+  Year <- NULL
   value <- NULL
-  type_value <- NULL
+  Type <- NULL
   low <- NULL
   high <- NULL
   data_type <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt))
+
+  list(
+    gg = plt,
+    plotly = ggplotly(plt, tooltip = c("x", "y", "color")) %>%
+      layout(title = list(text = paste0(
+        paste0(data_type_long, " by Years"),
+        "<br>",
+        "<sup>",
+        "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64",
+        "</sup>"
+      )))
+  )
 }
 
-#' Create an Interactive Population Aging and Size Plot
+#' Create an Interactive Plot Based on Aging and Size Data
 #'
-#' This function takes a dataset and an end year to plot population aging and size data
-#' up to the specified year. It plots both projected and UN data for population
-#' and the percentage of the population that is 65 years or older. The plot is interactive,
-#' allowing users to hover over the lines to see data values.
+#' This function takes a dataset and an end year to plot two sets of data up to
+#' the specified year. One set is identified by the presence of "un" in the column
+#' names, representing UN data, and the other set represents projection data.
+#' The plot is interactive, with hover functionality to display data values.
 #'
-#' @param dt A data frame containing the columns 'year', 'pop', 'percent65',
-#'   'un_pop_median', and 'un_percent65'.
+#' @param dt A data frame with a 'year' column and other numeric columns where
+#'   some column names contain "un", indicating UN data. The rest are considered
+#'   projection data. The function dynamically identifies these columns and does
+#'   not assume specific names, making it applicable for various data types.
 #' @param end_year A numeric value specifying the last year to include in the plot.
+#' @param name_mappings A named vector where each name corresponds to a column in `dt` that should be renamed, and the value is the new name to be used in the plot. It should also contain a 'title' element for the plot's main title.
+#' @param percent_x A boolean to whether include a percent label on the X axis
 #'
-#' @return An interactive plotly object.
+#' @return A list containing a ggplot object and an interactive plotly object.
 #'
-#' @importFrom ggplot2 scale_x_continuous
-#' @importFrom stats setNames
+#' @importFrom ggplot2 aes_string ggplot geom_line labs theme_minimal
+#' @importFrom plotly ggplotly
+#' @importFrom data.table data.table setnames
 #' @export
-create_pop_aging_pop_size_plot <- function(dt, end_year) {
-  data <- dt[dt$year <= end_year]
+create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = FALSE) {
+  # Extract the title from the name_mappings and separate it from column mappings
+  plot_title <- name_mappings[["title"]]
+  col_mappings <- name_mappings[names(name_mappings) != "title"]
 
-  # Prepare the projection data
-  proj_data <- data[, c("year", "pop", "percent65")]
-  # Adding a column for the legend
-  proj_data$source <- 'Projection'
+  # Filter the data up to the specified end year
+  data <- dt[year <= end_year]
+  non_year <- setdiff(names(data), "year")
+  data <- data[, (non_year) := lapply(.SD, as.numeric), .SDcols = non_year]
 
-  # Prepare the UN data
-  un_data <- data[, c("year", "un_pop_median", "un_percent65")]
-  # Adding a column for the legend
-  un_data$source <- 'UN Data'
-  names(un_data) <- names(proj_data)
+  # Update column names for UN and projection data after renaming
+  un_colnames <- grep("un", names(data), value = TRUE)
+  un_colnames <- sort(un_colnames)
 
-  # Combine the datasets for plotting
+  proj_colnames <- setdiff(names(data), c("year", un_colnames))
+  proj_colnames <- sort(proj_colnames)
+
+  # Prepare the data sets with type labels and combine them
+  proj_data <- data[, c("year", proj_colnames), with = FALSE]
+  proj_data$Type <- "Forecast"
+
+  un_data <- data[, c("year", un_colnames), with = FALSE]
+  un_data$Type <- "UN Forecast"
+  names(un_data) <- names(proj_data) # Standardize column names for merging
+
   combined_data <- rbind(proj_data, un_data)
+
+  # Rename the columns based on col_mappings
+  for (old_name in names(col_mappings)) {
+    setnames(combined_data, old_name, col_mappings[[old_name]])
+  }
 
   # Add text for ggplotly to display on hover
   combined_data$text <- paste("Year:", combined_data$year)
 
-  # Map the color to the source to create a legend, and use group to differentiate lines
+  # Create the ggplot object with the mappings
   plt <-
-    ggplot(combined_data, aes(x = percent65, y = pop, color = source, group = source, text = text)) +
+    ggplot(
+      combined_data,
+      aes(
+        x = !!sym(names(combined_data)[2]),
+        y = !!sym(names(combined_data)[3]),
+        color = Type,
+        group = Type,
+        text = text
+      )
+    ) +
     geom_line() +
-    labs(x = "Population Age 65+", y = "Population Size") +
-    ## scale_x_continuous(labels = scales::percent) +
+    labs(title = plot_title) +
     theme_minimal(base_size = 16)
 
-  percent65 <- NULL
-  pop <- NULL
-  text <- NULL
+  if (percent_x) {
+    plt <- plt + scale_x_continuous(labels = scales::label_percent(scale = 1))
+  }
 
+  Type <- NULL
+  year <- NULL
+  text<- NULL
+
+  # Return a list containing both the ggplot and ggplotly objects
   list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color", "text")))
 }

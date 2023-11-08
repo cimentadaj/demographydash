@@ -23,14 +23,16 @@ create_tab <- function(tab_name, plot_ui_id, extra_ui = NULL) {
 #' @export
 app_tabset <- function() {
   tabs <- list(
-    create_tab("Projected Population", "plot1", uiOutput("pop_age_sex_years_ui")),
-    create_tab("Population by Age Group", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+    create_tab("Population Pyramid", "plot1", uiOutput("pop_age_sex_years_ui")),
+    create_tab("Population by Age", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
     create_tab("Population Over Time", "plot3", uiOutput("age_pop_time_ui")),
-    create_tab("Projected TFR", "plot4"),
-    create_tab("Rate of Population Growth", "plot5"),
-    create_tab("Death and Birth Projections", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
+    create_tab("TFR", "plot4"),
+    create_tab("Population Growth", "plot5"),
+    create_tab("Deaths and Births", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
     create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
-    create_tab("Population size and Aging", "plot8")
+    create_tab("Population and Aging", "plot8"),
+    create_tab("Life Expectancy and CDR", "plot9"),
+    create_tab("TFR by CDR", "plot10")
   )
 
   div(tabset(tabs = tabs))
@@ -200,17 +202,12 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #' @importFrom shinyjs hide show
 #' @noRd
 begin_simulation <- function(input, simulation_results, output) {
-  forecast_res <- reactive({
-    # TODO: update 2021 year
-    start_year <- ifelse(
-      as.numeric(input$wpp_starting_year) %in% 2022:2023,
-      2021,
-      as.numeric(input$wpp_starting_year)
-    )
 
+  # TODO: fix 2021
+  forecast_res <- reactive({
     run_forecast(
       country = input$wpp_country,
-      start_year = start_year,
+      start_year = 2021,
       end_year = as.numeric(input$wpp_ending_year),
       output_dir = "/tmp/hasdaney213/"
     )
@@ -306,9 +303,39 @@ begin_simulation <- function(input, simulation_results, output) {
   })
 
   pop_size_aging_plot <- reactive({
-    create_pop_aging_pop_size_plot(
+    create_un_projection_plot(
       simulation_results()$pop_aging_and_pop_size,
-      as.numeric(input$wpp_ending_year)
+      as.numeric(input$wpp_ending_year),
+      c(
+        "pop" = "Population",
+        "percent65" = "% of population 65+",
+        "title" = "Population Size by Percentage of Population Over 65+ Over Time"
+      ),
+      percent_x = TRUE
+    )
+  })
+
+  e0_by_cdr_plot <- reactive({
+    create_un_projection_plot(
+      simulation_results()$cdr_by_e0,
+      as.numeric(input$wpp_ending_year),
+      c(
+        "cdr" = "Crude Death Rate",
+        "e0" = "Life Expectancy",
+        "title" = "Crude Death Rate by Life Expectancy Over Time"
+      )
+    )
+  })
+
+  tfr_by_cdr_plot <- reactive({
+    create_un_projection_plot(
+      simulation_results()$cbr_by_tfr,
+      as.numeric(input$wpp_ending_year),
+      c(
+        "cbr" = "Crude Birth Rate",
+        "tfr" = "Total Fertility Rate",
+        "title" = "Crude Birth Rate by Total Fertility Rate Over Time"
+      )
     )
   })
 
@@ -320,6 +347,8 @@ begin_simulation <- function(input, simulation_results, output) {
     annual_growth_plot,
     deaths_births_plot,
     yadr_oadr_plot,
-    pop_size_aging_plot
+    pop_size_aging_plot,
+    e0_by_cdr_plot,
+    tfr_by_cdr_plot
   )
 }
