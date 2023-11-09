@@ -128,7 +128,7 @@ app_server <- function(input, output, session) {
     create_pop_pyramid(
       reactive_pop(),
       country = input$wpp_country,
-      input_year = input$wpp_starting_year
+      input_year = as.numeric(input$wpp_starting_year)
     )$plotly
   )
 
@@ -164,7 +164,7 @@ app_server <- function(input, output, session) {
 #'
 #' @param input,output Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
-#' @importFrom shiny renderUI
+#' @importFrom shiny renderUI HTML
 #' @importFrom shinyalert shinyalert
 #' @noRd
 handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
@@ -189,12 +189,13 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     {
       if (!processing()) {
         shinyalert(
-          title = "Explore UN Estimates 🌐",
+          title = "Explore UN Estimates \xF0\x9F\x8C\x90",
           text = tags$div(
             style = "text-align: left;",
-            HTML("🔢 The data shown here are estimates from the United Nations<br/>
-              🔄 Click 'Customize' to enter your own data<br/>
-              🧮 Editable: single year ages with an open interval at 100+")
+            HTML("\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>
+              \xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>
+              \xF0\x9F\xA7\xAE Editable: single year ages with an open interval at 100+"
+)
           ),
           type = "info",
           html = TRUE,
@@ -278,7 +279,7 @@ begin_simulation <- function(input, simulation_results, output) {
     req(simulation_results(), input$pop_age_sex_years)
     create_pop_pyramid(
       simulation_results()$population_by_age_and_sex,
-      input$pop_age_sex_years
+      input_year = input$pop_age_sex_years
     )
   })
 

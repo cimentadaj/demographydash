@@ -14,6 +14,11 @@
 #' @return A ggplot2 object.
 #' @export
 create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
+
+  if (!is.null(input_year) & is.null(country)) {
+    dt <- dt[year == input_year]
+  }
+
   id_vars <- c("age")
 
   pop_dt <-
@@ -62,6 +67,7 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
     )
 
   sex <- NULL
+  year <- NULL
 
   list(
     gg = plt,
