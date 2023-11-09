@@ -74,7 +74,11 @@ app_ui <- function(request) {
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_step1", "Back", class = "ui grey button"),
-            action_button("forward_step3", "Forward", class = "ui blue button")
+            action_button("forward_step3", "Forward", class = "ui blue button"),
+            div(
+              style = "margin-left: auto;",
+              action_button("customize", "Customize", icon = icon("refresh"), class = "ui blue button")
+            )
           ),
           br(),
           withSpinner(uiOutput("step_one_ui")),
@@ -86,7 +90,11 @@ app_ui <- function(request) {
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_step2", "Back", class = "ui grey button"),
-            action_button("begin", "Calculate", class = "ui blue button")
+            action_button("begin", "Calculate", class = "ui blue button"),
+            div(
+              style = "margin-left: auto;",
+              action_button("customize", "Customize", icon = icon("refresh"), class = "ui blue button")
+            )
           ),
           br(),
           withSpinner(uiOutput("step_two_ui")),

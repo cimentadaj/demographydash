@@ -4,10 +4,14 @@
 \alias{create_tfr_plot}
 \title{Create Total Fertility Rate Plot}
 \usage{
-create_tfr_plot(dt)
+create_tfr_plot(dt, end_year, country)
 }
 \arguments{
 \item{dt}{Data table with fertility rate data.}
+
+\item{end_year}{the date in YYYY-MM-DD where the projection should end.}
+
+\item{country}{The country for which the data is plotted}
 }
 \value{
 A ggplot2 object.

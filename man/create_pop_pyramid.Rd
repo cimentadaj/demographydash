@@ -4,10 +4,12 @@
 \alias{create_pop_pyramid}
 \title{Create Population Pyramid Plot}
 \usage{
-create_pop_pyramid(dt, input_year = NULL)
+create_pop_pyramid(dt, country, input_year = NULL)
 }
 \arguments{
 \item{dt}{Data table with population data.}
+
+\item{country}{The country for which the data is plotted}
 
 \item{input_year}{The input year to filter the data on, default is NULL.}
 }

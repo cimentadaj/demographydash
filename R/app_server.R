@@ -48,10 +48,10 @@ app_tabset <- function() {
 step_one_ui <- function() {
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
+    style = "display: flex; align-items: flex-start; gap: 10px; width: 80%",
     div(
       style = "flex: 3;",
-      plotlyOutput("plot_pop", height = "700px")
+      plotlyOutput("plot_pop", height = "650px")
     ),
     div(
       style = "flex: 1;",
@@ -124,8 +124,21 @@ app_server <- function(input, output, session) {
   reactive_tfr <- reactive(get_wpp_tfr(input$wpp_country))
 
   # Render plots for population pyramid and total fertility rate
-  output$plot_pop <- renderPlotly(create_pop_pyramid(reactive_pop())$plotly)
-  output$plot_tfr <- renderPlotly(create_tfr_plot(reactive_tfr())$plotly)
+  output$plot_pop <- renderPlotly(
+    create_pop_pyramid(
+      reactive_pop(),
+      country = input$wpp_country,
+      input_year = input$wpp_starting_year
+    )$plotly
+  )
+
+  output$plot_tfr <- renderPlotly(
+    create_tfr_plot(
+      reactive_tfr(),
+      end_year = input$wpp_ending_year,
+      country = input$wpp_country
+    )$plotly
+  )
 
   # Render population table
   output$table_pop <- DT::renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
@@ -152,8 +165,11 @@ app_server <- function(input, output, session) {
 #' @param input,output Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
 #' @importFrom shiny renderUI
+#' @importFrom shinyalert shinyalert
 #' @noRd
 handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
+  processing <- reactiveVal(TRUE)
+
   observeEvent(input$forward_step2, {
     hide("step1")
     show("step2")
@@ -161,8 +177,35 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     # Added this twice because it allows the spinner around step_one_ui to
     # register the time spent
     create_pop_pyramid(reactive_pop())
-    output$step_one_ui <- renderUI(step_one_ui())
+    output$step_one_ui <- renderUI({
+      res <- step_one_ui()
+      processing(FALSE)
+      res
+    })
   })
+
+  # After the processing is finished, show the shinyalert modal
+  observeEvent(processing(),
+    {
+      if (!processing()) {
+        shinyalert(
+          title = "Explore UN Estimates 🌐",
+          text = tags$div(
+            style = "text-align: left;",
+            HTML("🔢 The data shown here are estimates from the United Nations<br/>
+              🔄 Click 'Customize' to enter your own data<br/>
+              🧮 Editable: single year ages with an open interval at 100+")
+          ),
+          type = "info",
+          html = TRUE,
+          closeOnEsc = TRUE,
+          showConfirmButton = TRUE,
+          confirmButtonText = "Got it!"
+        )
+      }
+    },
+    ignoreInit = TRUE
+  )
 
   observeEvent(input$forward_step3, {
     hide("step2")
@@ -170,7 +213,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 
     # Added this twice because it allows the spinner around step_two_ui to
     # register the time spent
-    create_tfr_plot(reactive_tfr())
+    create_tfr_plot(reactive_tfr(), end_year = input$wpp_ending_year, country = input$wpp_country)
     output$step_two_ui <- renderUI(step_two_ui())
   })
 
@@ -202,7 +245,6 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #' @importFrom shinyjs hide show
 #' @noRd
 begin_simulation <- function(input, simulation_results, output) {
-
   # TODO: fix 2021
   forecast_res <- reactive({
     run_forecast(

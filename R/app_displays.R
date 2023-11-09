@@ -3,6 +3,7 @@
 #' This function takes a data table and an optional input year to create a population pyramid plot.
 #'
 #' @param dt Data table with population data.
+#' @param country The country for which the data is plotted
 #' @param input_year The input year to filter the data on, default is NULL.
 #'
 #' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank
@@ -12,12 +13,8 @@
 #'
 #' @return A ggplot2 object.
 #' @export
-create_pop_pyramid <- function(dt, input_year = NULL) {
-  if (!is.null(input_year)) {
-    id_vars <- c("year", "age")
-  } else {
-    id_vars <- c("age")
-  }
+create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
+  id_vars <- c("age")
 
   pop_dt <-
     melt(
@@ -33,10 +30,6 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
   males <- pop_dt[["gender"]] == "popM"
   pop_dt[males, "population"] <- -pop_dt[males, "population"]
 
-  if (!is.null(input_year)) {
-    pop_dt <- pop_dt[pop_dt$year == as.numeric(input_year), ]
-  }
-
   pop_dt$sex <- pop_dt$gender
   pop_dt$gender <- NULL
 
@@ -44,6 +37,12 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
   pop_dt[sex == "popF", sex := "Females"]
 
   names(pop_dt) <- tools::toTitleCase(names(pop_dt))
+
+  if (!is.null(country) & !is.null(input_year)) {
+    plt_title <- paste0("Population by Age and Sex for ", country, " in ", input_year)
+  } else {
+    plt_title <- "Population by Age and Sex"
+  }
 
   plt <-
     pop_dt %>%
@@ -54,7 +53,7 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
     ) +
     scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
     coord_flip() +
-    labs(title = "Population by Age and Sex") +
+    labs(title = plt_title) +
     theme_minimal(base_size = 16) + # Increase font sizes
     theme(
       legend.position = "top",
@@ -64,7 +63,20 @@ create_pop_pyramid <- function(dt, input_year = NULL) {
 
   sex <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt))
+  list(
+    gg = plt,
+    plotly = ggplotly(plt) %>%
+      layout(
+        legend = list(
+          x = 0.5, # Centered horizontally
+          y = 1, # At the very top vertically
+          xanchor = "center", # Center the legend on the x position
+          yanchor = "bottom", # Anchor the legend by its bottom edge
+          orientation = "h" # Horizontal orientation
+        ),
+        margin = list(t = 100) # Increase top margin to make space for the legend
+      )
+  )
 }
 
 #' Create Age Group Plot
@@ -240,7 +252,6 @@ create_annual_growth_plot <- function(dt, end_year) {
   dt$type_value <- dt$age
   dt$age <- NULL
 
-
   names(dt) <- c("Year", "Population Growth Rate", "Age")
 
   plt <-
@@ -254,7 +265,6 @@ create_annual_growth_plot <- function(dt, end_year) {
   `Population Growth Rate` <- NULL
   Age <- NULL
 
-
   list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color")))
 }
 
@@ -264,26 +274,28 @@ create_annual_growth_plot <- function(dt, end_year) {
 #' This function takes a data table to create a total fertility rate plot.
 #'
 #' @param dt Data table with fertility rate data.
+#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param country The country for which the data is plotted
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
 #' @importFrom plotly ggplotly
 #'
 #' @return A ggplot2 object.
 #' @export
-create_tfr_plot <- function(dt) {
+create_tfr_plot <- function(dt, end_year, country) {
   Year <- NULL
   TFR <- NULL
 
   names(dt) <- c("Year", "TFR")
+
+  dt <- dt[Year <= end_year]
 
   plt <-
     dt %>%
     ggplot(aes(x = Year, y = TFR)) +
     geom_line(size = 2, alpha = 0.7) +
     labs(
-      title = "Total Fertility Rate by Year",
-      x = "Year",
-      y = "Total Fertility Rate"
+      title = paste0("Total Fertility Rate by Year for ", country),
     ) +
     theme_minimal(base_size = 16)
 
@@ -613,7 +625,7 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   Type <- NULL
   year <- NULL
-  text<- NULL
+  text <- NULL
 
   # Return a list containing both the ggplot and ggplotly objects
   list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color", "text")))
