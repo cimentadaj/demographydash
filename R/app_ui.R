@@ -1,32 +1,7 @@
-#' Create a field set with a given icon, label, and selectInput
-#'
-#' @param icon_name Name of the icon.
-#' @param label_text Text for the label.
-#' @param input_id ID for the select input.
-#' @param input_choices Choices for the select input.
-#' @param input_selected Selected choice for the select input.
-#' @importFrom shiny.semantic icon label selectInput
-#' @noRd
-create_field_set <- function(icon_name, label_text, input_id, input_choices, input_selected) {
-  div(
-    class = "field",
-    icon(icon_name),
-    label(
-      class = "main label",
-      label_text
-    ),
-    selectInput(
-      input_id,
-      NULL,
-      choices = input_choices,
-      selected = input_selected
-    )
-  )
-}
-
 #' The application User-Interface for input page
 #'
 #' @return A div containing the input page UI elements.
+#' @importFrom untheme create_field_set
 #' @noRd
 input_page <- function() {
   div(
@@ -51,7 +26,7 @@ input_page <- function() {
 #' @return A shiny semantic UI for the application.
 #' @importFrom shiny div actionButton numericInput uiOutput br
 #' @importFrom shinyjs useShinyjs hidden
-#' @importFrom shiny.semantic main_panel action_button selectInput
+#' @importFrom shiny.semantic main_panel action_button selectInput icon
 #' @importFrom untheme fluidUnTheme
 #' @importFrom shinycssloaders withSpinner
 #' @noRd

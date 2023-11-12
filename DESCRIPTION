@@ -16,14 +16,14 @@ Imports:
     ggplot2,
     golem (>= 0.4.1),
     magrittr,
-    OPPPserver,
+    OPPPserver (>= 0.0.6),
     pkgload,
     scales,
     shiny (>= 1.7.4),
     shiny.semantic,
     shinycssloaders,
     shinyjs,
-    untheme,
+    untheme (>= 0.0.0.9000),
     plotly,
     rlang,
     shinyalert
@@ -34,3 +34,6 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Language: en-US
+Remotes:  
+    cimentadaj/OPPPserver,
+    cimentadaj/untheme

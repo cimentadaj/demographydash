@@ -1,25 +1,9 @@
-#' Generate a Tab UI Component for the Application
-#'
-#' @param tab_name The name to be displayed on the tab.
-#' @param plot_ui_id The UI id for the plot.
-#' @param extra_ui An optional extra UI component.
-#' @importFrom shiny div
-#' @importFrom untheme plotWithDownloadButtonsUI
-#' @return A list representing a tab UI component.
-#' @export
-create_tab <- function(tab_name, plot_ui_id, extra_ui = NULL) {
-  list(
-    menu = tab_name,
-    content = plotWithDownloadButtonsUI(plot_ui_id, extra_ui),
-    id = paste0(tolower(gsub(" ", "_", tab_name)), "_tab")
-  )
-}
-
 #' Generate a tabset for the application
 #'
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset
 #' @importFrom shiny actionButton div
+#' @importFrom untheme create_tab
 #' @export
 app_tabset <- function() {
   tabs <- list(
@@ -78,30 +62,6 @@ step_two_ui <- function() {
   )
 }
 
-#' Generate the plot modules after simulation
-#'
-#' @param ... A list of reactive expressions returning ggplot2 objects.
-#' @importFrom shiny callModule observe
-#' @importFrom untheme plotWithDownloadButtons
-#' @export
-plots_tabset <- function(...) {
-  observe({
-    args <- list(...)
-    tab_counter <- 0
-
-    lapply(args, function(arg_reactive) {
-      tab_counter <<- tab_counter + 1
-      plot_data <- arg_reactive()
-
-      callModule(
-        plotWithDownloadButtons,
-        paste0("plot", tab_counter),
-        ggplot_obj = plot_data
-      )
-    })
-  })
-}
-
 
 #' The Application Server-Side Logic
 #'
@@ -111,7 +71,7 @@ plots_tabset <- function(...) {
 #' @param input,output,session Internal parameters for `{shiny}`.
 #' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI
 #' @importFrom shinyjs hide show
-#' @importFrom untheme plotWithDownloadButtons
+#' @importFrom untheme plotWithDownloadButtons plots_tabset
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
 #' @importFrom plotly renderPlotly
 #' @export
