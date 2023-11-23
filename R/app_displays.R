@@ -6,7 +6,7 @@
 #' @param country The country for which the data is plotted
 #' @param input_year The input year to filter the data on, default is NULL.
 #'
-#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank
+#' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank element_text
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #' @importFrom scales cut_short_scale label_number
@@ -14,7 +14,6 @@
 #' @return A ggplot2 object.
 #' @export
 create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
-
   if (!is.null(input_year) & is.null(country)) {
     dt <- dt[year == input_year]
   }
@@ -46,8 +45,13 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
   if (!is.null(country) & !is.null(input_year)) {
     plt_title <- paste0("Population by Age and Sex for ", country, " in ", input_year)
   } else {
-    plt_title <- "Population by Age and Sex"
+    plt_title <- paste0("Population by Age and Sex in ", input_year)
   }
+
+  mid_size <- nchar(plt_title) >= 52 & nchar(plt_title) < 55
+  mid_big_size <- nchar(plt_title) >= 55 & nchar(plt_title) < 60
+  big_size <- nchar(plt_title) > 60
+  font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 15)))
 
   plt <-
     pop_dt %>%
@@ -61,6 +65,7 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
     labs(title = plt_title) +
     theme_minimal(base_size = 16) + # Increase font sizes
     theme(
+      plot.title = element_text(size = font_size),
       legend.position = "top",
       panel.grid.major.y = element_blank(), # Remove horizontal grid lines
       panel.grid.major.x = element_blank() # Remove horizontal grid lines

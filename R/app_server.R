@@ -32,10 +32,10 @@ app_tabset <- function() {
 step_one_ui <- function() {
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px; width: 80%",
+    style = "display: flex; align-items: flex-start; gap: 10px; width: 70%",
     div(
-      style = "flex: 3;",
-      plotlyOutput("plot_pop", height = "650px")
+      style = "flex: 2;",
+      plotlyOutput("plot_pop", height = "600px", width = "85%")
     ),
     div(
       style = "flex: 1;",
@@ -54,10 +54,10 @@ step_one_ui <- function() {
 step_two_ui <- function() {
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px; width: 85%",
+    style = "display: flex; align-items: flex-start; gap: 10px; width: 75%",
     div(
       style = "flex: 3;",
-      plotlyOutput("plot_tfr", height = "550px")
+      plotlyOutput("plot_tfr", height = "600px", width = "85%")
     )
   )
 }
@@ -69,7 +69,7 @@ step_two_ui <- function() {
 #' managing data processing, UI rendering, and routing.
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
-#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe
 #' @importFrom shinyjs hide show
 #' @importFrom untheme plotWithDownloadButtons plots_tabset
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
@@ -231,7 +231,7 @@ begin_simulation <- function(input, simulation_results, output) {
       inputId = "pop_age_sex_years",
       label = "Select year",
       choices = pop_age_sex_years(),
-      selected = pop_age_sex_years()[1]
+      selected = as.numeric(input$wpp_starting_year) + 1
     )
   })
 
@@ -342,16 +342,58 @@ begin_simulation <- function(input, simulation_results, output) {
     )
   })
 
-  plots_tabset(
-    pyramid_plot,
-    age_group_plot,
-    pop_time_plot,
-    tfr_projected_plot,
-    annual_growth_plot,
-    deaths_births_plot,
-    yadr_oadr_plot,
-    pop_size_aging_plot,
-    e0_by_cdr_plot,
-    tfr_by_cdr_plot
-  )
+  observe({
+    req(
+      input$pop_age_sex_years
+    )
+
+    cnt <- tolower(gsub(" ", "", input$wpp_country))
+    births_deaths <- tolower(strsplit(input$radio_death_births, " ")[[1]])
+    yadr_oadr <- tolower(input$radio_yadr_oadr)
+    print(input$pop_age_sex_years)
+    print(input$age_pop_time)
+
+    plots_tabset(
+      list(
+        plt_reactive = pyramid_plot,
+        filename = paste0("pyramid_age_sex_", cnt, "_", input$pop_age_sex_years)
+      ),
+      list(
+        plt_reactive = age_group_plot,
+        filename = paste0("pop_age_group_", tolower(input$radio_population_by_broad_age_group), "_", cnt)
+      ),
+      list(
+        plt_reactive = pop_time_plot,
+        filename = paste0("pop_over_time_agegroup_", tolower(input$age_pop_time), "_", cnt)
+      ),
+      list(
+        plt_reactive = tfr_projected_plot,
+        filename = paste0("tfr_projection_", cnt)
+      ),
+      list(
+        plt_reactive = annual_growth_plot,
+        filename = paste0("pop_growth_rate_", cnt)
+      ),
+      list(
+        plt_reactive = deaths_births_plot,
+        filename = paste0(births_deaths[1], "_", births_deaths[2], "_", cnt)
+      ),
+      list(
+        plt_reactive = yadr_oadr_plot,
+        filename = paste0(yadr_oadr, "_", cnt)
+      ),
+      list(
+        plt_reactive = pop_size_aging_plot,
+        filename = paste0("total_pop_and_aging_pop_", cnt)
+      ),
+      list(
+        plt_reactive = e0_by_cdr_plot,
+        filename = paste0("death_rate_life_exp_", cnt)
+      ),
+      list(
+        plt_reactive = tfr_by_cdr_plot,
+        filename = paste0("tfr_cdr_", cnt)
+      )
+    )
+  })
 }
