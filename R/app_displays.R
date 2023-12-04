@@ -51,7 +51,7 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
   mid_size <- nchar(plt_title) >= 52 & nchar(plt_title) < 55
   mid_big_size <- nchar(plt_title) >= 55 & nchar(plt_title) < 60
   big_size <- nchar(plt_title) > 60
-  font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 15)))
+  font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 13)))
 
   plt <-
     pop_dt %>%
