@@ -4,3 +4,4 @@
 ^app\.R$
 ^rsconnect$
 ^Makefile$
+^TODO.md$

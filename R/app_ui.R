@@ -52,9 +52,10 @@ app_ui <- function(request) {
             action_button("forward_step3", "Forward", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_pop", "Customize", icon = icon("refresh"), class = "ui blue button")
             )
           ),
+          uiOutput("popup_pop"),
           br(),
           withSpinner(uiOutput("step_one_ui")),
         )
@@ -68,7 +69,7 @@ app_ui <- function(request) {
             action_button("begin", "Calculate", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")
             )
           ),
           br(),

@@ -69,8 +69,11 @@ step_two_ui <- function() {
 #' managing data processing, UI rendering, and routing.
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
-#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe fileInput
 #' @importFrom shinyjs hide show
+#' @importFrom DT renderDT DTOutput renderDataTable datatable
+#' @importFrom utils read.csv
+#' @importFrom shiny.semantic modal
 #' @importFrom untheme plotWithDownloadButtons plots_tabset
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
 #' @importFrom plotly renderPlotly
@@ -80,7 +83,16 @@ app_server <- function(input, output, session) {
   # dependency issue
   library(OPPPserver)
   # Reactive expressions for population and total fertility rate data
-  reactive_pop <- reactive(get_wpp_pop(input$wpp_country, input$wpp_starting_year))
+  # Reactive expression for population data
+  reactive_pop <- reactive({
+    if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
+      res <- data.table(read.csv(input$upload_pop$datapath))
+    } else {
+      res <- get_wpp_pop(input$wpp_country, input$wpp_starting_year)
+    }
+    res
+  })
+
   reactive_tfr <- reactive(get_wpp_tfr(input$wpp_country))
 
   # Render plots for population pyramid and total fertility rate
@@ -101,10 +113,40 @@ app_server <- function(input, output, session) {
   )
 
   # Render population table
-  output$table_pop <- DT::renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
+  output$table_pop <- renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
 
   # Handle navigation between steps
   handle_navigation(reactive_pop, reactive_tfr, input, output)
+
+  output$pop_dt <- renderDT({
+    datatable(
+      reactive_pop(),
+      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+    )
+  })
+
+  output$popup_pop <- renderUI({
+    modal(
+      div(
+        DTOutput("pop_dt"),
+      ),
+      br(),
+      id = "modal_population",
+      header = "Population data",
+      footer = div(
+        style = "display: flex; gap: 2px; justify-content: center;",
+        div(
+          style = "flex: 0;", # Flexible div for spacing
+          fileInput("upload_pop", label = NULL, placeholder = "Upload CSV file", width = "50%")
+        ),
+        div(
+          style = "flex: 0;", # Flexible div for spacing
+          action_button("hide", "Close", class = "ui blue button")
+        )
+      ),
+      class = "small"
+    )
+  })
 
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
@@ -125,6 +167,7 @@ app_server <- function(input, output, session) {
 #' @param input,output Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
 #' @importFrom shiny renderUI HTML
+#' @importFrom shiny.semantic show_modal hide_modal
 #' @importFrom shinyalert shinyalert
 #' @noRd
 handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
@@ -154,8 +197,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
             style = "text-align: left;",
             HTML("\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>
               \xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>
-              \xF0\x9F\xA7\xAE Editable: single year ages with an open interval at 100+"
-)
+              \xF0\x9F\xA7\xAE Editable: single year ages with an open interval at 100+")
           ),
           type = "info",
           html = TRUE,
@@ -191,6 +233,23 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
   observeEvent(input$back_to_step3, {
     hide("step4")
     show("step3")
+  })
+
+  observeEvent(input$customize_pop, {
+    show_modal("modal_population")
+  })
+
+  observeEvent(input$hide, {
+    hide_modal("modal_population")
+  })
+
+  dataUploaded <- reactiveVal(NULL)
+
+  # Observer for file upload
+  observeEvent(input$upload_pop, {
+    req(input$upload_pop)
+    dataUploaded(TRUE)
+    reactive_pop()
   })
 }
 
