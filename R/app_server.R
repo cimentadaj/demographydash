@@ -7,14 +7,14 @@
 #' @export
 app_tabset <- function() {
   tabs <- list(
-    create_tab("Population Pyramid", "plot1", uiOutput("pop_age_sex_years_ui")),
-    create_tab("Population by Age", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-    create_tab("Population Over Time", "plot3", uiOutput("age_pop_time_ui")),
+    create_tab("Pop Pyramid", "plot1", uiOutput("pop_age_sex_years_ui"), width = "800px"),
+    create_tab("Pop by Age", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+    create_tab("Pop Over Time", "plot3", uiOutput("age_pop_time_ui")),
     create_tab("TFR", "plot4"),
-    create_tab("Population Growth", "plot5"),
+    create_tab("Pop Growth", "plot5"),
     create_tab("Deaths and Births", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
     create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
-    create_tab("Population and Aging", "plot8"),
+    create_tab("Pop and Aging", "plot8"),
     create_tab("Life Expectancy and CDR", "plot9"),
     create_tab("TFR by CDR", "plot10")
   )
@@ -69,7 +69,7 @@ step_two_ui <- function() {
 #' managing data processing, UI rendering, and routing.
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
-#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe fileInput
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe
 #' @importFrom shinyjs hide show
 #' @importFrom DT renderDT DTOutput renderDataTable datatable
 #' @importFrom utils read.csv
@@ -124,6 +124,37 @@ app_server <- function(input, output, session) {
   # Handle navigation between steps
   handle_navigation(reactive_pop, reactive_tfr, input, output)
 
+  # Handle all customize buttons
+  handle_customize_data(reactive_pop, reactive_tfr, output)
+
+  # Define a reactiveVal to store simulation results
+  simulation_results <- reactiveVal()
+
+  # Begin simulation on button click
+  observeEvent(input$begin, {
+    hide("step3")
+    show("step4")
+
+    begin_simulation(input, reactive_pop, simulation_results, output)
+  })
+}
+
+#' Handle Customization of Data in a Shiny App
+#'
+#' This function sets up the UI elements to display and customize population and total fertility rate (TFR) data in a Shiny application. It renders data tables for population and TFR data and sets up modals for data customization.
+#'
+#' @param reactive_pop A reactive expression that returns the population data to be displayed.
+#' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
+#' @param output The output list from the Shiny server function where the UI elements will be rendered.
+#'
+#' @importFrom shiny renderUI div br
+#' @importFrom shiny.semantic fileInput action_button modal
+#' @importFrom DT datatable renderDT DTOutput
+#'
+#' @return None
+#' @export
+#'
+handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
   output$pop_dt <- renderDT({
     datatable(
       reactive_pop(),
@@ -182,17 +213,6 @@ app_server <- function(input, output, session) {
       ),
       class = "small"
     )
-  })
-
-  # Define a reactiveVal to store simulation results
-  simulation_results <- reactiveVal()
-
-  # Begin simulation on button click
-  observeEvent(input$begin, {
-    hide("step3")
-    show("step4")
-
-    begin_simulation(input, reactive_pop, simulation_results, output)
   })
 }
 
@@ -331,12 +351,24 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
   })
 
   output$app_tabset <- renderUI({
-    simulation_results(forecast_res()) # Update simulation_results
+    simulation_results(forecast_res())
     app_tabset()
   })
 
+  age_pop_time <- reactive({
+    ages <- unique(simulation_results()$population_by_time$age)
+  })
+
+  output$age_pop_time_ui <- renderUI({
+    selectInput(
+      inputId = "age_pop_time",
+      label = "Select age group",
+      choices = age_pop_time(),
+      selected = age_pop_time()[1]
+    )
+  })
+
   pop_age_sex_years <- reactive({
-    req(simulation_results())
     unique(simulation_results()$population_by_age_and_sex$year)
   })
 
@@ -350,7 +382,6 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
   })
 
   pyramid_plot <- reactive({
-    req(simulation_results(), input$pop_age_sex_years)
     create_pop_pyramid(
       simulation_results()$population_by_age_and_sex,
       input_year = input$pop_age_sex_years
@@ -358,30 +389,20 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
   })
 
   age_group_plot <- reactive({
-    req(input$radio_population_by_broad_age_group)
     create_age_group_plot(
       simulation_results()$population_by_broad_age_group,
       input$radio_population_by_broad_age_group
     )
   })
 
-  age_pop_time <- reactive({
-    req(simulation_results())
-    ages <- unique(simulation_results()$population_by_time$age)
-  })
-
-  output$age_pop_time_ui <- renderUI({
-    selectInput(
-      inputId = "age_pop_time",
-      label = "Select age group",
-      choices = age_pop_time(),
-      selected = age_pop_time()[1]
-    )
-  })
-
   pop_time_plot <- reactive({
-    req(input$age_pop_time)
-    create_pop_time_plot(simulation_results()$population_by_time, input$age_pop_time)
+    if (is.null(input$age_pop_time)) {
+      return(NULL)
+    }
+
+    create_pop_time_plot(
+      simulation_results()$population_by_time, input$age_pop_time
+    )
   })
 
   tfr_projected_plot <- reactive({
@@ -464,8 +485,6 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
     cnt <- tolower(gsub(" ", "", input$wpp_country))
     births_deaths <- tolower(strsplit(input$radio_death_births, " ")[[1]])
     yadr_oadr <- tolower(input$radio_yadr_oadr)
-    print(input$pop_age_sex_years)
-    print(input$age_pop_time)
 
     plots_tabset(
       list(

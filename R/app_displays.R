@@ -169,7 +169,6 @@ create_pop_time_plot <- function(dt, input_age) {
   pop_dt[type_value == "pop", type_value := "Forecast"]
   pop_dt[type_value == "un_pop_median", type_value := "UN Median"]
 
-  print(pop_dt)
   names(pop_dt) <- c(
     "Year",
     "Age",
