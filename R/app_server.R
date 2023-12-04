@@ -82,8 +82,7 @@ app_server <- function(input, output, session) {
   # TODO: remove this and import directly run_forecast. Need to fix
   # dependency issue
   library(OPPPserver)
-  # Reactive expressions for population and total fertility rate data
-  # Reactive expression for population data
+
   reactive_pop <- reactive({
     if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
       res <- data.table(read.csv(input$upload_pop$datapath))
@@ -93,7 +92,14 @@ app_server <- function(input, output, session) {
     res
   })
 
-  reactive_tfr <- reactive(get_wpp_tfr(input$wpp_country))
+  reactive_tfr <- reactive({
+    if (!is.null(input$upload_tfr) && nrow(input$upload_tfr) > 0) {
+      res <- data.table(read.csv(input$upload_tfr$datapath))
+    } else {
+      res <- get_wpp_tfr(input$wpp_country)
+    }
+    res
+  })
 
   # Render plots for population pyramid and total fertility rate
   output$plot_pop <- renderPlotly(
@@ -125,6 +131,13 @@ app_server <- function(input, output, session) {
     )
   })
 
+  output$tfr_dt <- renderDT({
+    datatable(
+      reactive_tfr(),
+      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+    )
+  })
+
   output$popup_pop <- renderUI({
     modal(
       div(
@@ -137,11 +150,34 @@ app_server <- function(input, output, session) {
         style = "display: flex; gap: 2px; justify-content: center;",
         div(
           style = "flex: 0;", # Flexible div for spacing
-          fileInput("upload_pop", label = NULL, placeholder = "Upload CSV file", width = "50%")
+          shiny.semantic::fileInput("upload_pop", label = NULL, placeholder = "Upload CSV file", width = "50%")
         ),
         div(
           style = "flex: 0;", # Flexible div for spacing
-          action_button("hide", "Close", class = "ui blue button")
+          action_button("hide_pop", "Close", class = "ui blue button")
+        )
+      ),
+      class = "small"
+    )
+  })
+
+  output$popup_tfr <- renderUI({
+    modal(
+      div(
+        DTOutput("tfr_dt"),
+      ),
+      br(),
+      id = "modal_tfr",
+      header = "Total Fertility data",
+      footer = div(
+        style = "display: flex; gap: 2px; justify-content: center;",
+        div(
+          style = "flex: 0;", # Flexible div for spacing
+          shiny.semantic::fileInput("upload_tfr", label = NULL, placeholder = "Upload CSV file", width = "50%")
+        ),
+        div(
+          style = "flex: 0;", # Flexible div for spacing
+          action_button("hide_tfr", "Close", class = "ui blue button")
         )
       ),
       class = "small"
@@ -156,7 +192,7 @@ app_server <- function(input, output, session) {
     hide("step3")
     show("step4")
 
-    begin_simulation(input, simulation_results, output)
+    begin_simulation(input, reactive_pop, simulation_results, output)
   })
 }
 
@@ -239,7 +275,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     show_modal("modal_population")
   })
 
-  observeEvent(input$hide, {
+  observeEvent(input$hide_pop, {
     hide_modal("modal_population")
   })
 
@@ -251,6 +287,23 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     dataUploaded(TRUE)
     reactive_pop()
   })
+
+  observeEvent(input$customize_tfr, {
+    show_modal("modal_tfr")
+  })
+
+  observeEvent(input$hide_tfr, {
+    hide_modal("modal_tfr")
+  })
+
+  dataUploaded_tfr <- reactiveVal(NULL)
+
+  # Observer for file upload
+  observeEvent(input$upload_tfr, {
+    req(input$upload_tfr)
+    dataUploaded_tfr(TRUE)
+    reactive_tfr()
+  })
 }
 
 #' Begin Simulation
@@ -258,20 +311,22 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #' This function manages the simulation process and updates the UI accordingly.
 #'
 #' @param input Internal parameter for `{shiny}`.
+#' @param pop_dt Population data
 #' @param simulation_results A reactive value to store simulation results.
 #' @param output Internal parameter for `{shiny}`.
 #' @importFrom shiny reactive renderUI req
 #' @importFrom shiny.semantic selectInput
 #' @importFrom shinyjs hide show
 #' @noRd
-begin_simulation <- function(input, simulation_results, output) {
+begin_simulation <- function(input, pop_dt, simulation_results, output) {
   # TODO: fix 2021
   forecast_res <- reactive({
     run_forecast(
       country = input$wpp_country,
       start_year = 2021,
       end_year = as.numeric(input$wpp_ending_year),
-      output_dir = "/tmp/hasdaney213/"
+      output_dir = "/tmp/hasdaney213/",
+      pop = pop_dt()
     )
   })
 

@@ -72,6 +72,7 @@ app_ui <- function(request) {
               action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")
             )
           ),
+          uiOutput("popup_tfr"),
           br(),
           withSpinner(uiOutput("step_two_ui")),
         )
