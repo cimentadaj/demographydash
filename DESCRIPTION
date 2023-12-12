@@ -30,9 +30,9 @@ Imports:
 Suggests:
     testthat (>= 3.0.0)
 Remotes:
+    PPgp/OPPPserver,
     cimentadaj/untheme,
-    daattali/shinyalert,
-    PPgp/OPPPserver
+    daattali/shinyalert
 Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
