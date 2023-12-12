@@ -1,3 +1,5 @@
+^renv$
+^renv\.lock$
 ^LICENSE\.md$
 ^README\.Rmd$
 ^dev
@@ -5,3 +7,6 @@
 ^rsconnect$
 ^Makefile$
 ^TODO.md$
+^Dockerfile$
+^\.dockerignore$
+^\.env$

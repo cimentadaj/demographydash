@@ -26,9 +26,20 @@ devtools::install_github("cimentadaj/demographydash")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+To launch the app locally, run:
 
 ``` r
 library(demographydash)
 run_app()
 ```
+
+To launch the app through docker, save a `.env` file in the root of the
+repository containing the environment variable `GITHUB_PAT` and run this
+in the terminal at the root of the repository:
+
+``` bash
+docker build -t demoapp .
+docker run --env-file .env -p 3838:3838 -d demoapp
+```
+
+And test the app in <http://localhost:3838>.,
