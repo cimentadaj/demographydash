@@ -574,7 +574,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
 #'
 #' @return A list containing a ggplot object and an interactive plotly object.
 #'
-#' @importFrom ggplot2 aes_string ggplot geom_line labs theme_minimal
+#' @importFrom ggplot2 aes_string ggplot geom_point labs theme_minimal
 #' @importFrom plotly ggplotly
 #' @importFrom data.table data.table setnames
 #' @export
@@ -625,7 +625,7 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
         text = text
       )
     ) +
-    geom_line() +
+    geom_point() +
     labs(title = plot_title) +
     theme_minimal(base_size = 16)
 
