@@ -478,6 +478,9 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
   })
 
   observe({
+    input$radio_population_by_broad_age_group
+    input$age_pop_time
+
     req(
       input$pop_age_sex_years
     )

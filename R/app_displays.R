@@ -1,3 +1,5 @@
+sz <- 15
+
 #' Create Population Pyramid Plot
 #'
 #' This function takes a data table and an optional input year to create a population pyramid plot.
@@ -63,7 +65,7 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
     scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
     coord_flip() +
     labs(title = plt_title) +
-    theme_minimal(base_size = 16) + # Increase font sizes
+    theme_minimal(base_size = sz) + # Increase font sizes
     theme(
       plot.title = element_text(size = font_size),
       legend.position = "top",
@@ -124,8 +126,8 @@ create_age_group_plot <- function(dt, input_scale) {
     pop_dt %>%
     ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
-    theme_minimal(base_size = 16) +
     labs(title = "Projected Population by Years and Age Groups", color = "Age Group") +
+    theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom"
     )
@@ -148,7 +150,7 @@ create_age_group_plot <- function(dt, input_scale) {
 #' @param dt Data table with population data.
 #' @param input_age The age group to subset
 #'
-#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual geom_rect expansion scale_fill_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #'
@@ -178,19 +180,47 @@ create_pop_time_plot <- function(dt, input_age) {
     "Population"
   )
 
+  num_cols <- names(pop_dt)[sapply(pop_dt, is.numeric)]
+  num_cols <- num_cols[num_cols != "Year"]
+  res <- pop_dt[, num_cols, with = FALSE]
+
+  min_y <- min(sapply(res, min, na.rm = TRUE))
+  min_y <- min_y - (min_y * 0.05)
+  max_y <- max(sapply(res, max, na.rm = TRUE))
+  max_y <- max_y + (max_y * 0.05)
+  max_year <- max(pop_dt$Year)
+
   plt <-
     pop_dt %>%
-    ggplot(aes(Year, Population, color = Type, group = Type)) +
+    ggplot(aes(Year, Population, color = Type, , fill = Type, group = Type)) +
+    geom_rect(
+      aes(xmin = 2021, xmax = max_year, ymin = min_y, ymax = max_y),
+      color = "white",
+      fill = "grey",
+      alpha = 0.1
+    ) +
     geom_line() +
     geom_ribbon(
       data = pop_dt[Type == "UN Forecast"],
-      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN CI"), alpha = 0.2
+      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN CI", fill = "95% UN CI"),
+      alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+    ) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0)
     ) +
     labs(title = "Projected Population by Years for Selected Age Groups") +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(size = 13)
+    )
 
   Year <- NULL
   Type <- NULL
@@ -243,7 +273,10 @@ create_tfr_projected_plot <- function(dt, end_year) {
       values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
     ) +
     labs(title = "Projected Total Fertility Rate by Years") +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+    theme(
+      legend.position = "bottom"
+    )
 
   Year <- NULL
   TFR <- NULL
@@ -282,7 +315,10 @@ create_annual_growth_plot <- function(dt, end_year) {
     ggplot(aes(Year, `Population Growth Rate`, color = Age, group = Age)) +
     geom_line() +
     labs(title = "Population Growth Rate by Years and Age Groups") +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+      theme(
+        legend.position = "bottom"
+      )
 
   Year <- NULL
   `Population Growth Rate` <- NULL
@@ -320,7 +356,7 @@ create_tfr_plot <- function(dt, end_year, country) {
     labs(
       title = paste0("Total Fertility Rate by Year for ", country),
     ) +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz)
 
   list(gg = plt, plotly = ggplotly(plt))
 }
@@ -477,7 +513,10 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     labs(
       title = title_plt,
     ) +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+    theme(
+      legend.position = "bottom"
+    )
 
   Year <- NULL
   Type <- NULL
@@ -561,7 +600,10 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
       title = paste0(data_type_long, " by Years"),
       subtitle = "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64"
     ) +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+    theme(
+      legend.position = "bottom"
+    )
 
   year <- NULL
   Year <- NULL
@@ -655,7 +697,11 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
     ) +
     geom_point() +
     labs(title = plot_title) +
-    theme_minimal(base_size = 16)
+    theme_minimal(base_size = sz) +
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(size = 13)
+    )
 
   if (percent_x) {
     plt <- plt + scale_x_continuous(labels = scales::label_percent(scale = 1))
