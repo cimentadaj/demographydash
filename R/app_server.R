@@ -253,7 +253,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
             style = "text-align: left;",
             HTML("\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>
               \xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>
-              \xF0\x9F\xA7\xAE Editable: single year ages with an open interval at 100+")
+              \xF0\x9F\xA7\xAE Upload: single year ages with an open interval at 100+")
           ),
           type = "info",
           html = TRUE,

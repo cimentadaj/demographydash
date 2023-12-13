@@ -118,7 +118,7 @@ create_age_group_plot <- function(dt, input_scale) {
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
   type_pop <- paste0("Population (", input_scale, ")")
-  names(pop_dt) <- c("Year", "Age", "type_value", type_pop)
+  names(pop_dt) <- c("Year", "Age", "Type", type_pop)
 
   plt <-
     pop_dt %>%
@@ -148,7 +148,7 @@ create_age_group_plot <- function(dt, input_scale) {
 #' @param dt Data table with population data.
 #' @param input_age The age group to subset
 #'
-#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #'
@@ -167,7 +167,7 @@ create_pop_time_plot <- function(dt, input_age) {
   pop_dt <- pop_dt[pop_dt$age == input_age, ]
 
   pop_dt[type_value == "pop", type_value := "Forecast"]
-  pop_dt[type_value == "un_pop_median", type_value := "UN Median"]
+  pop_dt[type_value == "un_pop_median", type_value := "UN Forecast"]
 
   names(pop_dt) <- c(
     "Year",
@@ -182,13 +182,20 @@ create_pop_time_plot <- function(dt, input_age) {
     pop_dt %>%
     ggplot(aes(Year, Population, color = Type, group = Type)) +
     geom_line() +
-    geom_ribbon(aes(ymin = un_pop_95low, ymax = un_pop_95high), alpha = 1 / 5) +
+    geom_ribbon(
+      data = pop_dt[Type == "UN Forecast"],
+      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN CI"), alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+    ) +
     labs(title = "Projected Population by Years for Selected Age Groups") +
     theme_minimal(base_size = 16)
 
   Year <- NULL
   Type <- NULL
   Population <- NULL
+  Type <- NULL
   type_value <- NULL
   un_pop_95low <- NULL
   un_pop_95high <- NULL
@@ -203,7 +210,7 @@ create_pop_time_plot <- function(dt, input_age) {
 #' @param dt Data table with population data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #'
-#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous scale_color_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #'
@@ -221,14 +228,20 @@ create_tfr_projected_plot <- function(dt, end_year) {
 
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
   tfr_dt[type_value == "tfr", type_value := "Forecast"]
-  tfr_dt[type_value == "un_tfr_median", type_value := "UN Median"]
+  tfr_dt[type_value == "un_tfr_median", type_value := "UN Forecast"]
 
   names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
 
   plt <-
     ggplot(tfr_dt, aes(Year, TFR, group = Type)) +
     geom_line(aes(color = Type)) +
-    geom_ribbon(aes(ymin = un_tfr_95low, ymax = un_tfr_95high), alpha = 1 / 5) +
+    geom_ribbon(
+      data = tfr_dt[Type == "UN Forecast"],
+      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN CI"), alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+    ) +
     labs(title = "Projected Total Fertility Rate by Years") +
     theme_minimal(base_size = 16)
 
@@ -249,7 +262,7 @@ create_tfr_projected_plot <- function(dt, end_year) {
 #' @param dt Data table with annual growth data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #'
-#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon
+#' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
 #'
@@ -287,7 +300,7 @@ create_annual_growth_plot <- function(dt, end_year) {
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #' @param country The country for which the data is plotted
 #'
-#' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
+#' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #'
 #' @return A ggplot2 object.
@@ -388,7 +401,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
 #' @param value_type A character string indicating the type of value to plot ("count" or "rate").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
 #' @return A ggplot object.
-#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal
+#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #' @importFrom data.table setnames .SD :=
 #'
@@ -454,7 +467,13 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
     ) +
     geom_line() +
-    geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
+    geom_ribbon(
+      data = melt_data[Type == "UN Forecast"],
+      aes(ymin = low, ymax = high, color = "95% UN CI"), alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+    ) +
     labs(
       title = title_plt,
     ) +
@@ -466,7 +485,10 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
   low <- NULL
   high <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color")))
+  list(
+    gg = plt,
+    plotly = ggplotly(plt, tooltip = c("x", "y", "color"))
+  )
 }
 
 
@@ -480,7 +502,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 #' @param data_type A character string indicating the type of data to plot ("yadr" or "oadr").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
 #' @return A ggplot object.
-#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal
+#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #'
 #' @export
@@ -528,7 +550,13 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
       aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
     ) +
     geom_line() +
-    geom_ribbon(aes(ymin = low, ymax = high), alpha = 0.2) +
+    geom_ribbon(
+      data = melt_data[Type == "UN Forecast"],
+      aes(ymin = low, ymax = high, color = "95% UN CI"), alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+    ) +
     labs(
       title = paste0(data_type_long, " by Years"),
       subtitle = "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64"
