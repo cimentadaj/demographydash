@@ -86,6 +86,7 @@ app_server <- function(input, output, session) {
   reactive_pop <- reactive({
     if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
       res <- data.table(read.csv(input$upload_pop$datapath))
+      names(res) <- c("age", "popF", "popM")
     } else {
       res <- get_wpp_pop(input$wpp_country, input$wpp_starting_year)
     }
@@ -95,6 +96,7 @@ app_server <- function(input, output, session) {
   reactive_tfr <- reactive({
     if (!is.null(input$upload_tfr) && nrow(input$upload_tfr) > 0) {
       res <- data.table(read.csv(input$upload_tfr$datapath))
+      names(res) <- c("year", "tfr")
     } else {
       res <- get_wpp_tfr(input$wpp_country)
     }
@@ -155,16 +157,20 @@ app_server <- function(input, output, session) {
 #' @export
 #'
 handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
-  output$pop_dt <- renderDT({
+  output$tmp_pop_dt <- renderDT({
+    res <- reactive_pop()
+    names(res) <- c("Age", "Female", "Male")
     datatable(
-      reactive_pop(),
+      res,
       options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
     )
   })
 
-  output$tfr_dt <- renderDT({
+  output$tmp_tfr_dt <- renderDT({
+    res <- reactive_tfr()
+    names(res) <- c("Year", "TFR")
     datatable(
-      reactive_tfr(),
+      res,
       options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
     )
   })
@@ -172,7 +178,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
   output$popup_pop <- renderUI({
     modal(
       div(
-        DTOutput("pop_dt"),
+        DTOutput("tmp_pop_dt"),
       ),
       br(),
       id = "modal_population",
@@ -195,7 +201,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
   output$popup_tfr <- renderUI({
     modal(
       div(
-        DTOutput("tfr_dt"),
+        DTOutput("tmp_tfr_dt"),
       ),
       br(),
       id = "modal_tfr",
