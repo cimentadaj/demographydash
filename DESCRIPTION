@@ -1,6 +1,6 @@
 Package: demographydash
 Title: A Shiny Dashboard for Demographic Analysis
-Version: 0.0.0.9000
+Version: 0.0.0.9001
 Authors@R:
     person("Jorge", "Cimentada", , "cimentadaj@gmail.com", role = c("aut", "cre"))
 Description: This dashboard aims to make demographic analysis avialable to
@@ -15,7 +15,7 @@ Imports:
     ggplot2,
     golem (>= 0.4.1),
     magrittr,
-    OPPPserver (>= 0.0.6),
+    OPPPserver (>= 0.0.6.9004),
     plotly,
     rlang,
     scales,

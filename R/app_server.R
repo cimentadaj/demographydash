@@ -345,11 +345,10 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #' @importFrom shinyjs hide show
 #' @noRd
 begin_simulation <- function(input, pop_dt, simulation_results, output) {
-  # TODO: fix 2021
   forecast_res <- reactive({
     run_forecast(
       country = input$wpp_country,
-      start_year = 2021,
+      start_year = as.numeric(input$wpp_starting_year),
       end_year = as.numeric(input$wpp_ending_year),
       output_dir = "/tmp/hasdaney213/",
       pop = pop_dt()
