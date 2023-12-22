@@ -20,6 +20,7 @@ Imports:
     rlang,
     scales,
     shiny (>= 1.7.4),
+    shiny.fluent,
     shiny.semantic,
     shinyalert (>= 3.0.0.9000),
     shinycssloaders,

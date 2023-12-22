@@ -74,6 +74,7 @@ step_two_ui <- function() {
 #' @importFrom DT renderDT DTOutput renderDataTable datatable
 #' @importFrom utils read.csv
 #' @importFrom shiny.semantic modal
+#' @importFrom shiny.fluent TooltipHost Image
 #' @importFrom untheme plotWithDownloadButtons plots_tabset
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
 #' @importFrom plotly renderPlotly
@@ -129,8 +130,34 @@ app_server <- function(input, output, session) {
   # Handle all customize buttons
   handle_customize_data(reactive_pop, reactive_tfr, output)
 
+
+  add_resource_path(
+    "www",
+    app_sys("app/www")
+  )
+
+  output$hover <- renderUI({
+    TooltipHost(
+      content = paste0(
+        "Analysis for ",
+        input$wpp_country,
+        " between ",
+        input$wpp_starting_year,
+        " and ",
+        input$wpp_ending_year
+      ),
+      delay = 0,
+      Image(
+        src = "www/world_icon.png",
+        width = "45px",
+        shouldStartVisible = TRUE
+      )
+    )
+  })
+
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
+
 
   # Begin simulation on button click
   observeEvent(input$begin, {

@@ -80,7 +80,15 @@ app_ui <- function(request) {
       hidden(
         div(
           id = "step4",
-          action_button("back_to_step3", "Back", class = "ui grey button"),
+          div(
+            style = "display: flex; gap: 20px;", # 20px gap between buttons
+            action_button("back_to_step3", "Back", class = "ui grey button"),
+            div(
+              style = "margin-left: auto;",
+              uiOutput("hover")
+            )
+          ),
+          br(),
           withSpinner(uiOutput("app_tabset"))
         )
       ),
