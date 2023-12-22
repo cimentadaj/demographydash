@@ -43,6 +43,9 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
   pop_dt[sex == "popF", sex := "Females"]
 
   names(pop_dt) <- tools::toTitleCase(names(pop_dt))
+  pop_dt <- pop_dt[, c("Population", "Age", "Sex"), with = FALSE]
+  pop_dt[["Population"]] <- round(pop_dt[["Population"]], 1)
+  names(pop_dt)[1] <- paste(names(pop_dt)[1], "(in thousands)")
 
   if (!is.null(country) & !is.null(input_year)) {
     plt_title <- paste0("Population by Age and Sex for ", country, " in ", input_year)
@@ -57,12 +60,21 @@ create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
 
   plt <-
     pop_dt %>%
-    ggplot(aes_string(x = "Age", y = "Population", fill = "Sex")) +
+    ggplot(aes_string(x = "Age", y = "`Population (in thousands)`", fill = "Sex")) +
     geom_bar(alpha = 0.7, stat = "identity") +
     scale_x_discrete(
       breaks = seq(0, 100, by = 5)
     ) +
-    scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
+    scale_y_continuous(
+      labels = label_number(scale_cut = cut_short_scale())
+    ) +
+    # This second scale_y_continuous is a hack to remove the minus sign
+    # from the left part of the X axis. Using scales is too complicated
+    # so we just add a new scale and alter the labels formatted by the
+    # labels package.
+    scale_y_continuous(
+      labels = function(x) abs(x)
+    ) +
     coord_flip() +
     labs(title = plt_title) +
     theme_minimal(base_size = sz) + # Increase font sizes
@@ -119,8 +131,15 @@ create_age_group_plot <- function(dt, input_scale) {
     )
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
-  type_pop <- paste0("Population (", input_scale, ")")
+
+  axis_label <- ifelse(input_scale == "Percent", "Percent", "in thousands")
+
+  type_pop <- paste0("Population (", axis_label, ")")
   names(pop_dt) <- c("Year", "Age", "Type", type_pop)
+
+  if (input_scale != "Percent") {
+    pop_dt[[type_pop]] <- round(pop_dt[[type_pop]], 1)
+  }
 
   plt <-
     pop_dt %>%
@@ -134,6 +153,8 @@ create_age_group_plot <- function(dt, input_scale) {
 
   if (input_scale == "Percent") {
     plt <- plt + scale_y_continuous(labels = scales::label_percent(scale = 1))
+  } else {
+    plt <- plt + scale_y_continuous(labels = label_number(big.mark = ""))
   }
 
   Year <- NULL
@@ -177,8 +198,10 @@ create_pop_time_plot <- function(dt, input_age) {
     "un_pop_95low",
     "un_pop_95high",
     "Type",
-    "Population"
+    "Population (in thousands)"
   )
+
+  pop_dt[["Population (in thousands)"]] <- round(pop_dt[["Population (in thousands)"]], 1)
 
   num_cols <- names(pop_dt)[sapply(pop_dt, is.numeric)]
   num_cols <- num_cols[num_cols != "Year"]
@@ -192,13 +215,13 @@ create_pop_time_plot <- function(dt, input_age) {
 
   plt <-
     pop_dt %>%
-    ggplot(aes(Year, Population, color = Type, , fill = Type, group = Type)) +
-    geom_rect(
-      aes(xmin = 2021, xmax = max_year, ymin = min_y, ymax = max_y),
-      color = "white",
-      fill = "grey",
-      alpha = 0.1
-    ) +
+    ggplot(aes(Year, `Population (in thousands)`, color = Type, , fill = Type, group = Type)) +
+    ## geom_rect(
+    ##   aes(xmin = 2021, xmax = max_year, ymin = min_y, ymax = max_y),
+    ##   color = "white",
+    ##   fill = "grey",
+    ##   alpha = 0.1
+    ## ) +
     geom_line() +
     geom_ribbon(
       data = pop_dt[Type == "UN Forecast"],
@@ -213,7 +236,8 @@ create_pop_time_plot <- function(dt, input_age) {
     ) +
     scale_y_continuous(
       limits = c(min_y, max_y),
-      expand = expansion(mult = 0)
+      expand = expansion(mult = 0),
+      labels = label_number(big.mark = "")
     ) +
     labs(title = "Projected Population by Years for Selected Age Groups") +
     theme_minimal(base_size = sz) +
@@ -229,6 +253,7 @@ create_pop_time_plot <- function(dt, input_age) {
   type_value <- NULL
   un_pop_95low <- NULL
   un_pop_95high <- NULL
+  `Population (in thousands)` <- NULL
 
   list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "group")))
 }
@@ -263,14 +288,17 @@ create_tfr_projected_plot <- function(dt, end_year) {
   names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
 
   plt <-
-    ggplot(tfr_dt, aes(Year, TFR, group = Type)) +
-    geom_line(aes(color = Type)) +
+    ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
+    geom_line() +
     geom_ribbon(
       data = tfr_dt[Type == "UN Forecast"],
-      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN CI"), alpha = 0.2
+      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
     labs(title = "Projected Total Fertility Rate by Years") +
     theme_minimal(base_size = sz) +
@@ -492,23 +520,34 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     " by Years"
   )
 
-  var_name <- paste(tools::toTitleCase(data_type), tools::toTitleCase(value_type))
+  if (value_type == "counts") {
+    units_append <- "(in thousands)"
 
+  } else {
+    units_append <- NULL
+  }
+
+  var_name <- paste(tools::toTitleCase(data_type), tools::toTitleCase(value_type), units_append)
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+
+  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
 
   # Plot the data
   plt <-
     ggplot(
       melt_data,
-      aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
+      aes(x = Year, y = !!sym(var_name), group = Type, color = Type, fill = Type)
     ) +
     geom_line() +
     geom_ribbon(
       data = melt_data[Type == "UN Forecast"],
-      aes(ymin = low, ymax = high, color = "95% UN CI"), alpha = 0.2
+      aes(ymin = low, ymax = high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
     labs(
       title = title_plt,
@@ -517,6 +556,10 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     theme(
       legend.position = "bottom"
     )
+
+  if (value_type == "counts") {
+    plt <- plt + scale_y_continuous(labels = label_number(big.mark = ""))
+  }
 
   Year <- NULL
   Type <- NULL
@@ -582,19 +625,24 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
   var_name <- paste0(data_type_long, " (", toupper(data_type), ")")
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
 
+  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
+
   # Plot the data
   plt <-
     ggplot(
       melt_data,
-      aes(x = Year, y = !!sym(var_name), group = Type, color = Type)
+      aes(x = Year, y = !!sym(var_name), group = Type, color = Type, fill = Type)
     ) +
     geom_line() +
     geom_ribbon(
       data = melt_data[Type == "UN Forecast"],
-      aes(ymin = low, ymax = high, color = "95% UN CI"), alpha = 0.2
+      aes(ymin = low, ymax = high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "grey")
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
     labs(
       title = paste0(data_type_long, " by Years"),
@@ -683,6 +731,12 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
   # Add text for ggplotly to display on hover
   combined_data$text <- paste("Year:", combined_data$year)
 
+  combined_data[[names(combined_data)[3]]] <- round(combined_data[[names(combined_data)[3]]], 1)
+
+  if (names(combined_data)[3] == "Population") {
+    names(combined_data)[3] <- "Population (in thousands)"
+  }
+
   # Create the ggplot object with the mappings
   plt <-
     ggplot(
@@ -693,7 +747,7 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
         color = Type,
         group = Type,
         text = text
-      )
+      ),
     ) +
     geom_point() +
     labs(title = plot_title) +
@@ -705,6 +759,10 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   if (percent_x) {
     plt <- plt + scale_x_continuous(labels = scales::label_percent(scale = 1))
+  }
+
+  if (grepl("Population", names(combined_data)[3])) {
+    plt <- plt + scale_y_continuous(labels = label_number(big.mark = ""))
   }
 
   Type <- NULL

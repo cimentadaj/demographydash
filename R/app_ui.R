@@ -15,7 +15,7 @@ input_page <- function() {
     div(
       class = "two fields",
       create_field_set("calendar", "Starting Year", "wpp_starting_year", 2023:2099, 2023),
-      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2024)
+      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
     )
   )
 }
