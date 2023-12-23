@@ -130,7 +130,6 @@ app_server <- function(input, output, session) {
   # Handle all customize buttons
   handle_customize_data(reactive_pop, reactive_tfr, output)
 
-
   add_resource_path(
     "www",
     app_sys("app/www")
@@ -158,13 +157,12 @@ app_server <- function(input, output, session) {
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
 
-
   # Begin simulation on button click
   observeEvent(input$begin, {
     hide("step3")
     show("step4")
 
-    begin_simulation(input, reactive_pop, simulation_results, output)
+    begin_simulation(input, reactive_pop, reactive_tfr, simulation_results, output)
   })
 }
 
@@ -249,6 +247,35 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
   })
 }
 
+
+#' Compute the TFR page
+#'
+#' @param reactive_tfr A reactive function returning the TFR data frame
+#' @param input,output Internal parameters for `{shiny}`.
+#' @importFrom shiny renderUI
+#' @noRd
+compute_tfr <- function(reactive_tfr, input, output) {
+  # Added this twice because it allows the spinner around step_two_ui to
+  # register the time spent
+  create_tfr_plot(reactive_tfr(), end_year = input$wpp_ending_year, country = input$wpp_country)
+  output$step_two_ui <- renderUI(step_two_ui())
+}
+
+#' Show and compute the TFR page
+#'
+#' @param reactive_tfr A reactive function returning the TFR data frame
+#' @param input,output Internal parameters for `{shiny}`.
+#' @importFrom shinyjs hide show
+#' @importFrom shiny.semantic hide_modal
+#' @noRd
+show_tfr <- function(reactive_tfr, input, output) {
+  hide_modal("modal_passtfr")
+  hide("step2")
+  show("step3")
+  compute_tfr(reactive_tfr, input, output)
+}
+
+
 #' Handle Navigation Between Steps
 #'
 #' This function manages the navigation between different steps of the application.
@@ -299,14 +326,49 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     ignoreInit = TRUE
   )
 
-  observeEvent(input$forward_step3, {
-    hide("step2")
-    show("step3")
+  output$pass_tfr <- renderUI({
+    modal(
+      id = "modal_passtfr",
+      header = "continue?",
+      footer = div(
+        style = "display: flex; gap: 2px; justify-content: center;",
+        div(
+          style = "flex: 0;", # Flexible div for spacing
+          action_button("change_tfr_btn", "Specify TFR", class = "ui grey button"),
+          action_button("pass_tfr_btn", "Assume TFR", class = "ui blue button")
+        )
+      ),
+      class = "small"
+    )
+  })
 
-    # Added this twice because it allows the spinner around step_two_ui to
-    # register the time spent
-    create_tfr_plot(reactive_tfr(), end_year = input$wpp_ending_year, country = input$wpp_country)
-    output$step_two_ui <- renderUI(step_two_ui())
+  show_tfr_modal <- reactiveVal(TRUE)
+
+  observeEvent(input$forward_step3, {
+    if (show_tfr_modal()) {
+      show_modal("modal_passtfr")
+    } else {
+      show_tfr(reactive_tfr, input, output)
+    }
+
+    show_tfr_modal(FALSE)
+  })
+
+  observeEvent(input$change_tfr_btn, {
+    show_tfr(reactive_tfr, input, output)
+  })
+
+  observeEvent(input$pass_tfr_btn, {
+    hide_modal("modal_passtfr")
+    hide("step2")
+    show("step4")
+
+    # compute in the background
+    compute_tfr(reactive_tfr, input, output)
+
+    # Define a reactiveVal to store simulation results
+    simulation_results <- reactiveVal()
+    begin_simulation(input, reactive_pop, reactive_tfr, simulation_results, output)
   })
 
   observeEvent(input$back_to_step1, {
@@ -365,20 +427,22 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #'
 #' @param input Internal parameter for `{shiny}`.
 #' @param pop_dt Population data
+#' @param tfr_dt TFR data
 #' @param simulation_results A reactive value to store simulation results.
 #' @param output Internal parameter for `{shiny}`.
 #' @importFrom shiny reactive renderUI req
 #' @importFrom shiny.semantic selectInput
 #' @importFrom shinyjs hide show
 #' @noRd
-begin_simulation <- function(input, pop_dt, simulation_results, output) {
+begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) {
   forecast_res <- reactive({
     run_forecast(
       country = input$wpp_country,
       start_year = as.numeric(input$wpp_starting_year),
       end_year = as.numeric(input$wpp_ending_year),
       output_dir = "/tmp/hasdaney213/",
-      pop = pop_dt()
+      pop = pop_dt(),
+      tfr = tfr_dt()
     )
   })
 
@@ -414,6 +478,7 @@ begin_simulation <- function(input, pop_dt, simulation_results, output) {
   })
 
   pyramid_plot <- reactive({
+    req(simulation_results())
     create_pop_pyramid(
       simulation_results()$population_by_age_and_sex,
       input_year = input$pop_age_sex_years
