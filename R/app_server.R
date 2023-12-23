@@ -329,12 +329,17 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
   output$pass_tfr <- renderUI({
     modal(
       id = "modal_passtfr",
-      header = "continue?",
+      ## content = "Would you like to assume the Total Fertility Rate (TFR)?",
+      content = list(
+          style = "font-size: 20px; font-weight: bold; padding: 10px; text-align: center; display: flex; justify-content: center; align-items: center;",
+        `data-custom` = "value",
+        HTML("Would you like to assume the Total Fertility Rate (TFR)?")
+      ),
       footer = div(
         style = "display: flex; gap: 2px; justify-content: center;",
         div(
-          style = "flex: 0;", # Flexible div for spacing
-          action_button("change_tfr_btn", "Specify TFR", class = "ui grey button"),
+          style = "display: flex; gap: 10px;", # 20px gap between buttons
+          action_button("change_tfr_btn", "Inspect TFR", class = "ui grey button"),
           action_button("pass_tfr_btn", "Assume TFR", class = "ui blue button")
         )
       ),
