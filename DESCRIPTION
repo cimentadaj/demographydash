@@ -15,7 +15,7 @@ Imports:
     ggplot2,
     golem (>= 0.4.1),
     magrittr,
-    OPPPserver (>= 0.0.6),
+    OPPPserver (>= 0.0.6.9006),
     plotly,
     rlang,
     scales,

@@ -216,12 +216,6 @@ create_pop_time_plot <- function(dt, input_age) {
   plt <-
     pop_dt %>%
     ggplot(aes(Year, `Population (in thousands)`, color = Type, , fill = Type, group = Type)) +
-    ## geom_rect(
-    ##   aes(xmin = 2021, xmax = max_year, ymin = min_y, ymax = max_y),
-    ##   color = "white",
-    ##   fill = "grey",
-    ##   alpha = 0.1
-    ## ) +
     geom_line() +
     geom_ribbon(
       data = pop_dt[Type == "UN Forecast"],
@@ -625,8 +619,6 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
   var_name <- paste0(data_type_long, " (", toupper(data_type), ")")
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
 
-  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
-
   # Plot the data
   plt <-
     ggplot(
@@ -730,8 +722,6 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   # Add text for ggplotly to display on hover
   combined_data$text <- paste("Year:", combined_data$year)
-
-  combined_data[[names(combined_data)[3]]] <- round(combined_data[[names(combined_data)[3]]], 1)
 
   if (names(combined_data)[3] == "Population") {
     names(combined_data)[3] <- "Population (in thousands)"
