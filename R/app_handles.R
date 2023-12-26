@@ -210,12 +210,12 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
     })
 
   output$download_pop <- shiny::downloadHandler(
-    filename = function() paste0("population_", cnt_years),
+    filename = function() paste0("population_", cnt_years()),
     content = function(file) write.csv(reactive_pop(), file, row.names = FALSE)
   )
 
   output$download_tfr <- shiny::downloadHandler(
-    filename = function() paste0("tfr_", cnt_years),
+    filename = function() paste0("tfr_", cnt_years()),
     content = function(file) write.csv(reactive_tfr(), file, row.names = FALSE)
   )
 }
