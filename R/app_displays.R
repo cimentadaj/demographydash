@@ -236,7 +236,7 @@ create_pop_time_plot <- function(dt, input_age) {
       expand = expansion(mult = 0),
       labels = label_number(big.mark = "")
     ) +
-    labs(title = "Projected Population by Years for Selected Age Groups") +
+    labs(title = paste0("Projected Population by Years for Age Group '", input_age, "'")) +
     theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom",
