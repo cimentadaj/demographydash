@@ -22,6 +22,7 @@ input_page <- function() {
 
 #' The application User-Interface
 #'
+
 #' @param request Internal parameter for `{shiny}`.
 #' @return A shiny semantic UI for the application.
 #' @importFrom shiny div actionButton numericInput uiOutput br
@@ -40,8 +41,7 @@ app_ui <- function(request) {
         div(
           class = "ui form",
           input_page(),
-          action_button("forward_step2", "Next", class = "ui blue button")
-          uiOutput("next_pop_page"),
+          uiOutput("next_pop_page")
         )
       ),
       hidden(
@@ -87,7 +87,7 @@ app_ui <- function(request) {
             action_button("back_to_step3", "Back", class = "ui grey button"),
             div(
               style = "margin-left: auto;",
-              uiOutput("hover")
+              uiOutput("main_analysis_hover")
             )
           ),
           br(),

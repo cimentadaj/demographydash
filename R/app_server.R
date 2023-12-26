@@ -69,7 +69,7 @@ step_two_ui <- function() {
 #' managing data processing, UI rendering, and routing.
 #'
 #' @param input,output,session Internal parameters for `{shiny}`.
-#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe wellPanel
 #' @importFrom shinyjs hide show
 #' @importFrom DT renderDT DTOutput renderDataTable datatable
 #' @importFrom utils read.csv
@@ -139,14 +139,14 @@ app_server <- function(input, output, session) {
   handle_navigation(reactive_pop, reactive_tfr, input, output)
 
   # Handle all customize buttons
-  handle_customize_data(reactive_pop, reactive_tfr, output)
+  handle_customize_data(reactive_pop, reactive_tfr, input, output)
 
   add_resource_path(
     "www",
     app_sys("app/www")
   )
 
-  output$hover <- renderUI({
+  output$main_analysis_hover <- renderUI({
     TooltipHost(
       content = paste0(
         "Analysis for ",
@@ -158,8 +158,8 @@ app_server <- function(input, output, session) {
       ),
       delay = 0,
       Image(
-        src = "www/world_icon.png",
-        width = "45px",
+        src = "www/info.png",
+        width = "35px",
         shouldStartVisible = TRUE
       )
     )
@@ -183,8 +183,8 @@ app_server <- function(input, output, session) {
 #'
 #' @param reactive_pop A reactive expression that returns the population data to be displayed.
 #' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
-#' @param output The output list from the Shiny server function where the UI elements will be rendered.
-#'
+#' @param output The input list from the Shiny server function where the UI elements will be rendered.
+#' @param input The output list from the Shiny server function where the UI elements will be rendered.
 #' @importFrom shiny renderUI div br
 #' @importFrom shiny.semantic fileInput action_button modal
 #' @importFrom DT datatable renderDT DTOutput
@@ -192,13 +192,18 @@ app_server <- function(input, output, session) {
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
+handle_customize_data <- function(reactive_pop, reactive_tfr, input, output) {
   output$tmp_pop_dt <- renderDT({
     res <- reactive_pop()
     names(res) <- c("Age", "Female", "Male")
     datatable(
       res,
-      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+      options = list(
+        paging = TRUE,
+        searching = FALSE,
+        lengthChange = FALSE,
+        dom = "lfrtp"
+      )
     )
   })
 
@@ -213,22 +218,43 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
 
   output$popup_pop <- renderUI({
     modal(
-      div(
-        DTOutput("tmp_pop_dt"),
-      ),
-      br(),
       id = "modal_population",
-      header = "Population data",
-      footer = div(
-        style = "display: flex; gap: 2px; justify-content: center;",
+      header = div(
         div(
-          style = "flex: 0;", # Flexible div for spacing
-          shiny.semantic::fileInput("upload_pop", label = NULL, placeholder = "Upload CSV file", width = "50%")
+          style = "display: flex;",
+          paste0(
+            "Population data for ",
+            input$wpp_country,
+            " between ",
+            input$wpp_starting_year,
+            " and ",
+            input$wpp_ending_year
+          )
         ),
         div(
-          style = "flex: 0;", # Flexible div for spacing
-          action_button("hide_pop", "Close", class = "ui blue button")
+          tags$em("Population units are in thousands. Any edits need to be added in thousands"),
+          style = "font-weight: normal; font-size: smaller;"
         )
+      ),
+      div(
+        DTOutput("tmp_pop_dt")
+      ),
+      footer = div(
+        div(
+          style = "display: flex; gap: 2px; justify-content: center;",
+          div(
+            style = "flex: 0;", # Flexible div for spacing
+            shiny.semantic::fileInput("upload_pop", label = NULL, placeholder = "Upload CSV file", width = "50%")
+          ),
+          div(
+            style = "flex: 0;", # Flexible div for spacing
+            div(
+              style = "display: flex; gap: 5px",
+              shiny::downloadButton("download_pop", "Download", class = "ui blue button"),
+              action_button("hide_pop", "Close", class = "ui red button"),
+            )
+          )
+        ),
       ),
       class = "small"
     )
@@ -249,8 +275,12 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, output) {
           shiny.semantic::fileInput("upload_tfr", label = NULL, placeholder = "Upload CSV file", width = "50%")
         ),
         div(
-          style = "flex: 0;", # Flexible div for spacing
-          action_button("hide_tfr", "Close", class = "ui blue button")
+          style = "flex: 0;",
+          div(
+            style = "display: flex; gap: 5px",
+            shiny::downloadButton("download_tfr", "Download", class = "ui blue button"),
+            action_button("hide_tfr", "Close", class = "ui red button")
+          )
         )
       ),
       class = "small"
@@ -296,6 +326,7 @@ show_tfr <- function(reactive_tfr, input, output) {
 #' @importFrom shiny renderUI HTML
 #' @importFrom shiny.semantic show_modal hide_modal
 #' @importFrom shinyalert shinyalert
+#' @importFrom utils write.csv
 #' @noRd
 handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
   processing <- reactiveVal(TRUE)
@@ -342,7 +373,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
       id = "modal_passtfr",
       ## content = "Would you like to assume the Total Fertility Rate (TFR)?",
       content = list(
-          style = "font-size: 20px; font-weight: bold; padding: 10px; text-align: center; display: flex; justify-content: center; align-items: center;",
+        style = "font-size: 20px; font-weight: bold; padding: 10px; text-align: center; display: flex; justify-content: center; align-items: center;",
         `data-custom` = "value",
         HTML("Would you like to assume the Total Fertility Rate (TFR)?")
       ),
@@ -409,6 +440,38 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
   observeEvent(input$hide_pop, {
     hide_modal("modal_population")
   })
+
+  output$download_pop <- shiny::downloadHandler(
+    filename = function() {
+      paste0(
+        "population_",
+        tolower(gsub(" ", "", input$wpp_country)),
+        "_",
+        input$wpp_starting_year,
+        "_",
+        input$wpp_ending_year
+      )
+    },
+    content = function(file) {
+      write.csv(reactive_pop(), file, row.names = FALSE)
+    }
+  )
+
+  output$download_tfr <- shiny::downloadHandler(
+    filename = function() {
+      paste0(
+        "tfr_",
+        tolower(gsub(" ", "", input$wpp_country)),
+        "_",
+        input$wpp_starting_year,
+        "_",
+        input$wpp_ending_year
+      )
+    },
+    content = function(file) {
+      write.csv(reactive_tfr(), file, row.names = FALSE)
+    }
+  )
 
   dataUploaded <- reactiveVal(NULL)
 
