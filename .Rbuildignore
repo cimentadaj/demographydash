@@ -10,3 +10,4 @@
 ^Dockerfile$
 ^\.dockerignore$
 ^\.env$
+^R/_disable_autoload.R$

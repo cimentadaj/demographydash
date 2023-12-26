@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-This package aims to create a shiny webapp to make demographic analysis avialable to users which are not familiar with R. The web application allows to upload data, validate it and conduct demographic analysis such as life tables and projections.
+This package aims to create a shiny web app to make demographic analysis available to users which are not familiar with R. The web application allows to download WPP data and make demographic projections.
 
 ## Installation
 
@@ -30,7 +30,7 @@ You can install the development version of demographydash from [GitHub](https://
 devtools::install_github("cimentadaj/demographydash")
 ```
 
-## Example
+## How to launch the app
 
 To launch the app locally, run:
 
@@ -48,3 +48,21 @@ docker run --env-file .env -p 3838:3838 -d demoapp
 ```
 
 And test the app in [http://localhost:3838](http://localhost:3838).,
+
+## Brief explanation
+
+The app is composed of several modules. Here's a one line for each module so it's easier to understand:
+
+```
+R/
+├── app_displays.R # All plots / tables in the app have a function that produces it here
+├── app_forecast.R # Functions related to running the forecast
+├── app_handles.R # handle_* functions control aspects of the app (navigation, customization, etc..)
+├── app_show.R # show_* functions render different UI pages of the app
+├── app_server.R # The server-side logic
+├── app_ui.R # UI logic of the app
+├── app_config.R
+├── _disable_autoload.R
+├── run_app.R
+└── utils-pipe.R
+```

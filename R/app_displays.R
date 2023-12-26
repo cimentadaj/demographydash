@@ -15,6 +15,7 @@ sz <- 15
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   if (!is.null(input_year) & is.null(country)) {
     dt <- dt[year == input_year]
@@ -118,6 +119,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_age_group_plot <- function(dt, input_scale) {
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
 
@@ -177,6 +179,7 @@ create_age_group_plot <- function(dt, input_scale) {
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_pop_time_plot <- function(dt, input_age) {
   pop_dt <-
     melt(
@@ -265,6 +268,7 @@ create_pop_time_plot <- function(dt, input_age) {
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_tfr_projected_plot <- function(dt, end_year) {
   tfr_dt <-
     melt(
@@ -323,6 +327,7 @@ create_tfr_projected_plot <- function(dt, end_year) {
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_annual_growth_plot <- function(dt, end_year) {
   dt <- dt[dt$year <= as.numeric(end_year), ]
   dt$value <- dt$growth_rate
@@ -363,6 +368,7 @@ create_annual_growth_plot <- function(dt, end_year) {
 #'
 #' @return A ggplot2 object.
 #' @export
+#'
 create_tfr_plot <- function(dt, end_year, country) {
   Year <- NULL
   TFR <- NULL
@@ -393,6 +399,7 @@ create_tfr_plot <- function(dt, end_year, country) {
 #'
 #' @return A shiny.semantic DataTable object.
 #' @export
+#'
 prepare_pop_agegroups_table <- function(wpp_dt) {
   wpp_dt$population <- wpp_dt$popF + wpp_dt$popM
 
@@ -464,6 +471,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
 #' @importFrom data.table setnames .SD :=
 #'
 #' @export
+#'
 create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type, value_type, end_year) {
   # Validate input
   if (!(data_type %in% c("birth", "death")) | !(value_type %in% c("counts", "rates"))) {
@@ -581,6 +589,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 #' @importFrom plotly ggplotly
 #'
 #' @export
+#'
 create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
   # Select appropriate data.table based on data_type
   data <- if (data_type == "yadr") {
@@ -687,6 +696,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
 #' @importFrom plotly ggplotly
 #' @importFrom data.table data.table setnames
 #' @export
+#'
 create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = FALSE) {
   # Extract the title from the name_mappings and separate it from column mappings
   plot_title <- name_mappings[["title"]]

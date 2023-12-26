@@ -1,28 +1,3 @@
-#' The application User-Interface for input page
-#'
-#' @return A div containing the input page UI elements.
-#' @importFrom untheme create_field_set
-#' @noRd
-input_page <- function() {
-  div(
-    create_field_set(
-      "globe",
-      "Select a country",
-      "wpp_country",
-      OPPPserver::get_wpp_countries(),
-      NULL
-    ),
-    div(
-      class = "two fields",
-      create_field_set("calendar", "Starting Year", "wpp_starting_year", 2023:2099, 2023),
-      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
-    )
-  )
-}
-
-#' The application User-Interface
-#'
-
 #' @param request Internal parameter for `{shiny}`.
 #' @return A shiny semantic UI for the application.
 #' @importFrom shiny div actionButton numericInput uiOutput br
@@ -36,21 +11,21 @@ app_ui <- function(request) {
     useShinyjs(),
     main_panel(
       div(
-        id = "step1",
+        id = "input_page",
         class = "ui raised very padded text container segment",
         div(
           class = "ui form",
-          input_page(),
+          show_input_ui(),
           uiOutput("next_pop_page")
         )
       ),
       hidden(
         div(
-          id = "step2",
+          id = "pop_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_step1", "Back", class = "ui grey button"),
-            action_button("forward_step3", "Forward", class = "ui blue button"),
+            action_button("back_to_input_page", "Back", class = "ui grey button"),
+            action_button("forward_tfr_page", "Forward", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_pop", "Customize", icon = icon("refresh"), class = "ui blue button")
@@ -64,10 +39,10 @@ app_ui <- function(request) {
       ),
       hidden(
         div(
-          id = "step3",
+          id = "tfr_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_step2", "Back", class = "ui grey button"),
+            action_button("back_to_pop_page", "Back", class = "ui grey button"),
             action_button("begin", "Calculate", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
@@ -81,17 +56,17 @@ app_ui <- function(request) {
       ),
       hidden(
         div(
-          id = "step4",
+          id = "forecast_page",
           div(
             style = "display: flex; gap: 20px;", # 20px gap between buttons
-            action_button("back_to_step3", "Back", class = "ui grey button"),
+            action_button("back_to_tfr_page", "Back", class = "ui grey button"),
             div(
               style = "margin-left: auto;",
               uiOutput("main_analysis_hover")
             )
           ),
           br(),
-          withSpinner(uiOutput("app_tabset"))
+          withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),
       hidden(
