@@ -41,6 +41,7 @@ app_ui <- function(request) {
           class = "ui form",
           input_page(),
           action_button("forward_step2", "Next", class = "ui blue button")
+          uiOutput("next_pop_page"),
         )
       ),
       hidden(

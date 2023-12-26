@@ -84,6 +84,17 @@ app_server <- function(input, output, session) {
   # dependency issue
   library(OPPPserver)
 
+  output$next_pop_page <- renderUI({
+    if (input$wpp_ending_year < input$wpp_starting_year) {
+      wellPanel(
+        class = "danger",
+        HTML("\u274C Ending year should be higher than starting year")
+      )
+    } else {
+      action_button("forward_step2", "Next", class = "ui blue button")
+    }
+  })
+
   reactive_pop <- reactive({
     if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
       res <- data.table(read.csv(input$upload_pop$datapath))
