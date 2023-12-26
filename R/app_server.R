@@ -1,19 +1,19 @@
 #' Generate a tabset for the application
 #'
 #' @return A tabset UI component for the application
-#' @importFrom shiny.semantic tabset
+#' @importFrom shiny.semantic tabset multiple_radio
 #' @importFrom shiny actionButton div
 #' @importFrom untheme create_tab
 #' @export
 app_tabset <- function() {
   tabs <- list(
     create_tab("Pop Pyramid", "plot1", uiOutput("pop_age_sex_years_ui"), width = "800px"),
-    create_tab("Pop by Age", "plot2", shiny.semantic::multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+    create_tab("Pop by Age", "plot2", multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
     create_tab("Pop Over Time", "plot3", uiOutput("age_pop_time_ui")),
     create_tab("TFR", "plot4"),
     create_tab("Pop Growth", "plot5"),
-    create_tab("Deaths and Births", "plot6", shiny.semantic::multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
-    create_tab("YADR and OADR", "plot7", shiny.semantic::multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
+    create_tab("Deaths and Births", "plot6", multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
+    create_tab("YADR and OADR", "plot7", multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
     create_tab("Pop and Aging", "plot8"),
     create_tab("Life Expectancy and CDR", "plot9"),
     create_tab("TFR by CDR", "plot10")
@@ -29,7 +29,7 @@ app_tabset <- function() {
 #' @importFrom shiny.semantic grid
 #' @importFrom plotly plotlyOutput
 #' @export
-step_one_ui <- function() {
+show_pop_results_ui <- function() {
   div(
     class = "ui raised very padded container segment",
     style = "display: flex; align-items: flex-start; gap: 10px; width: 70%",
@@ -51,7 +51,7 @@ step_one_ui <- function() {
 #' @importFrom shiny.semantic grid
 #' @importFrom plotly plotlyOutput
 #' @export
-step_two_ui <- function() {
+show_tfr_results_ui <- function() {
   div(
     class = "ui raised very padded container segment",
     style = "display: flex; align-items: flex-start; gap: 10px; width: 75%",
@@ -62,120 +62,39 @@ step_two_ui <- function() {
   )
 }
 
-
-#' The Application Server-Side Logic
+#' Render Population and TFR Plots
 #'
-#' This function defines the server logic for the Shiny application,
-#' managing data processing, UI rendering, and routing.
+#' @param reactive_pop A reactive expression returning the population data.
+#' @param reactive_tfr A reactive expression returning the TFR (Total Fertility Rate) data.
+#' @param wpp_starting_year A reactive expression returning the starting year.
+#' @param wpp_ending_year A reactive expression returning the ending year.
+#' @param input,output Internal parameters for `{shiny}.
 #'
-#' @param input,output,session Internal parameters for `{shiny}`.
-#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe wellPanel
-#' @importFrom shinyjs hide show
-#' @importFrom DT renderDT DTOutput renderDataTable datatable
-#' @importFrom utils read.csv
-#' @importFrom shiny.semantic modal
-#' @importFrom shiny.fluent TooltipHost Image
-#' @importFrom untheme plotWithDownloadButtons plots_tabset
-#' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
-#' @importFrom plotly renderPlotly
+#' @importFrom DT renderDataTable
+#' @importFrom plotly ggplotly renderPlotly
 #' @export
-app_server <- function(input, output, session) {
-  # TODO: remove this and import directly run_forecast. Need to fix
-  # dependency issue
-  library(OPPPserver)
-
-  output$next_pop_page <- renderUI({
-    if (input$wpp_ending_year < input$wpp_starting_year) {
-      wellPanel(
-        class = "danger",
-        HTML("\u274C Ending year should be higher than starting year")
-      )
-    } else {
-      action_button("forward_step2", "Next", class = "ui blue button")
-    }
-  })
-
-  reactive_pop <- reactive({
-    if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
-      res <- data.table(read.csv(input$upload_pop$datapath))
-      names(res) <- c("age", "popF", "popM")
-    } else {
-      res <- get_wpp_pop(input$wpp_country, input$wpp_starting_year)
-    }
-    res
-  })
-
-  reactive_tfr <- reactive({
-    if (!is.null(input$upload_tfr) && nrow(input$upload_tfr) > 0) {
-      res <- data.table(read.csv(input$upload_tfr$datapath))
-      names(res) <- c("year", "tfr")
-    } else {
-      res <- get_wpp_tfr(input$wpp_country)
-    }
-    res
-  })
-
+handle_pop_tfr_plots <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output) {
   # Render plots for population pyramid and total fertility rate
   output$plot_pop <- renderPlotly(
-    create_pop_pyramid(
+    create_pop_pyramid_plot(
       reactive_pop(),
       country = input$wpp_country,
-      input_year = as.numeric(input$wpp_starting_year)
+      input_year = wpp_starting_year()
     )$plotly
   )
 
   output$plot_tfr <- renderPlotly(
     create_tfr_plot(
       reactive_tfr(),
-      end_year = input$wpp_ending_year,
+      end_year = wpp_ending_year(),
       country = input$wpp_country
     )$plotly
   )
 
   # Render population table
   output$table_pop <- renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
-
-  # Handle navigation between steps
-  handle_navigation(reactive_pop, reactive_tfr, input, output)
-
-  # Handle all customize buttons
-  handle_customize_data(reactive_pop, reactive_tfr, input, output)
-
-  add_resource_path(
-    "www",
-    app_sys("app/www")
-  )
-
-  output$main_analysis_hover <- renderUI({
-    TooltipHost(
-      content = paste0(
-        "Analysis for ",
-        input$wpp_country,
-        " between ",
-        input$wpp_starting_year,
-        " and ",
-        input$wpp_ending_year
-      ),
-      delay = 0,
-      Image(
-        src = "www/info.png",
-        width = "35px",
-        shouldStartVisible = TRUE
-      )
-    )
-  })
-
-  # Define a reactiveVal to store simulation results
-  simulation_results <- reactiveVal()
-
-  # Begin simulation on button click
-  observeEvent(input$begin, {
-    hide("step3")
-    show("step4")
-
-    begin_simulation(input, reactive_pop, reactive_tfr, simulation_results, output)
-  })
 }
+
 
 #' Handle Customization of Data in a Shiny App
 #'
@@ -183,8 +102,10 @@ app_server <- function(input, output, session) {
 #'
 #' @param reactive_pop A reactive expression that returns the population data to be displayed.
 #' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
-#' @param output The input list from the Shiny server function where the UI elements will be rendered.
-#' @param input The output list from the Shiny server function where the UI elements will be rendered.
+#' @param wpp_starting_year A reactive expression returning the starting year.
+#' @param wpp_ending_year A reactive expression returning the ending year.
+#' @param input,output Internal parameters for `{shiny}`.
+#'
 #' @importFrom shiny renderUI div br
 #' @importFrom shiny.semantic fileInput action_button modal
 #' @importFrom DT datatable renderDT DTOutput
@@ -192,7 +113,7 @@ app_server <- function(input, output, session) {
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, input, output) {
+handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output) {
   output$tmp_pop_dt <- renderDT({
     res <- reactive_pop()
     names(res) <- c("Age", "Female", "Male")
@@ -226,9 +147,9 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, input, output) {
             "Population data for ",
             input$wpp_country,
             " between ",
-            input$wpp_starting_year,
+            wpp_starting_year(),
             " and ",
-            input$wpp_ending_year
+            wpp_ending_year()
           )
         ),
         div(
@@ -292,28 +213,31 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, input, output) {
 #' Compute the TFR page
 #'
 #' @param reactive_tfr A reactive function returning the TFR data frame
+#' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}`.
 #' @importFrom shiny renderUI
 #' @noRd
-compute_tfr <- function(reactive_tfr, input, output) {
-  # Added this twice because it allows the spinner around step_two_ui to
-  # register the time spent
-  create_tfr_plot(reactive_tfr(), end_year = input$wpp_ending_year, country = input$wpp_country)
-  output$step_two_ui <- renderUI(step_two_ui())
+compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
+  # Repeated the create_tfr_plot here because it allows the spinner
+  # around the page to register the time spent
+  create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country)
+  output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
 }
 
 #' Show and compute the TFR page
 #'
 #' @param reactive_tfr A reactive function returning the TFR data frame
+#' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}`.
+#'
 #' @importFrom shinyjs hide show
 #' @importFrom shiny.semantic hide_modal
 #' @noRd
-show_tfr <- function(reactive_tfr, input, output) {
+show_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
   hide_modal("modal_passtfr")
   hide("step2")
   show("step3")
-  compute_tfr(reactive_tfr, input, output)
+  compute_tfr(reactive_tfr, wpp_ending_year, input, output)
 }
 
 
@@ -321,6 +245,10 @@ show_tfr <- function(reactive_tfr, input, output) {
 #'
 #' This function manages the navigation between different steps of the application.
 #'
+#' @param reactive_pop A reactive expression that returns the population data to be displayed.
+#' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
+#' @param wpp_starting_year A reactive expression returning the starting year.
+#' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}`.
 #' @importFrom shinyjs hide show
 #' @importFrom shiny renderUI HTML
@@ -328,18 +256,18 @@ show_tfr <- function(reactive_tfr, input, output) {
 #' @importFrom shinyalert shinyalert
 #' @importFrom utils write.csv
 #' @noRd
-handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
+handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output) {
   processing <- reactiveVal(TRUE)
 
   observeEvent(input$forward_step2, {
     hide("step1")
     show("step2")
 
-    # Added this twice because it allows the spinner around step_one_ui to
-    # register the time spent
-    create_pop_pyramid(reactive_pop())
-    output$step_one_ui <- renderUI({
-      res <- step_one_ui()
+    # Repeated the create_pop_pyramid_plot here because it allows the spinner
+    # around the page to register the time spent
+    create_pop_pyramid_plot(reactive_pop())
+    output$show_pop_results_ui <- renderUI({
+      res <- show_pop_results_ui()
       processing(FALSE)
       res
     })
@@ -395,14 +323,14 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     if (show_tfr_modal()) {
       show_modal("modal_passtfr")
     } else {
-      show_tfr(reactive_tfr, input, output)
+      show_tfr(reactive_tfr, wpp_ending_year, input, output)
     }
 
     show_tfr_modal(FALSE)
   })
 
   observeEvent(input$change_tfr_btn, {
-    show_tfr(reactive_tfr, input, output)
+    show_tfr(reactive_tfr, wpp_ending_year, input, output)
   })
 
   observeEvent(input$pass_tfr_btn, {
@@ -411,11 +339,11 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
     show("step4")
 
     # compute in the background
-    compute_tfr(reactive_tfr, input, output)
+    compute_tfr(reactive_tfr, wpp_ending_year, input, output)
 
     # Define a reactiveVal to store simulation results
     simulation_results <- reactiveVal()
-    begin_simulation(input, reactive_pop, reactive_tfr, simulation_results, output)
+    begin_simulation(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results)
   })
 
   observeEvent(input$back_to_step1, {
@@ -447,9 +375,9 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
         "population_",
         tolower(gsub(" ", "", input$wpp_country)),
         "_",
-        input$wpp_starting_year,
+        wpp_starting_year(),
         "_",
-        input$wpp_ending_year
+        wpp_ending_year()
       )
     },
     content = function(file) {
@@ -463,9 +391,9 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
         "tfr_",
         tolower(gsub(" ", "", input$wpp_country)),
         "_",
-        input$wpp_starting_year,
+        wpp_starting_year(),
         "_",
-        input$wpp_ending_year
+        wpp_ending_year()
       )
     },
     content = function(file) {
@@ -504,32 +432,39 @@ handle_navigation <- function(reactive_pop, reactive_tfr, input, output) {
 #'
 #' This function manages the simulation process and updates the UI accordingly.
 #'
-#' @param input Internal parameter for `{shiny}`.
-#' @param pop_dt Population data
-#' @param tfr_dt TFR data
+#' @param reactive_pop Population data
+#' @param reactive_tfr TFR data
+#' @param wpp_starting_year A reactive expression returning the starting year.
+#' @param wpp_ending_year A reactive expression returning the ending year.
+#' @param input,output Internal parameter for `{shiny}`.
 #' @param simulation_results A reactive value to store simulation results.
-#' @param output Internal parameter for `{shiny}`.
 #' @importFrom shiny reactive renderUI req
 #' @importFrom shiny.semantic selectInput
 #' @importFrom shinyjs hide show
 #' @noRd
-begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) {
+begin_simulation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
+  # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
+  # automatically after runs and since plotly uses the temporary directory this
+  # raises error. By fixing the output directory run_forecast and plotly use different
+  # temporary directories.
   forecast_res <- reactive({
     run_forecast(
       country = input$wpp_country,
-      start_year = as.numeric(input$wpp_starting_year),
-      end_year = as.numeric(input$wpp_ending_year),
+      start_year = wpp_starting_year(),
+      end_year = wpp_ending_year(),
       output_dir = "/tmp/hasdaney213/",
-      pop = pop_dt(),
-      tfr = tfr_dt()
+      pop = reactive_pop(),
+      tfr = reactive_tfr()
     )
   })
 
+  # Generates the tabset UI where all plots are rendered
   output$app_tabset <- renderUI({
     simulation_results(forecast_res())
     app_tabset()
   })
 
+  ##### Reactive Widgets calculatd based on the data #####
   age_pop_time <- reactive({
     ages <- unique(simulation_results()$population_by_time$age)
   })
@@ -552,13 +487,16 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
       inputId = "pop_age_sex_years",
       label = "Select year",
       choices = pop_age_sex_years(),
-      selected = as.numeric(input$wpp_starting_year) + 1
+      selected = wpp_starting_year() + 1
     )
   })
+  ##### Reactive Widgets end #####
 
+
+  ##### Reactive Plots from the analysis page #####
   pyramid_plot <- reactive({
     req(simulation_results())
-    create_pop_pyramid(
+    create_pop_pyramid_plot(
       simulation_results()$population_by_age_and_sex,
       input_year = input$pop_age_sex_years
     )
@@ -584,25 +522,28 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
   tfr_projected_plot <- reactive({
     create_tfr_projected_plot(
       simulation_results()$tfr_by_time,
-      as.numeric(input$wpp_ending_year)
+      wpp_ending_year()
     )
   })
 
   annual_growth_plot <- reactive({
     create_annual_growth_plot(
       simulation_results()$annual_growth_rate,
-      as.numeric(input$wpp_ending_year)
+      wpp_ending_year()
     )
   })
 
   deaths_births_plot <- reactive({
+    # type_value here is something like "Birth Counts" or "Birth Rates"
+    # we split it to define the type of value and titles and use
+    # each word for different labels.
     type_value <- tolower(strsplit(input$radio_death_births, " ")[[1]])
     create_deaths_births_plot(
       simulation_results()$births_counts_rates,
       simulation_results()$deaths_counts_rates,
       type_value[1],
       type_value[2],
-      as.numeric(input$wpp_ending_year)
+      wpp_ending_year()
     )
   })
 
@@ -612,14 +553,14 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
       simulation_results()$oadr,
       simulation_results()$yadr,
       type_value,
-      as.numeric(input$wpp_ending_year)
+      wpp_ending_year()
     )
   })
 
   pop_size_aging_plot <- reactive({
     create_un_projection_plot(
       simulation_results()$pop_aging_and_pop_size,
-      as.numeric(input$wpp_ending_year),
+      wpp_ending_year(),
       c(
         "pop" = "Population",
         "percent65" = "% of population 65+",
@@ -632,7 +573,7 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
   e0_by_cdr_plot <- reactive({
     create_un_projection_plot(
       simulation_results()$cdr_by_e0,
-      as.numeric(input$wpp_ending_year),
+      wpp_ending_year(),
       c(
         "cdr" = "Crude Death Rate",
         "e0" = "Life Expectancy",
@@ -644,7 +585,7 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
   tfr_by_cdr_plot <- reactive({
     create_un_projection_plot(
       simulation_results()$cbr_by_tfr,
-      as.numeric(input$wpp_ending_year),
+      wpp_ending_year(),
       c(
         "cbr" = "Crude Birth Rate",
         "tfr" = "Total Fertility Rate",
@@ -653,6 +594,9 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
     )
   })
 
+  ##### Reactive Plots End #####
+
+  ##### Generate all plots and show in the tabset UI #####
   observe({
     input$radio_population_by_broad_age_group
     input$age_pop_time
@@ -707,5 +651,107 @@ begin_simulation <- function(input, pop_dt, tfr_dt, simulation_results, output) 
         filename = paste0("tfr_cdr_", cnt)
       )
     )
+  })
+  ##### Finish plotting in tabs #####
+}
+
+#' The Application Server-Side Logic
+#'
+#' This function defines the server logic for the Shiny application,
+#' managing data processing, UI rendering, and routing.
+#'
+#' @param input,output,session Internal parameters for `{shiny}`.
+#' @importFrom shiny reactive reactiveVal renderPlot renderTable observeEvent updateNumericInput renderUI observe wellPanel
+#' @importFrom shinyjs hide show
+#' @importFrom DT renderDT DTOutput datatable
+#' @importFrom utils read.csv
+#' @importFrom shiny.semantic modal
+#' @importFrom shiny.fluent TooltipHost Image
+#' @importFrom untheme plotWithDownloadButtons plots_tabset
+#' @importFrom OPPPserver get_wpp_pop get_wpp_tfr run_forecast remove_forecast
+#' @importFrom plotly renderPlotly
+#' @export
+app_server <- function(input, output, session) {
+  # Make the www folder available for loading images and icons
+  add_resource_path(
+    "www",
+    app_sys("app/www")
+  )
+
+  wpp_starting_year <- reactive(as.numeric(input$wpp_starting_year))
+  wpp_ending_year <- reactive(as.numeric(input$wpp_ending_year))
+
+  # TODO: remove this and import directly run_forecast. Need to fix
+  # dependency issue
+  library(OPPPserver)
+
+  output$next_pop_page <- renderUI({
+    if (wpp_ending_year() < wpp_starting_year()) {
+      wellPanel(
+        class = "danger",
+        HTML("\u274C Ending year should be higher than starting year")
+      )
+    } else {
+      action_button("forward_step2", "Next", class = "ui blue button")
+    }
+  })
+
+  reactive_pop <- reactive({
+    if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
+      res <- data.table(read.csv(input$upload_pop$datapath))
+      names(res) <- c("age", "popF", "popM")
+    } else {
+      res <- get_wpp_pop(input$wpp_country, wpp_starting_year())
+    }
+    res
+  })
+
+  reactive_tfr <- reactive({
+    if (!is.null(input$upload_tfr) && nrow(input$upload_tfr) > 0) {
+      res <- data.table(read.csv(input$upload_tfr$datapath))
+      names(res) <- c("year", "tfr")
+    } else {
+      res <- get_wpp_tfr(input$wpp_country)
+    }
+    res
+  })
+
+  # Handle pop/tfr plots/tables before analysis
+  handle_pop_tfr_plots(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+
+  # Handle navigation between steps
+  handle_navigation(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+
+  # Handle all customize buttons
+  handle_customize_data(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+
+  output$main_analysis_hover <- renderUI({
+    TooltipHost(
+      content = paste0(
+        "Analysis for ",
+        input$wpp_country,
+        " between ",
+        wpp_starting_year(),
+        " and ",
+        wpp_ending_year()
+      ),
+      delay = 0,
+      Image(
+        src = "www/info.png",
+        width = "35px",
+        shouldStartVisible = TRUE
+      )
+    )
+  })
+
+  # Define a reactiveVal to store simulation results
+  simulation_results <- reactiveVal()
+
+  # Begin simulation on button click
+  observeEvent(input$begin, {
+    hide("step3")
+    show("step4")
+
+    begin_simulation(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results)
   })
 }

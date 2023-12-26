@@ -59,7 +59,7 @@ app_ui <- function(request) {
           uiOutput("popup_pop"),
           uiOutput("pass_tfr"),
           br(),
-          withSpinner(uiOutput("step_one_ui")),
+          withSpinner(uiOutput("show_pop_results_ui")),
         )
       ),
       hidden(
@@ -76,7 +76,7 @@ app_ui <- function(request) {
           ),
           uiOutput("popup_tfr"),
           br(),
-          withSpinner(uiOutput("step_two_ui")),
+          withSpinner(uiOutput("show_tfr_results_ui")),
         )
       ),
       hidden(

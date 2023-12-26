@@ -4,16 +4,25 @@
 \alias{handle_customize_data}
 \title{Handle Customization of Data in a Shiny App}
 \usage{
-handle_customize_data(reactive_pop, reactive_tfr, input, output)
+handle_customize_data(
+  reactive_pop,
+  reactive_tfr,
+  wpp_starting_year,
+  wpp_ending_year,
+  input,
+  output
+)
 }
 \arguments{
 \item{reactive_pop}{A reactive expression that returns the population data to be displayed.}
 
 \item{reactive_tfr}{A reactive expression that returns the TFR data to be displayed.}
 
-\item{input}{The output list from the Shiny server function where the UI elements will be rendered.}
+\item{wpp_starting_year}{A reactive expression returning the starting year.}
 
-\item{output}{The input list from the Shiny server function where the UI elements will be rendered.}
+\item{wpp_ending_year}{A reactive expression returning the ending year.}
+
+\item{input, output}{Internal parameters for `{shiny}`.}
 }
 \value{
 None

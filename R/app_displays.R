@@ -15,7 +15,7 @@ sz <- 15
 #'
 #' @return A ggplot2 object.
 #' @export
-create_pop_pyramid <- function(dt, country = NULL, input_year = NULL) {
+create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   if (!is.null(input_year) & is.null(country)) {
     dt <- dt[year == input_year]
   }
@@ -338,9 +338,9 @@ create_annual_growth_plot <- function(dt, end_year) {
     geom_line() +
     labs(title = "Population Growth Rate by Years and Age Groups") +
     theme_minimal(base_size = sz) +
-      theme(
-        legend.position = "bottom"
-      )
+    theme(
+      legend.position = "bottom"
+    )
 
   Year <- NULL
   `Population Growth Rate` <- NULL
@@ -516,7 +516,6 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 
   if (value_type == "counts") {
     units_append <- "(in thousands)"
-
   } else {
     units_append <- NULL
   }
