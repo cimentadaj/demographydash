@@ -199,13 +199,15 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
   })
 
   cnt_years <-
-    paste0(
-      tolower(gsub(" ", "", input$wpp_country)),
-      "_",
-      wpp_starting_year(),
-      "_",
-      wpp_ending_year()
-    )
+    reactive({
+      paste0(
+        tolower(gsub(" ", "", input$wpp_country)),
+        "_",
+        wpp_starting_year(),
+        "_",
+        wpp_ending_year()
+      )
+    })
 
   output$download_pop <- shiny::downloadHandler(
     filename = function() paste0("population_", cnt_years),
@@ -270,7 +272,8 @@ handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp
   })
 
   # After the processing is finished, show the shinyalert modal
-  observeEvent(processing(), {
+  observeEvent(processing(),
+    {
       if (!processing()) {
         shinyalert(
           title = "Explore UN Estimates \xF0\x9F\x8C\x90",
