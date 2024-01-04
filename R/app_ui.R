@@ -8,11 +8,25 @@
 #' @noRd
 app_ui <- function(request) {
   fluidUnTheme(
+    tags$head(
+      tags$style(HTML("
+        @media (max-width: 1400px) {
+          .responsive-container {
+            flex-direction: column;
+            width: 100% !important;
+          }
+          .responsive-container > div {
+            flex: 1 1 auto;
+            width: 100% !important;
+          }
+        }
+      "))
+    ),
     useShinyjs(),
     main_panel(
       div(
         id = "input_page",
-        class = "ui raised very padded text container segment",
+        class = "ui raised very padded text container segment responsive-container",
         div(
           class = "ui form",
           show_input_ui(),
@@ -34,7 +48,7 @@ app_ui <- function(request) {
           uiOutput("popup_pop"),
           uiOutput("pass_tfr"),
           br(),
-          withSpinner(uiOutput("show_pop_results_ui")),
+          withSpinner(uiOutput("show_pop_results_ui"))
         )
       ),
       hidden(
@@ -67,6 +81,7 @@ app_ui <- function(request) {
           ),
           br(),
           selectInput("select_id", "Choose a plot:", choices = TAB_NAMES, selected = TAB_NAMES[1]),
+          br(),
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),

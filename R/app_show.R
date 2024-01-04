@@ -42,7 +42,7 @@ show_forecast_results_ui <- function(input) {
     ui_elements[[tab]] <- switch(
       tab,
       # Pages with some widget on the sidebar
-      "Pop Pyramid" = plotWithDownloadButtonsUI(tab, uiOutput("pop_age_sex_years_ui"), width = "800px"),
+      "Pop Pyramid" = plotWithDownloadButtonsUI(tab, uiOutput("pop_age_sex_years_ui")),
       "Pop by Age" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
       "Pop Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
       "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
@@ -53,12 +53,7 @@ show_forecast_results_ui <- function(input) {
   }
 
   # Select the appropriate UI element based on input
-  selected_page <- ifelse(
-    !is.null(ui_elements[[input$select_id]]),
-    ui_elements[[input$select_id]],
-    NULL
-  )
-
+  selected_page <- ui_elements[[input$select_id]]
   selected_page
 }
 
@@ -72,7 +67,7 @@ show_forecast_results_ui <- function(input) {
 #'
 show_pop_results_ui <- function() {
   div(
-    class = "ui raised very padded container segment",
+    class = "ui raised very padded container segment responsive-container",
     style = "display: flex; align-items: flex-start; gap: 10px; width: 70%",
     div(
       style = "flex: 2;",
@@ -80,7 +75,7 @@ show_pop_results_ui <- function() {
     ),
     div(
       style = "flex: 1;",
-      shiny.semantic::semantic_DTOutput("table_pop", height = "400px")
+      shiny.semantic::semantic_DTOutput("table_pop")
     )
   )
 }
@@ -95,7 +90,7 @@ show_pop_results_ui <- function() {
 #'
 show_tfr_results_ui <- function() {
   div(
-    class = "ui raised very padded container segment",
+    class = "ui raised very padded container segment responsive-container",
     style = "display: flex; align-items: flex-start; gap: 10px; width: 75%",
     div(
       style = "flex: 3;",
