@@ -4,7 +4,10 @@
 \alias{show_forecast_results_ui}
 \title{Generate the UI for the page containing the results of the forecast.}
 \usage{
-show_forecast_results_ui()
+show_forecast_results_ui(input)
+}
+\arguments{
+\item{input}{Internal parameter for `{shiny}`}
 }
 \value{
 A tabset UI component for the application

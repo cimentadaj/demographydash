@@ -24,27 +24,42 @@ show_input_ui <- function() {
 
 #' Generate the UI for the page containing the results of the forecast.
 #'
+#' @param input Internal parameter for `{shiny}`
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset multiple_radio
 #' @importFrom shiny actionButton div
-#' @importFrom untheme create_tab
+#' @importFrom untheme plotWithDownloadButtonsUI
 #' @export
 #'
-show_forecast_results_ui <- function() {
-  tabs <- list(
-    create_tab("Pop Pyramid", "plot1", uiOutput("pop_age_sex_years_ui"), width = "800px"),
-    create_tab("Pop by Age", "plot2", multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-    create_tab("Pop Over Time", "plot3", uiOutput("age_pop_time_ui")),
-    create_tab("TFR", "plot4"),
-    create_tab("Pop Growth", "plot5"),
-    create_tab("Deaths and Births", "plot6", multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
-    create_tab("YADR and OADR", "plot7", multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
-    create_tab("Pop and Aging", "plot8"),
-    create_tab("Life Expectancy and CDR", "plot9"),
-    create_tab("TFR by CDR", "plot10")
+show_forecast_results_ui <- function(input) {
+  req(input$select_id) # Ensure input$select_id is not NULL
+
+  # Empty list to store the UI elements
+  ui_elements <- list()
+
+  # Loop through each tab name and use switch to determine the UI element
+  for (tab in TAB_NAMES) {
+    ui_elements[[tab]] <- switch(
+      tab,
+      # Pages with some widget on the sidebar
+      "Pop Pyramid" = plotWithDownloadButtonsUI(tab, uiOutput("pop_age_sex_years_ui"), width = "800px"),
+      "Pop by Age" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+      "Pop Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
+      "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
+      "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
+      # Pages with no widget on the sidebar
+      plotWithDownloadButtonsUI(tab) # Default case
+    )
+  }
+
+  # Select the appropriate UI element based on input
+  selected_page <- ifelse(
+    !is.null(ui_elements[[input$select_id]]),
+    ui_elements[[input$select_id]],
+    NULL
   )
 
-  div(tabset(tabs = tabs))
+  selected_page
 }
 
 #' Generate the UI for the population page.

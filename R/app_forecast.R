@@ -35,7 +35,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   # Generates the tabset UI where all plots are rendered
   output$show_forecast_results_ui <- renderUI({
     simulation_results(forecast_res())
-    show_forecast_results_ui()
+    div(
+      show_forecast_results_ui(input)
+    )
   })
 
   ##### Reactive Widgets calculatd based on the data #####
@@ -76,6 +78,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   })
 
   age_group_plot <- reactive({
+    req(input$radio_population_by_broad_age_group)
+
     create_age_group_plot(
       simulation_results()$population_by_broad_age_group,
       input$radio_population_by_broad_age_group
@@ -87,6 +91,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
       return(NULL)
     }
 
+    req(input$age_pop_time)
     create_pop_time_plot(
       simulation_results()$population_by_time, input$age_pop_time
     )
@@ -107,6 +112,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   })
 
   deaths_births_plot <- reactive({
+    req(input$radio_death_births)
+
     # type_value here is something like "Birth Counts" or "Birth Rates"
     # we split it to define the type of value and titles and use
     # each word for different labels.
@@ -121,6 +128,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   })
 
   yadr_oadr_plot <- reactive({
+    req(input$radio_yadr_oadr)
     type_value <- tolower(input$radio_yadr_oadr)
     create_yadr_oadr_plot(
       simulation_results()$oadr,
@@ -169,61 +177,104 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
 
   ##### Reactive Plots End #####
 
-  ##### Generate all plots and show in the tabset UI #####
-  observe({
-    input$radio_population_by_broad_age_group
-    input$age_pop_time
+  cnt <- reactive({
+    tolower(gsub(" ", "", input$wpp_country))
+  })
 
-    req(
+  filename_deaths_births <- reactive({
+    req(input$radio_death_births)
+    paste0(
+      tolower(strsplit(input$radio_death_births, " ")[[1]])[1],
+      "_",
+      tolower(strsplit(input$radio_death_births, " ")[[1]])[2],
+      "_",
+      cnt()
+    )
+  })
+
+  filename_yadr_oadr <- reactive({
+    paste0(
+      tolower(input$radio_yadr_oadr),
+      "_",
+      cnt()
+    )
+  })
+
+  filename_pop_over_time_agegroup <- reactive({
+    paste0(
+      "pop_over_time_agegroup_",
+      tolower(input$age_pop_time),
+      "_",
+      cnt()
+    )
+  })
+
+  filename_pop_by_age <- reactive({
+    paste0(
+      "pop_age_group_",
+      tolower(input$radio_population_by_broad_age_group),
+      "_",
+      cnt()
+    )
+  })
+
+  filename_pop_pyramid <- reactive({
+    paste0(
+      "pyramid_age_sex_",
+      cnt(),
+      "_",
       input$pop_age_sex_years
     )
+  })
 
-    cnt <- tolower(gsub(" ", "", input$wpp_country))
-    births_deaths <- tolower(strsplit(input$radio_death_births, " ")[[1]])
-    yadr_oadr <- tolower(input$radio_yadr_oadr)
-
-    plots_tabset(
-      list(
+  ##### Generate all plots and show in the tabset UI #####
+  observe({
+    selected_plot <- switch(
+      input$select_id,
+      "Pop Pyramid" = list(
         plt_reactive = pyramid_plot,
-        filename = paste0("pyramid_age_sex_", cnt, "_", input$pop_age_sex_years)
+        filename = filename_pop_pyramid()
       ),
-      list(
+      "Pop by Age" = list(
         plt_reactive = age_group_plot,
-        filename = paste0("pop_age_group_", tolower(input$radio_population_by_broad_age_group), "_", cnt)
+        filename = filename_pop_by_age()
       ),
-      list(
+      "Pop Over Time" = list(
         plt_reactive = pop_time_plot,
-        filename = paste0("pop_over_time_agegroup_", tolower(input$age_pop_time), "_", cnt)
+        filename = filename_pop_over_time_agegroup()
       ),
-      list(
+      "TFR" = list(
         plt_reactive = tfr_projected_plot,
-        filename = paste0("tfr_projection_", cnt)
+        filename = paste0("tfr_projection_", cnt())
       ),
-      list(
+      "Pop Growth" = list(
         plt_reactive = annual_growth_plot,
-        filename = paste0("pop_growth_rate_", cnt)
+        filename = paste0("pop_growth_rate_", cnt())
       ),
-      list(
+      "Deaths and Births" = list(
         plt_reactive = deaths_births_plot,
-        filename = paste0(births_deaths[1], "_", births_deaths[2], "_", cnt)
+        filename = filename_deaths_births()
       ),
-      list(
+      "YADR and OADR" = list(
         plt_reactive = yadr_oadr_plot,
-        filename = paste0(yadr_oadr, "_", cnt)
+        filename = filename_yadr_oadr()
       ),
-      list(
+      "Pop and Aging" = list(
         plt_reactive = pop_size_aging_plot,
-        filename = paste0("total_pop_and_aging_pop_", cnt)
+        filename = paste0("total_pop_and_aging_pop_", cnt())
       ),
-      list(
+      "Life Expectancy and CDR" = list(
         plt_reactive = e0_by_cdr_plot,
-        filename = paste0("death_rate_life_exp_", cnt)
+        filename = paste0("death_rate_life_exp_", cnt())
       ),
-      list(
+      "TFR by CDR" = list(
         plt_reactive = tfr_by_cdr_plot,
-        filename = paste0("tfr_cdr_", cnt)
-      )
+        filename = paste0("tfr_cdr_", cnt())
+      ),
+      NULL # Default case
     )
+
+    plots_tabset(input, output, input$select_id, selected_plot)
   })
   ##### Finish plotting in tabs #####
 }

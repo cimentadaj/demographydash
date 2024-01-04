@@ -66,6 +66,7 @@ app_ui <- function(request) {
             )
           ),
           br(),
+          selectInput("select_id", "Choose a plot:", choices = TAB_NAMES, selected = TAB_NAMES[1]),
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),

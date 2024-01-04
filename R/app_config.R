@@ -1,3 +1,16 @@
+TAB_NAMES <- c(
+  "Pop Pyramid",
+  "Pop by Age",
+  "Pop Over Time",
+  "TFR",
+  "Pop Growth",
+  "Deaths and Births",
+  "YADR and OADR",
+  "Pop and Aging",
+  "Life Expectancy and CDR",
+  "TFR by CDR"
+)
+
 #' Access files in the current app
 #'
 #' NOTE: If you manually change your package name in the DESCRIPTION,
