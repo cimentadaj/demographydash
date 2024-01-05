@@ -20,7 +20,7 @@ handle_pop_tfr_plots <- function(reactive_pop, reactive_tfr, wpp_starting_year, 
     )$plotly
   )
 
-  output$plot_tfr <- renderPlotly(
+  output$plot_tfr_custom <- renderPlotly(
     create_tfr_plot(
       reactive_tfr(),
       end_year = wpp_ending_year(),
@@ -298,7 +298,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp
             style = "text-align: left;",
             HTML("\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>
               \xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>
-              \xF0\x9F\xA7\xAE Upload: single year ages with an open interval at 100+")
+              \xF0\x9F\xA7\xAE Upload: starting population by sex and single year of age with an open age interval of 100+")
           ),
           type = "info",
           html = TRUE,

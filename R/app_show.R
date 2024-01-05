@@ -94,7 +94,7 @@ show_tfr_results_ui <- function() {
     style = "display: flex; align-items: flex-start; gap: 10px; width: 75%",
     div(
       style = "flex: 3;",
-      plotlyOutput("plot_tfr", height = "600px", width = "85%")
+      plotlyOutput("plot_tfr_custom", height = "600px", width = "85%")
     )
   )
 }
