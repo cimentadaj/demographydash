@@ -50,6 +50,13 @@ app_server <- function(input, output, session) {
     res
   })
 
+  # This is a very weird thing. If I use this in the title of the TFR customize
+  # tab, weird things start to happen. I think it's because of the circularity
+  # that this reactive_tfr is updated from the same modal that uploads a new
+  # reactive tfr. The weirdness comes when uploading a new file. I still
+  # use this for generating the file name but not in the title of the modal.
+  tfr_starting_year <- reactive(min(reactive_tfr()[[1]], na.rm = TRUE))
+
   # Handle any checks on inputs to make sure everything is correct
   handle_validity_checks(wpp_starting_year, wpp_ending_year, output)
 
@@ -60,7 +67,7 @@ app_server <- function(input, output, session) {
   handle_navigation(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
 
   # Handle all customize actions
-  handle_customize_data(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+  handle_customize_data(reactive_pop, reactive_tfr, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output)
 
   # Everything that doesn't fit into other handles is here look tooltip server side code.
   handle_misc(wpp_starting_year, wpp_ending_year, input, output)

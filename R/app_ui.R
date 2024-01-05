@@ -10,6 +10,24 @@ app_ui <- function(request) {
   fluidUnTheme(
     tags$head(
       tags$style(HTML("
+        /* Custom CSS */
+        .footer-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .file-input-container, .button-container {
+            flex: 0;
+        }
+
+        .button-container > div {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+       /* Media query for screens smaller than 1400px */
         @media (max-width: 1400px) {
           .responsive-container {
             flex-direction: column;
@@ -20,6 +38,27 @@ app_ui <- function(request) {
             width: 100% !important;
           }
         }
+
+
+        @media (max-width: 780px) {
+          .footer-container {
+              flex-direction: column;
+              justify-content: center !important;
+          }
+
+          .file-input-container, .button-container {
+              width: 100%;
+          }
+
+          .footer-container > .file-input-container {
+              margin-bottom: 5px; /* Decrease space between file input and buttons */
+          }
+
+          .footer-container > .button-container {
+              margin-bottom: 20px; /* Add some inches of space below the buttons */
+          }
+        }
+
       "))
     ),
     useShinyjs(),

@@ -63,13 +63,13 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
     ),
     div(DTOutput(output_id)),
     footer = div(
-      style = "display: flex; gap: 2px; justify-content: center;",
+      class = "footer-container",
       div(
-        style = "flex: 0;", # Flexible div for spacing
-        shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "50%")
+        class = "file-input-container",
+        shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%")
       ),
       div(
-        style = "flex: 0;", # Flexible div for spacing
+        class = "button-container",
         div(
           style = "display: flex; gap: 5px",
           shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
@@ -120,7 +120,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output) {
+handle_customize_data <- function(reactive_pop, reactive_tfr, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
   })
@@ -160,12 +160,6 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
     )
   })
 
-  tfr_starting_year <- reactive({
-    res <- reactive_tfr()
-    names(res) <- c("Year", "TFR")
-    min(res$Year)
-  })
-
   output$popup_pop <- renderUI({
     create_modal_ui(
       modal_id = "modal_population",
@@ -181,7 +175,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
   output$popup_tfr <- renderUI({
     create_modal_ui(
       modal_id = "modal_tfr",
-      header_title = paste0("Total Fertility Rate for ", input$wpp_country, " between ", tfr_starting_year(), " and ", wpp_ending_year()),
+      header_title = paste0("Total Fertility Rate for ", input$wpp_country, " in analysis period."),
       output_id = "tmp_tfr_dt",
       file_input_id = "upload_tfr",
       download_button_id = "download_tfr",
@@ -209,9 +203,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
       paste0(
         tolower(gsub(" ", "", input$wpp_country)),
         "_",
-        wpp_starting_year(),
-        "_",
-        wpp_ending_year()
+        wpp_starting_year()
       )
     })
 

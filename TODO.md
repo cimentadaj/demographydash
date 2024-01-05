@@ -59,32 +59,31 @@ I just changed this to points instead of lines and looks much better. Share this
 
 TODO:
 
-- [ ] Make sure the app renders well in different OS and browsers
-
+- [X] Make sure the app renders well in different OS and browsers
 - [ ] For the plots it would be nice to add systematically the units in the axis label: per 1000 persons, and for TFR (live births per woman). See for example https://population.un.org/wpp/Graphs/DemographicProfiles/Line/156. JC: This means you need to add "per 1000 persons" instead of the parenthesis and for TFR simply write "Live Births Per Woman".
 - [ ] For the count data, and deal with the scaling issue between small and largest countries like China and India we use a few conditions in R to check what scaling factor to use and unit label (eg billion, million, thousand, etc) based on the max value. JC: I don't think this might be doable a this point because we're fixing the unit label to thousands for now.
 - [ ] For the scatter plots it might be nice to have the option to switch on/off the labeling of some years like event 10 or 20 years depending the length of years plotted. JC: Do they mean to change the label of the X axis to have labels every 10 or 20 years instead of fixed?
 - [ ] Apps time out very quickly.
 - [ ] For the shiny plots it would be good to add some footnote to remind the user whether the figures refer to end of year or mid-year. Hana needs to tell me whether the results are for end of year or mid-year.
-- [ ] For population customize, the title should only reflect the minimum year (base year).
-- [ ] For population customize, the CSV file doesn't have an extension.
-- [ ] For population customize, the filename should only reflect the base year instead of the range of years.
-- [ ] Patrick wants for the title of the customize tab to be refreshed when a new file is uploaded and for the name and base year to change. This is impossible because we don't know the year they could be uploaded. Instead, you should change the title to "Country in Base Year" and don't specify it.
-- [ ] The upload button doesn't complete the loading bar in customize population.
-- [ ] TFR customize filename, same thing. Ending extension not present.
-- [ ] Update TFR customize name to reflect the entire TFR series, not only between 2023 and 2100.
+- [X] For population customize, the title should only reflect the minimum year (base year).
+- [X] For population customize, the CSV file doesn't have an extension.
+- [X] For population customize, the filename should only reflect the base year instead of the range of years.
+- [X] Patrick wants for the title of the customize tab to be refreshed when a new file is uploaded and for the name and base year to change. This is impossible because we don't know the year they could be uploaded. Instead, you should change the title to "Country in Base Year" and don't specify it.
+- [X] The upload button doesn't complete the loading bar in customize population.
+- [X] TFR customize filename, same thing. Ending extension not present.
+- [X] Update TFR customize name to reflect the entire TFR series, not only between 2023 and 2100.
 - [ ] Reduce the rounding of decimals on the tool tips when showing rates, ratios, percentage, number of children to something like 2 decimals.
 - [ ] Add the country name to the plot title.
 - [ ] Change CI to PI (Prediction Intervals)
 - [ ] Use Projection instead of Forecast on all plots.
-- [ ] When exporting results, remove the row.names from all files.
+- [X] When exporting results, remove the row.names from all files.
 - [ ] Change title of tabs: "CDR and Life Expectancy" and "CBR and TFR".
 - [ ] We need a way to download all pyramid population data.  In the current version, we can only download data for 1 year at a time.
 - [ ] Can you change the line type between projection and UN estimate? For the color blind people.
 - [ ] Change "Data Portal" in the UN logo to "Online Population Projection". How to do that? No idea :D since this is in the HTML file. Perhaps when you read the HTML and place it in the app you could replace that.
-- [ ] Change upload statement in pop up window to "Upload: starting population by sex and single year of age with an open age interval of 100+"
-- [ ] Remind Tim that PAtrick wanted the possibility to skip the TFR section.
-- [ ] Change "Calculate" button to "Run Population Projection"
+- [X] Change upload statement in pop up window to "Upload: starting population by sex and single year of age with an open age interval of 100+"
+- [ ] Remind Tim that Patrick wanted the possibility to skip the TFR section.
+- [X] Change "Calculate" button to "Run Population Projection"
 - [ ] Change TFR plot name to "Total Fertility Rate: Chile, 1950-2100" in the TFR page.
 - [ ] Change projected population pyramid plot to "Population by age and sex: Chile, 2024"
 - [ ] Change age group plot title to "Population by broad age groups: Chile, 1950-2100".
@@ -112,7 +111,8 @@ TODO:
 
 Version 2.0:
 
-
+- [ ] Change legend to be horizontal for better responsive ness in small screens
+- [ ] Force the max/min-width of untheme to be 100% when in mobile phones
 - [ ] For TFR customize data do you think you could add a third option for user to specify a target value for the end of their projection, and whether to use a linear or logistic decline function.  For the target value it could be either entered manually (simpler I presume) or defined using a slider (in this case you are able to better control the valid range from 0.5 to 10).
 
 - [ ] What should the app do if the user changes the projected TFR and uploads it again? Does it change anything? What if the user adds more years than the downloaded TFR? The TFR customize should have some parsing rules and fail accordingly. See the files in https://mail.google.com/mail/u/0/#inbox/FMfcgzGwJSCRWXLhZQFxSZWcqBkTlWXt for some tests.
