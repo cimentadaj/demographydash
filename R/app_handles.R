@@ -160,10 +160,16 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
     )
   })
 
+  tfr_starting_year <- reactive({
+    res <- reactive_tfr()
+    names(res) <- c("Year", "TFR")
+    min(res$Year)
+  })
+
   output$popup_pop <- renderUI({
     create_modal_ui(
       modal_id = "modal_population",
-      header_title = paste0("Population data for ", input$wpp_country, " between ", wpp_starting_year(), " and ", wpp_ending_year()),
+      header_title = paste0("Population data for ", input$wpp_country, " in base year"),
       output_id = "tmp_pop_dt",
       file_input_id = "upload_pop",
       download_button_id = "download_pop",
@@ -175,7 +181,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
   output$popup_tfr <- renderUI({
     create_modal_ui(
       modal_id = "modal_tfr",
-      header_title = paste0("Total Fertility Rate for ", input$wpp_country, " between ", wpp_starting_year(), " and ", wpp_ending_year()),
+      header_title = paste0("Total Fertility Rate for ", input$wpp_country, " between ", tfr_starting_year(), " and ", wpp_ending_year()),
       output_id = "tmp_tfr_dt",
       file_input_id = "upload_tfr",
       download_button_id = "download_tfr",
@@ -209,13 +215,24 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, wpp_starting_year,
       )
     })
 
+  tfr_years <-
+    reactive({
+      paste0(
+        tolower(gsub(" ", "", input$wpp_country)),
+        "_",
+        tfr_starting_year(),
+        "_",
+        wpp_ending_year()
+      )
+    })
+
   output$download_pop <- shiny::downloadHandler(
     filename = function() paste0("population_", cnt_years(), ".csv"),
     content = function(file) write.csv(reactive_pop(), file, row.names = FALSE)
   )
 
   output$download_tfr <- shiny::downloadHandler(
-    filename = function() paste0("tfr_", cnt_years(), ".csv"),
+    filename = function() paste0("tfr_", tfr_years(), ".csv"),
     content = function(file) write.csv(reactive_tfr(), file, row.names = FALSE)
   )
 }

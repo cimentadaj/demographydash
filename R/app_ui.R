@@ -57,7 +57,7 @@ app_ui <- function(request) {
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_pop_page", "Back", class = "ui grey button"),
-            action_button("begin", "Calculate", class = "ui blue button"),
+            action_button("begin", "Run Population Projection", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")
