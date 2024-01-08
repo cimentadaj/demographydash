@@ -109,6 +109,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #'
 #' @param reactive_pop A reactive expression that returns the population data to be displayed.
 #' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
+#' @param tfr_starting_year A reactive expression returning the TFR starting year.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}`.

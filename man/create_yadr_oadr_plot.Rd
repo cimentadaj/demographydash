@@ -4,7 +4,7 @@
 \alias{create_yadr_oadr_plot}
 \title{Plot YADR/OADR data with median and confidence intervals}
 \usage{
-create_yadr_oadr_plot(oadr, yadr, data_type, end_year)
+create_yadr_oadr_plot(oadr, yadr, data_type, end_year, country)
 }
 \arguments{
 \item{oadr}{A data.table of OADR data.}
@@ -14,6 +14,8 @@ create_yadr_oadr_plot(oadr, yadr, data_type, end_year)
 \item{data_type}{A character string indicating the type of data to plot ("yadr" or "oadr").}
 
 \item{end_year}{An integer specifying the upper year limit for the data to be plotted.}
+
+\item{country}{The country for which the data is plotted}
 }
 \value{
 A ggplot object.

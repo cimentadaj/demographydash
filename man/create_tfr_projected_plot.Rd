@@ -4,12 +4,14 @@
 \alias{create_tfr_projected_plot}
 \title{Create forecasted TFR plot}
 \usage{
-create_tfr_projected_plot(dt, end_year)
+create_tfr_projected_plot(dt, end_year, country)
 }
 \arguments{
 \item{dt}{Data table with population data.}
 
 \item{end_year}{the date in YYYY-MM-DD where the projection should end.}
+
+\item{country}{A string with the current country name for the title.}
 }
 \value{
 A ggplot2 object.

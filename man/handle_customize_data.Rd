@@ -7,6 +7,7 @@
 handle_customize_data(
   reactive_pop,
   reactive_tfr,
+  tfr_starting_year,
   wpp_starting_year,
   wpp_ending_year,
   input,
@@ -17,6 +18,8 @@ handle_customize_data(
 \item{reactive_pop}{A reactive expression that returns the population data to be displayed.}
 
 \item{reactive_tfr}{A reactive expression that returns the TFR data to be displayed.}
+
+\item{tfr_starting_year}{A reactive expression returning the TFR starting year.}
 
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
 

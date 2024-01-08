@@ -1,4 +1,4 @@
-sz <- 15
+sz <- 13
 
 #' Create Population Pyramid Plot
 #'
@@ -48,16 +48,13 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   pop_dt[["Population"]] <- round(pop_dt[["Population"]], 1)
   names(pop_dt)[1] <- paste(names(pop_dt)[1], "(in thousands)")
 
-  if (!is.null(country) & !is.null(input_year)) {
-    plt_title <- paste0("Population by Age and Sex for ", country, " in ", input_year)
-  } else {
-    plt_title <- paste0("Population by Age and Sex in ", input_year)
-  }
+  plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
 
-  mid_size <- nchar(plt_title) >= 52 & nchar(plt_title) < 55
-  mid_big_size <- nchar(plt_title) >= 55 & nchar(plt_title) < 60
-  big_size <- nchar(plt_title) > 60
-  font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 13)))
+  ## mid_size <- nchar(plt_title) >= 52 & nchar(plt_title) < 55
+  ## mid_big_size <- nchar(plt_title) >= 55 & nchar(plt_title) < 60
+  ## big_size <- nchar(plt_title) > 60
+  ## font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 13)))
+  font_size <- 10
 
   plt <-
     pop_dt %>%
@@ -111,6 +108,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #'
 #' @param dt Data table with population data.
 #' @param input_scale The type of scale to be applied.
+#' @param country A string with the current country name for the title.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme
 #' @importFrom data.table melt
@@ -120,7 +118,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_age_group_plot <- function(dt, input_scale) {
+create_age_group_plot <- function(dt, input_scale, country) {
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
 
   pop_dt <-
@@ -133,7 +131,6 @@ create_age_group_plot <- function(dt, input_scale) {
     )
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
-
   axis_label <- ifelse(input_scale == "Percent", "Percent", "in thousands")
 
   type_pop <- paste0("Population (", axis_label, ")")
@@ -143,11 +140,16 @@ create_age_group_plot <- function(dt, input_scale) {
     pop_dt[[type_pop]] <- round(pop_dt[[type_pop]], 1)
   }
 
+  min_year <- min(pop_dt$Year)
+  max_year <- max(pop_dt$Year)
+
+  plt_title <- paste0("Population by broad age groups: ", country, ", ", min_year, "-", max_year)
+
   plt <-
     pop_dt %>%
     ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
-    labs(title = "Projected Population by Years and Age Groups", color = "Age Group") +
+    labs(title = plt_title, color = "Age Group") +
     theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom"
@@ -172,6 +174,7 @@ create_age_group_plot <- function(dt, input_scale) {
 #'
 #' @param dt Data table with population data.
 #' @param input_age The age group to subset
+#' @param country A string with the current country name for the title.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual geom_rect expansion scale_fill_manual
 #' @importFrom data.table melt
@@ -180,7 +183,7 @@ create_age_group_plot <- function(dt, input_scale) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_pop_time_plot <- function(dt, input_age) {
+create_pop_time_plot <- function(dt, input_age, country) {
   pop_dt <-
     melt(
       dt,
@@ -191,7 +194,6 @@ create_pop_time_plot <- function(dt, input_age) {
     )
 
   pop_dt <- pop_dt[pop_dt$age == input_age, ]
-
   pop_dt[type_value == "pop", type_value := "Forecast"]
   pop_dt[type_value == "un_pop_median", type_value := "UN Forecast"]
 
@@ -216,6 +218,9 @@ create_pop_time_plot <- function(dt, input_age) {
   max_y <- max_y + (max_y * 0.05)
   max_year <- max(pop_dt$Year)
 
+  min_year <- min(pop_dt$Year)
+  plt_title <- paste0("Population Age ", input_age, ": ",  country, ", ", min_year, "-", max_year)
+
   plt <-
     pop_dt %>%
     ggplot(aes(Year, `Population (in thousands)`, color = Type, , fill = Type, group = Type)) +
@@ -236,7 +241,7 @@ create_pop_time_plot <- function(dt, input_age) {
       expand = expansion(mult = 0),
       labels = label_number(big.mark = "")
     ) +
-    labs(title = paste0("Projected Population by Years for Age Group '", input_age, "'")) +
+    labs(title = plt_title) +
     theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom",
@@ -261,6 +266,7 @@ create_pop_time_plot <- function(dt, input_age) {
 #'
 #' @param dt Data table with population data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param country A string with the current country name for the title.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous scale_color_manual
 #' @importFrom data.table melt
@@ -269,7 +275,7 @@ create_pop_time_plot <- function(dt, input_age) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_tfr_projected_plot <- function(dt, end_year) {
+create_tfr_projected_plot <- function(dt, end_year, country) {
   tfr_dt <-
     melt(
       dt,
@@ -282,8 +288,11 @@ create_tfr_projected_plot <- function(dt, end_year) {
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
   tfr_dt[type_value == "tfr", type_value := "Forecast"]
   tfr_dt[type_value == "un_tfr_median", type_value := "UN Forecast"]
-
   names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
+
+  max_year <- max(tfr_dt$Year)
+  min_year <- min(tfr_dt$Year)
+  plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
 
   plt <-
     ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
@@ -298,7 +307,7 @@ create_tfr_projected_plot <- function(dt, end_year) {
     scale_fill_manual(
       values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
-    labs(title = "Projected Total Fertility Rate by Years") +
+    labs(title = plt_title) +
     theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom"
@@ -320,6 +329,7 @@ create_tfr_projected_plot <- function(dt, end_year) {
 #'
 #' @param dt Data table with annual growth data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param country A string with the current country name for the title.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual
 #' @importFrom data.table melt
@@ -328,7 +338,7 @@ create_tfr_projected_plot <- function(dt, end_year) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_annual_growth_plot <- function(dt, end_year) {
+create_annual_growth_plot <- function(dt, end_year, country) {
   dt <- dt[dt$year <= as.numeric(end_year), ]
   dt$value <- dt$growth_rate
   dt$growth_rate <- NULL
@@ -337,11 +347,15 @@ create_annual_growth_plot <- function(dt, end_year) {
 
   names(dt) <- c("Year", "Population Growth Rate", "Age")
 
+  max_year <- max(dt$Year)
+  min_year <- min(dt$Year)
+  plt_title <- paste0("Population growth rates for broad age groups: ", country, ", ", min_year, "-", max_year)
+
   plt <-
     dt %>%
     ggplot(aes(Year, `Population Growth Rate`, color = Age, group = Age)) +
     geom_line() +
-    labs(title = "Population Growth Rate by Years and Age Groups") +
+    labs(title = plt_title) +
     theme_minimal(base_size = sz) +
     theme(
       legend.position = "bottom"
@@ -377,12 +391,16 @@ create_tfr_plot <- function(dt, end_year, country) {
 
   dt <- dt[Year <= end_year]
 
+  max_year <- max(dt$Year)
+  min_year <- min(dt$Year)
+  plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
+
   plt <-
     dt %>%
     ggplot(aes(x = Year, y = TFR)) +
     geom_line(size = 2, alpha = 0.7) +
     labs(
-      title = paste0("Total Fertility Rate by Year for ", country),
+      title = plt_title,
     ) +
     theme_minimal(base_size = sz)
 
@@ -465,6 +483,8 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
 #' @param data_type A character string indicating the type of data to plot ("births" or "deaths").
 #' @param value_type A character string indicating the type of value to plot ("count" or "rate").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
+#' @param country The country for which the data is plotted
+#'
 #' @return A ggplot object.
 #' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
@@ -472,7 +492,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
 #'
 #' @export
 #'
-create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type, value_type, end_year) {
+create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type, value_type, end_year, country) {
   # Validate input
   if (!(data_type %in% c("birth", "death")) | !(value_type %in% c("counts", "rates"))) {
     stop("Invalid data_type or value_type")
@@ -514,22 +534,26 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 
   melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
 
-  title_plt <- paste0(
-    ifelse(value_type == "rates", "Crude ", ""),
-    tools::toTitleCase(data_type),
-    " ",
-    tools::toTitleCase(value_type),
-    " by Years"
+  var_name <- ifelse(
+    value_type == "counts",
+    paste0("Number of ", tolower(data_type), "s (thousands)"),
+    paste0(tools::toTitleCase(data_type), "s per 1,000 population")
   )
 
-  if (value_type == "counts") {
-    units_append <- "(in thousands)"
-  } else {
-    units_append <- NULL
-  }
-
-  var_name <- paste(tools::toTitleCase(data_type), tools::toTitleCase(value_type), units_append)
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+
+  max_year <- max(melt_data$Year)
+  min_year <- min(melt_data$Year)
+
+  # Determine the type of data (Births/Deaths)
+  data_type_title <- ifelse(data_type == "birth", "Birth", "Death")
+
+  # Construct the title based on value_type
+  plt_title <- ifelse(
+    value_type == "rates",
+    paste0("Crude ", data_type_title, " Rate: ", country, ", ", min_year, "-", max_year),
+    paste0("Annual number of ", tolower(data_type_title), "s: ", country, ", ", min_year, "-", max_year)
+  )
 
   melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
 
@@ -551,7 +575,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
     labs(
-      title = title_plt,
+      title = plt_title,
     ) +
     theme_minimal(base_size = sz) +
     theme(
@@ -573,8 +597,6 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     plotly = ggplotly(plt, tooltip = c("x", "y", "color"))
   )
 }
-
-
 #' Plot YADR/OADR data with median and confidence intervals
 #'
 #' This function plots the YADR/OADR along with the UN median and confidence intervals
@@ -584,13 +606,15 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 #' @param yadr A data.table of YADR data.
 #' @param data_type A character string indicating the type of data to plot ("yadr" or "oadr").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
+#' @param country The country for which the data is plotted
+#'
 #' @return A ggplot object.
 #' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #'
 #' @export
 #'
-create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
+create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
   # Select appropriate data.table based on data_type
   data <- if (data_type == "yadr") {
     yadr
@@ -617,15 +641,25 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
 
   melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
 
-  data_type_long <- ifelse(data_type == "yadr", "Young Age Dependency Ratio", "Old Age Dependency Ratio")
 
-  title_plt <- paste0(
-    data_type_long,
-    " by Years"
+  var_name <- ifelse(
+    data_type == "yadr",
+    "Persons age <20 per 100 persons age 20-64",
+    "Persons age 65+ per 100 persons age 20-64"
   )
 
-  var_name <- paste0(data_type_long, " (", toupper(data_type), ")")
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+
+  max_year <- max(melt_data$Year)
+  min_year <- min(melt_data$Year)
+
+  title_type <- ifelse(
+    data_type == "yadr",
+    "Young-age dependency ratio (Age <20 / Age 20-64)",
+    "Old-age dependency ratio (Age 65+ / Age 20-64)"
+  )
+
+  plt_title <- paste0(title_type, ": ", country, ", ", min_year, "-", max_year)
 
   # Plot the data
   plt <-
@@ -645,8 +679,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
       values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
     ) +
     labs(
-      title = paste0(data_type_long, " by Years"),
-      subtitle = "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64"
+      title = plt_title,
     ) +
     theme_minimal(base_size = sz) +
     theme(
@@ -661,17 +694,9 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year) {
   high <- NULL
   data_type <- NULL
 
-
   list(
     gg = plt,
-    plotly = ggplotly(plt, tooltip = c("x", "y", "color")) %>%
-      layout(title = list(text = paste0(
-        paste0(data_type_long, " by Years"),
-        "<br>",
-        "<sup>",
-        "YADR is defined as 0-19 / 20-64 and OADR as 65+ / 20-64",
-        "</sup>"
-      )))
+    plotly = ggplotly(plt, tooltip = c("x", "y", "color"))
   )
 }
 

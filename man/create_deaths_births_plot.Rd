@@ -9,7 +9,8 @@ create_deaths_births_plot(
   forecast_death,
   data_type,
   value_type,
-  end_year
+  end_year,
+  country
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ create_deaths_births_plot(
 \item{value_type}{A character string indicating the type of value to plot ("count" or "rate").}
 
 \item{end_year}{An integer specifying the upper year limit for the data to be plotted.}
+
+\item{country}{The country for which the data is plotted}
 }
 \value{
 A ggplot object.

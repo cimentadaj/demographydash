@@ -73,6 +73,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     req(simulation_results())
     create_pop_pyramid_plot(
       simulation_results()$population_by_age_and_sex,
+      country = input$wpp_country,
       input_year = input$pop_age_sex_years
     )
   })
@@ -82,7 +83,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
 
     create_age_group_plot(
       simulation_results()$population_by_broad_age_group,
-      input$radio_population_by_broad_age_group
+      input$radio_population_by_broad_age_group,
+      input$wpp_country
     )
   })
 
@@ -93,21 +95,25 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
 
     req(input$age_pop_time)
     create_pop_time_plot(
-      simulation_results()$population_by_time, input$age_pop_time
+      simulation_results()$population_by_time,
+      input$age_pop_time,
+      input$wpp_country
     )
   })
 
   tfr_projected_plot <- reactive({
     create_tfr_projected_plot(
       simulation_results()$tfr_by_time,
-      wpp_ending_year()
+      wpp_ending_year(),
+      input$wpp_country
     )
   })
 
   annual_growth_plot <- reactive({
     create_annual_growth_plot(
       simulation_results()$annual_growth_rate,
-      wpp_ending_year()
+      wpp_ending_year(),
+      input$wpp_country
     )
   })
 
@@ -123,7 +129,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
       simulation_results()$deaths_counts_rates,
       type_value[1],
       type_value[2],
-      wpp_ending_year()
+      wpp_ending_year(),
+      input$wpp_country
     )
   })
 
@@ -134,43 +141,81 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
       simulation_results()$oadr,
       simulation_results()$yadr,
       type_value,
-      wpp_ending_year()
+      wpp_ending_year(),
+      input$wpp_country
     )
   })
 
   pop_size_aging_plot <- reactive({
+
+    dt <- simulation_results()$pop_aging_and_pop_size
+    max_year <- max(dt$year)
+    min_year <- min(dt$year)
+    plt_title <- paste0(
+      "Population size and percent of population 65+: ",
+      input$wpp_country,
+      ", ",
+      min_year,
+      "-",
+      max_year
+    )
+
     create_un_projection_plot(
-      simulation_results()$pop_aging_and_pop_size,
+      dt,
       wpp_ending_year(),
       c(
         "pop" = "Population",
         "percent65" = "% of population 65+",
-        "title" = "Population Size by Percentage of Population Over 65+ Over Time"
+        "title" = plt_title
       ),
       percent_x = TRUE
     )
   })
 
   e0_by_cdr_plot <- reactive({
+    dt <- simulation_results()$cdr_by_e0
+    max_year <- max(dt$year)
+    min_year <- min(dt$year)
+    plt_title <- paste0(
+      "Crude death rate and life expectancy at birth: ",
+      input$wpp_country,
+      ", ",
+      min_year,
+      "-",
+      max_year
+    )
+
     create_un_projection_plot(
-      simulation_results()$cdr_by_e0,
+      dt,
       wpp_ending_year(),
       c(
         "cdr" = "Crude Death Rate",
         "e0" = "Life Expectancy",
-        "title" = "Crude Death Rate by Life Expectancy Over Time"
+        "title" = plt_title
       )
     )
   })
 
   tfr_by_cdr_plot <- reactive({
+    dt <- simulation_results()$cbr_by_tfr
+    max_year <- max(dt$year)
+    min_year <- min(dt$year)
+    plt_title <- paste0(
+      "Crude birth rate and total fertility rate: ",
+      input$wpp_country,
+      ", ",
+      min_year,
+      "-",
+      max_year
+    )
+
     create_un_projection_plot(
-      simulation_results()$cbr_by_tfr,
+      dt,
       wpp_ending_year(),
       c(
         "cbr" = "Crude Birth Rate",
         "tfr" = "Total Fertility Rate",
-        "title" = "Crude Birth Rate by Total Fertility Rate Over Time"
+        "title" = plt_title
       )
     )
   })
@@ -263,11 +308,11 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
         plt_reactive = pop_size_aging_plot,
         filename = paste0("total_pop_and_aging_pop_", cnt())
       ),
-      "Life Expectancy and CDR" = list(
+      "CDR and Life Expectancy" = list(
         plt_reactive = e0_by_cdr_plot,
         filename = paste0("death_rate_life_exp_", cnt())
       ),
-      "TFR by CDR" = list(
+      "CBR and TFR" = list(
         plt_reactive = tfr_by_cdr_plot,
         filename = paste0("tfr_cdr_", cnt())
       ),

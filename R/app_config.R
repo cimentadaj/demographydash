@@ -7,8 +7,8 @@ TAB_NAMES <- c(
   "Deaths and Births",
   "YADR and OADR",
   "Pop and Aging",
-  "Life Expectancy and CDR",
-  "TFR by CDR"
+  "CDR and Life Expectancy",
+  "CBR and TFR"
 )
 
 #' Access files in the current app
