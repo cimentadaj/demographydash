@@ -27,7 +27,7 @@ show_input_ui <- function() {
 #' @param input Internal parameter for `{shiny}`
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset multiple_radio
-#' @importFrom shiny actionButton div
+#' @importFrom shiny action downloadButton
 #' @importFrom untheme plotWithDownloadButtonsUI
 #' @export
 #'
@@ -42,9 +42,9 @@ show_forecast_results_ui <- function(input) {
     ui_elements[[tab]] <- switch(
       tab,
       # Pages with some widget on the sidebar
-      "Pop Pyramid" = plotWithDownloadButtonsUI(tab, uiOutput("pop_age_sex_years_ui")),
-      "Pop by Age" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-      "Pop Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
+      "Population Pyramid By Age and Sex" = plotWithDownloadButtonsUI(tab, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", "Download All Population Data"))),
+      "Population by Broad Age Groups" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
+      "Population Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
       "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
       "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
       # Pages with no widget on the sidebar

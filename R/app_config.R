@@ -1,15 +1,18 @@
 TAB_NAMES <- c(
-  "Pop Pyramid",
-  "Pop by Age",
-  "Pop Over Time",
-  "TFR",
-  "Pop Growth",
+  "Population Pyramid By Age and Sex",
+  "Population by Broad Age Groups",
+  "Population Over Time",
+  "Projected Total Fertility Rate",
+  "Population Growth Rate by Age",
   "Deaths and Births",
   "YADR and OADR",
-  "Pop and Aging",
+  "Population Size and Aging",
   "CDR and Life Expectancy",
   "CBR and TFR"
 )
+
+# Font size of text from a plot
+sz <- 13
 
 #' Access files in the current app
 #'

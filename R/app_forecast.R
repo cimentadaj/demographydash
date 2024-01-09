@@ -40,6 +40,17 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     )
   })
 
+  output$all_pop_data <- shiny::downloadHandler(
+    filename = function() paste0("all_data_pyramid_age_sex_", input$wpp_country, ".csv"),
+    content = function(file) {
+      utils::write.csv(
+        simulation_results()$population_by_age_and_sex,
+        file,
+        row.names = FALSE
+      )
+    }
+  )
+
   ##### Reactive Widgets calculatd based on the data #####
   age_pop_time <- reactive({
     ages <- unique(simulation_results()$population_by_time$age)
@@ -70,7 +81,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
 
   ##### Reactive Plots from the analysis page #####
   pyramid_plot <- reactive({
-    req(simulation_results())
+    req(input$pop_age_sex_years)
+
     create_pop_pyramid_plot(
       simulation_results()$population_by_age_and_sex,
       country = input$wpp_country,
@@ -276,23 +288,23 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   observe({
     selected_plot <- switch(
       input$select_id,
-      "Pop Pyramid" = list(
+      "Population Pyramid By Age and Sex" = list(
         plt_reactive = pyramid_plot,
         filename = filename_pop_pyramid()
       ),
-      "Pop by Age" = list(
+      "Population by Broad Age Groups" = list(
         plt_reactive = age_group_plot,
         filename = filename_pop_by_age()
       ),
-      "Pop Over Time" = list(
+      "Population Over Time" = list(
         plt_reactive = pop_time_plot,
         filename = filename_pop_over_time_agegroup()
       ),
-      "TFR" = list(
+      "Projected Total Fertility Rate" = list(
         plt_reactive = tfr_projected_plot,
         filename = paste0("tfr_projection_", cnt())
       ),
-      "Pop Growth" = list(
+      "Population Growth Rate by Age" = list(
         plt_reactive = annual_growth_plot,
         filename = paste0("pop_growth_rate_", cnt())
       ),
@@ -304,7 +316,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
         plt_reactive = yadr_oadr_plot,
         filename = filename_yadr_oadr()
       ),
-      "Pop and Aging" = list(
+      "Population Size and Aging" = list(
         plt_reactive = pop_size_aging_plot,
         filename = paste0("total_pop_and_aging_pop_", cnt())
       ),

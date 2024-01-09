@@ -271,9 +271,6 @@ handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp
     hide("input_page")
     show("pop_page")
 
-    # Repeated the create_pop_pyramid_plot here because it allows the spinner
-    # around the page to register the time spent
-    create_pop_pyramid_plot(reactive_pop())
     output$show_pop_results_ui <- renderUI({
       res <- show_pop_results_ui()
       processing(FALSE)
@@ -346,14 +343,14 @@ handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp
       content = list(
         style = "font-size: 20px; font-weight: bold; padding: 10px; text-align: center; display: flex; justify-content: center; align-items: center;",
         `data-custom` = "value",
-        HTML("Would you like to assume the Total Fertility Rate (TFR)?")
+        HTML("Select Total Fertility Rate (TFR) Source")
       ),
       footer = div(
         style = "display: flex; gap: 2px; justify-content: center;",
         div(
           style = "display: flex; gap: 10px;", # 20px gap between buttons
-          action_button("change_tfr_btn", "Inspect TFR", class = "ui grey button"),
-          action_button("pass_tfr_btn", "Assume TFR", class = "ui blue button")
+          action_button("change_tfr_btn", "Enter Custom TFR", class = "ui grey button"),
+          action_button("pass_tfr_btn", "Use WPP 2022 Median TFR", class = "ui blue button")
         )
       ),
       class = "small"

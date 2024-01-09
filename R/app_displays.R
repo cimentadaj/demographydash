@@ -1,5 +1,3 @@
-sz <- 13
-
 #' Create Population Pyramid Plot
 #'
 #' This function takes a data table and an optional input year to create a population pyramid plot.
@@ -17,7 +15,7 @@ sz <- 13
 #' @export
 #'
 create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
-  if (!is.null(input_year) & is.null(country)) {
+  if ("year" %in% names(dt)) {
     dt <- dt[year == input_year]
   }
 
@@ -194,8 +192,8 @@ create_pop_time_plot <- function(dt, input_age, country) {
     )
 
   pop_dt <- pop_dt[pop_dt$age == input_age, ]
-  pop_dt[type_value == "pop", type_value := "Forecast"]
-  pop_dt[type_value == "un_pop_median", type_value := "UN Forecast"]
+  pop_dt[type_value == "pop", type_value := "Projection"]
+  pop_dt[type_value == "un_pop_median", type_value := "UN Projection"]
 
   names(pop_dt) <- c(
     "Year",
@@ -219,22 +217,22 @@ create_pop_time_plot <- function(dt, input_age, country) {
   max_year <- max(pop_dt$Year)
 
   min_year <- min(pop_dt$Year)
-  plt_title <- paste0("Population Age ", input_age, ": ",  country, ", ", min_year, "-", max_year)
+  plt_title <- paste0("Population Age '", input_age, "': ",  country, ", ", min_year, "-", max_year)
 
   plt <-
     pop_dt %>%
     ggplot(aes(Year, `Population (in thousands)`, color = Type, , fill = Type, group = Type)) +
     geom_line() +
     geom_ribbon(
-      data = pop_dt[Type == "UN Forecast"],
-      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN CI", fill = "95% UN CI"),
+      data = pop_dt[Type == "UN Projection"],
+      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN PI", fill = "95% UN PI"),
       alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     scale_fill_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     scale_y_continuous(
       limits = c(min_y, max_y),
@@ -286,8 +284,8 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
     )
 
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
-  tfr_dt[type_value == "tfr", type_value := "Forecast"]
-  tfr_dt[type_value == "un_tfr_median", type_value := "UN Forecast"]
+  tfr_dt[type_value == "tfr", type_value := "Projection"]
+  tfr_dt[type_value == "un_tfr_median", type_value := "UN Projection"]
   names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
 
   max_year <- max(tfr_dt$Year)
@@ -298,14 +296,14 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
     ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
     geom_line() +
     geom_ribbon(
-      data = tfr_dt[Type == "UN Forecast"],
-      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
+      data = tfr_dt[Type == "UN Projection"],
+      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     scale_fill_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     labs(title = plt_title) +
     theme_minimal(base_size = sz) +
@@ -511,7 +509,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
   # Set type based on data_type and value_type
   type <- ifelse(value_type == "counts", data_type, paste0("c", substr(data_type, 1, 1), "r"))
 
-  # Ensure that median and CI columns are numeric
+  # Ensure that median and PI columns are numeric
   cols_to_convert <- grep("^un_", names(data), value = TRUE)
   data[, (cols_to_convert) := lapply(.SD, as.numeric), .SDcols = cols_to_convert]
 
@@ -532,7 +530,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
   setnames(melt_data, old = grep("high", names(melt_data), value = TRUE), new = "high")
   setnames(melt_data, old = grep("low", names(melt_data), value = TRUE), new = "low")
 
-  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
+  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Projection", "Projection")
 
   var_name <- ifelse(
     value_type == "counts",
@@ -565,14 +563,14 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     ) +
     geom_line() +
     geom_ribbon(
-      data = melt_data[Type == "UN Forecast"],
-      aes(ymin = low, ymax = high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
+      data = melt_data[Type == "UN Projection"],
+      aes(ymin = low, ymax = high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     scale_fill_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     labs(
       title = plt_title,
@@ -639,7 +637,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
   melt_data$low <- as.numeric(melt_data$low)
   melt_data$high <- as.numeric(melt_data$high)
 
-  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Forecast", "Forecast")
+  melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Projection", "Projection")
 
 
   var_name <- ifelse(
@@ -669,14 +667,14 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     ) +
     geom_line() +
     geom_ribbon(
-      data = melt_data[Type == "UN Forecast"],
-      aes(ymin = low, ymax = high, color = "95% UN CI", fill = "95% UN CI"), alpha = 0.2
+      data = melt_data[Type == "UN Projection"],
+      aes(ymin = low, ymax = high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     scale_fill_manual(
-      values = c("Forecast" = "#F8766D", "UN Forecast" = "#00BFC4", "95% UN CI" = "#00BFC4")
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     labs(
       title = plt_title,
@@ -741,10 +739,10 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   # Prepare the data sets with type labels and combine them
   proj_data <- data[, c("year", proj_colnames), with = FALSE]
-  proj_data$Type <- "Forecast"
+  proj_data$Type <- "Projection"
 
   un_data <- data[, c("year", un_colnames), with = FALSE]
-  un_data$Type <- "UN Forecast"
+  un_data$Type <- "UN Projection"
   names(un_data) <- names(proj_data) # Standardize column names for merging
 
   combined_data <- rbind(proj_data, un_data)
