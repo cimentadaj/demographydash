@@ -39,8 +39,16 @@ app_ui <- function(request) {
           }
         }
 
-
         @media (max-width: 780px) {
+          .ui.raised.very.padded.container.segment {
+              /* Set all padding and margins to 0 to neutralize 'padded' and potentially 'very', 'raised' */
+              padding: 0 !important;
+              margin: 0 !important;
+
+              /* Reset other properties that may be set by 'ui', 'container', 'segment' classes */
+              box-shadow: none !important; /* Assuming 'raised' might add a shadow */
+              border: none !important; /* In case any border is added */
+            }
           .footer-container {
               flex-direction: column;
               justify-content: center !important;
@@ -58,9 +66,9 @@ app_ui <- function(request) {
               margin-bottom: 20px; /* Add some inches of space below the buttons */
           }
         }
-
       "))
     ),
+    tags$script(JS_CODE_SCREEN_SIZE),
     useShinyjs(),
     main_panel(
       div(
@@ -96,7 +104,7 @@ app_ui <- function(request) {
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_pop_page", "Back", class = "ui grey button"),
-            action_button("begin", "Run Population Projection", class = "ui blue button"),
+            action_button("begin", "Run Projection", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")

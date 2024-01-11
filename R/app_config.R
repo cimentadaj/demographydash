@@ -10,9 +10,32 @@ TAB_NAMES <- c(
   "CDR and Life Expectancy",
   "CBR and TFR"
 )
-
 # Font size of text from a plot
-sz <- 13
+DOWNLOAD_PLOT_SIZE <- list(title = 11, font = 11)
+
+PLOTLY_TEXT_SIZE <- shiny::reactiveValues()
+
+PLOTLY_LEGEND_OPTS <- list(
+  xanchor = "bottom",
+  y = -0.32,
+  xref = "container",
+  yanchor = "bottom",
+  orientation = "h"
+)
+
+update_plotly_legend_opts <- function(PLOTLY_LEGEND_OPTS) {
+  if (PLOTLY_TEXT_SIZE$type == "tablet") {
+    PLOTLY_LEGEND_OPTS$x <- 0.2
+  }
+
+  PLOTLY_LEGEND_OPTS
+}
+
+JS_CODE_SCREEN_SIZE <- '$(document).on("shiny:connected", function(e) {
+  var jsWidth = screen.width;
+  Shiny.onInputChange("get_screen_width",jsWidth);
+});
+'
 
 #' Access files in the current app
 #'

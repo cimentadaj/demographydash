@@ -272,6 +272,13 @@ handle_navigation <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp
     show("pop_page")
 
     output$show_pop_results_ui <- renderUI({
+
+      create_pop_pyramid_plot(
+        reactive_pop(),
+        country = input$wpp_country,
+        input_year = wpp_starting_year()
+      )
+
       res <- show_pop_results_ui()
       processing(FALSE)
       res

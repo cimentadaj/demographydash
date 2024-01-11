@@ -27,7 +27,7 @@ show_input_ui <- function() {
 #' @param input Internal parameter for `{shiny}`
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset multiple_radio
-#' @importFrom shiny action downloadButton
+#' @importFrom shiny downloadButton
 #' @importFrom untheme plotWithDownloadButtonsUI
 #' @export
 #'
@@ -68,10 +68,10 @@ show_forecast_results_ui <- function(input) {
 show_pop_results_ui <- function() {
   div(
     class = "ui raised very padded container segment responsive-container",
-    style = "display: flex; align-items: flex-start; gap: 10px; width: 70%",
+    style = "display: flex; align-items: flex-start; gap: 10px",
     div(
       style = "flex: 2;",
-      plotlyOutput("plot_pop", height = "600px", width = "85%")
+      plotlyOutput("plot_pop", height = "600px", width = "100%")
     ),
     div(
       style = "flex: 1;",
@@ -90,11 +90,11 @@ show_pop_results_ui <- function() {
 #'
 show_tfr_results_ui <- function() {
   div(
-    class = "ui raised very padded container segment responsive-container",
-    style = "display: flex; align-items: flex-start; gap: 10px; width: 75%",
+    class = "ui raised very padded container segment",
+    style = "display: flex; align-items: flex-start; gap: 10px;",
     div(
       style = "flex: 3;",
-      plotlyOutput("plot_tfr_custom", height = "600px", width = "85%")
+      plotlyOutput("plot_tfr_custom", height = "600px", width = "100%")
     )
   )
 }
@@ -129,4 +129,50 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
   # around the page to register the time spent
   create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country)
   output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
+}
+
+
+detect_font_size <- function(screen_width) {
+  if (screen_width > 1200) {
+    return(list(title = 15, font = 13, type = "screen"))
+  } else if (screen_width <= 1200 && screen_width > 768) {
+    return(list(title = 12, font = 12, type = "tablet"))
+  } else {
+    return(list(title = 7, font = 11, type = "mobile"))
+  }
+}
+
+adjust_title_and_font <- function(device, title) {
+  # Define maximum characters for each device type and corresponding font sizes
+  max_chars <- list(mobile = c(45, 9, 8), tablet = c(45, 11, 10), screen = c(80, 13, 11))
+  device_settings <- max_chars[[device]]
+  if (is.null(device_settings)) {
+    device_settings <- c(25, 18, 14) # Default values
+  }
+
+  max_char_count <- device_settings[1]
+  large_font <- device_settings[2]
+  small_font <- device_settings[3]
+
+  # Split and join the title if it exceeds the maximum character count
+  if (nchar(title) > max_char_count) {
+    words <- strsplit(title, " ")[[1]]
+    split_title <- ""
+    current_line <- ""
+    for (word in words) {
+      if (nchar(paste0(current_line, word)) + 1 <= max_char_count) {
+        current_line <- paste0(current_line, word, " ")
+      } else {
+        split_title <- paste0(split_title, current_line, "\n")
+        current_line <- paste0(word, " ")
+      }
+    }
+    modified_title <- paste0(split_title, current_line)
+    font_size <- small_font
+  } else {
+    modified_title <- title
+    font_size <- large_font
+  }
+
+  return(list(title = modified_title, font_size = font_size))
 }

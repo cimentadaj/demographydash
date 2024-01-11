@@ -8,7 +8,7 @@
 #'
 #' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank element_text
 #' @importFrom data.table melt
-#' @importFrom plotly ggplotly layout
+#' @importFrom plotly ggplotly layout config
 #' @importFrom scales cut_short_scale label_number
 #'
 #' @return A ggplot2 object.
@@ -47,12 +47,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   names(pop_dt)[1] <- paste(names(pop_dt)[1], "(in thousands)")
 
   plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
-
-  ## mid_size <- nchar(plt_title) >= 52 & nchar(plt_title) < 55
-  ## mid_big_size <- nchar(plt_title) >= 55 & nchar(plt_title) < 60
-  ## big_size <- nchar(plt_title) > 60
-  ## font_size <- ifelse(mid_size, 12, ifelse(mid_big_size, 11, ifelse(big_size, 10, 13)))
-  font_size <- 10
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   plt <-
     pop_dt %>%
@@ -73,9 +68,9 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
     ) +
     coord_flip() +
     labs(title = plt_title) +
-    theme_minimal(base_size = sz) + # Increase font sizes
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
-      plot.title = element_text(size = font_size),
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "top",
       panel.grid.major.y = element_blank(), # Remove horizontal grid lines
       panel.grid.major.x = element_blank() # Remove horizontal grid lines
@@ -84,19 +79,25 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   sex <- NULL
   year <- NULL
 
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_blank()
+    )
+
+  plt_visible <- ggplotly(plt_visible) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
   list(
     gg = plt,
-    plotly = ggplotly(plt) %>%
-      layout(
-        legend = list(
-          x = 0.5, # Centered horizontally
-          y = 1, # At the very top vertically
-          xanchor = "center", # Center the legend on the x position
-          yanchor = "bottom", # Anchor the legend by its bottom edge
-          orientation = "h" # Horizontal orientation
-        ),
-        margin = list(t = 100) # Increase top margin to make space for the legend
-      )
+    plotly = config(
+      plt_visible,
+      displayModeBar = FALSE
+    )
   )
 }
 
@@ -142,14 +143,16 @@ create_age_group_plot <- function(dt, input_scale, country) {
   max_year <- max(pop_dt$Year)
 
   plt_title <- paste0("Population by broad age groups: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   plt <-
     pop_dt %>%
     ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
     labs(title = plt_title, color = "Age Group") +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
@@ -162,7 +165,21 @@ create_age_group_plot <- function(dt, input_scale, country) {
   Year <- NULL
   Age <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt))
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }
 
 
@@ -217,7 +234,10 @@ create_pop_time_plot <- function(dt, input_age, country) {
   max_year <- max(pop_dt$Year)
 
   min_year <- min(pop_dt$Year)
-  plt_title <- paste0("Population Age '", input_age, "': ",  country, ", ", min_year, "-", max_year)
+
+  plt_title <- paste0("Population Age '", input_age, "': ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
 
   plt <-
     pop_dt %>%
@@ -240,10 +260,10 @@ create_pop_time_plot <- function(dt, input_age, country) {
       labels = label_number(big.mark = "")
     ) +
     labs(title = plt_title) +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
-      legend.position = "bottom",
-      plot.title = element_text(size = 13)
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
     )
 
   Year <- NULL
@@ -255,7 +275,21 @@ create_pop_time_plot <- function(dt, input_age, country) {
   un_pop_95high <- NULL
   `Population (in thousands)` <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "group")))
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }
 
 #' Create forecasted TFR plot
@@ -290,7 +324,10 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
 
   max_year <- max(tfr_dt$Year)
   min_year <- min(tfr_dt$Year)
+
   plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
 
   plt <-
     ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
@@ -306,8 +343,9 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
     ) +
     labs(title = plt_title) +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
@@ -317,8 +355,23 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   un_tfr_95low <- NULL
   un_tfr_95high <- NULL
   type_value <- NULL
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
 
-  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "group")))
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }
 
 #' Create Annual Growth Rate Time Plot by Age
@@ -347,15 +400,18 @@ create_annual_growth_plot <- function(dt, end_year, country) {
 
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
+
   plt_title <- paste0("Population growth rates for broad age groups: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   plt <-
     dt %>%
     ggplot(aes(Year, `Population Growth Rate`, color = Age, group = Age)) +
     geom_line() +
     labs(title = plt_title) +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
@@ -363,7 +419,22 @@ create_annual_growth_plot <- function(dt, end_year, country) {
   `Population Growth Rate` <- NULL
   Age <- NULL
 
-  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color")))
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }
 
 
@@ -391,7 +462,9 @@ create_tfr_plot <- function(dt, end_year, country) {
 
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
+
   plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   plt <-
     dt %>%
@@ -400,9 +473,25 @@ create_tfr_plot <- function(dt, end_year, country) {
     labs(
       title = plt_title,
     ) +
-    theme_minimal(base_size = sz)
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title)
+    )
 
-  list(gg = plt, plotly = ggplotly(plt))
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }
 
 #' Prepare Population Age Groups Table
@@ -464,11 +553,18 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
   row.names(summary_table) <- NULL
   summary_table$Percentage <- paste0(summary_table$Percentage, "%")
 
-  shiny.semantic::semantic_DT(summary_table, options = list(
-    paging = FALSE, # Disable pagination
-    searching = FALSE, # Disable searching
-    info = FALSE # Disable info like "Showing 1 of N"
-  ))
+  shiny.semantic::semantic_DT(
+    summary_table,
+    options = list(
+      responsive = TRUE,
+      paging = FALSE, # Disable pagination
+      searching = FALSE, # Disable searching
+      info = FALSE, # Disable info like "Showing 1 of N"
+      columnDefs = list(
+        list(orderable = FALSE, targets = "_all")
+      )
+    )
+  )
 }
 
 #' Plot births/deaths data with median and confidence intervals
@@ -540,6 +636,8 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 
   names(melt_data) <- c("Year", "low", "high", "Type", var_name)
 
+  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
+
   max_year <- max(melt_data$Year)
   min_year <- min(melt_data$Year)
 
@@ -553,7 +651,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     paste0("Annual number of ", tolower(data_type_title), "s: ", country, ", ", min_year, "-", max_year)
   )
 
-  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   # Plot the data
   plt <-
@@ -575,8 +673,9 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     labs(
       title = plt_title,
     ) +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
@@ -590,11 +689,24 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
   low <- NULL
   high <- NULL
 
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
   list(
     gg = plt,
-    plotly = ggplotly(plt, tooltip = c("x", "y", "color"))
+    plotly = config(plt_visible, displayModeBar = FALSE)
   )
 }
+
 #' Plot YADR/OADR data with median and confidence intervals
 #'
 #' This function plots the YADR/OADR along with the UN median and confidence intervals
@@ -639,7 +751,6 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
 
   melt_data$type_value <- ifelse(grepl("un_", melt_data$type_value), "UN Projection", "Projection")
 
-
   var_name <- ifelse(
     data_type == "yadr",
     "Persons age <20 per 100 persons age 20-64",
@@ -658,6 +769,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
   )
 
   plt_title <- paste0(title_type, ": ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   # Plot the data
   plt <-
@@ -679,8 +791,9 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     labs(
       title = plt_title,
     ) +
-    theme_minimal(base_size = sz) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
@@ -692,9 +805,21 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
   high <- NULL
   data_type <- NULL
 
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
   list(
     gg = plt,
-    plotly = ggplotly(plt, tooltip = c("x", "y", "color"))
+    plotly = config(plt_visible, displayModeBar = FALSE)
   )
 }
 
@@ -722,7 +847,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
 #'
 create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = FALSE) {
   # Extract the title from the name_mappings and separate it from column mappings
-  plot_title <- name_mappings[["title"]]
+  plt_title <- name_mappings[["title"]]
   col_mappings <- name_mappings[names(name_mappings) != "title"]
 
   # Filter the data up to the specified end year
@@ -759,6 +884,8 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
     names(combined_data)[3] <- "Population (in thousands)"
   }
 
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
   # Create the ggplot object with the mappings
   plt <-
     ggplot(
@@ -772,11 +899,11 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
       ),
     ) +
     geom_point() +
-    labs(title = plot_title) +
-    theme_minimal(base_size = sz) +
+    labs(title = plt_title) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
-      legend.position = "bottom",
-      plot.title = element_text(size = 13)
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
     )
 
   if (percent_x) {
@@ -791,6 +918,20 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
   year <- NULL
   text <- NULL
 
-  # Return a list containing both the ggplot and ggplotly objects
-  list(gg = plt, plotly = ggplotly(plt, tooltip = c("x", "y", "color", "text")))
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "text")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
 }

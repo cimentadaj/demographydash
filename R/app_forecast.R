@@ -17,6 +17,7 @@
 #' @export
 #'
 begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
+
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different

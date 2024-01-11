@@ -12,6 +12,14 @@
 #' @export
 #'
 app_server <- function(input, output, session) {
+  observe({
+    req(input$get_screen_width)
+    sizes <- detect_font_size(input$get_screen_width)
+    PLOTLY_TEXT_SIZE$title <- sizes$title
+    PLOTLY_TEXT_SIZE$font <- sizes$font
+    PLOTLY_TEXT_SIZE$type <- sizes$type
+  })
+
   # Make the www folder available for loading images and icons
   add_resource_path(
     "www",
