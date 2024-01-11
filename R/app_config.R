@@ -11,7 +11,7 @@ TAB_NAMES <- c(
   "CBR and TFR"
 )
 # Font size of text from a plot
-DOWNLOAD_PLOT_SIZE <- list(title = 11, font = 11)
+DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
 
 PLOTLY_TEXT_SIZE <- shiny::reactiveValues()
 
