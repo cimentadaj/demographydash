@@ -39,18 +39,18 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 
   names(pop_dt) <- tools::toTitleCase(names(pop_dt))
   pop_dt <- pop_dt[, c("Population", "Age", "Sex"), with = FALSE]
-  pop_dt[["Population"]] <- round(pop_dt[["Population"]], 1)
-  names(pop_dt)[1] <- paste(names(pop_dt)[1], "(in thousands)")
+  pop_dt[["Population"]] <- round(pop_dt[["Population"]], 3)
+  names(pop_dt)[1] <- paste0(names(pop_dt)[1], " per 1000 persons")
 
   plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   tmp_dt <- as.data.frame(pop_dt)
   males <- tmp_dt[["Sex"]] == "Males"
-  tmp_dt[males, "Population (in thousands)"] <- -tmp_dt[males, "Population (in thousands)"]
+  tmp_dt[males, "Population per 1000 persons"] <- -tmp_dt[males, "Population per 1000 persons"]
 
   plt <-
-    ggplot(pop_dt, aes_string(x = "Age", y = "`Population (in thousands)`", fill = "Sex")) +
+    ggplot(pop_dt, aes_string(x = "Age", y = "`Population per 1000 persons`", fill = "Sex")) +
     geom_blank() +
     geom_bar(data = tmp_dt, alpha = 0.7, stat = "identity") +
     scale_x_discrete(breaks = seq(0, 100, by = 5)) +
@@ -119,14 +119,12 @@ create_age_group_plot <- function(dt, input_scale, country) {
     )
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
-  axis_label <- ifelse(input_scale == "Percent", "Percent", "in thousands")
+  axis_label <- ifelse(input_scale == "Percent", "(Percent)", "per 1000 persons")
 
-  type_pop <- paste0("Population (", axis_label, ")")
+  type_pop <- paste0("Population ", axis_label)
   names(pop_dt) <- c("Year", "Age", "Type", type_pop)
 
-  if (input_scale != "Percent") {
-    pop_dt[[type_pop]] <- round(pop_dt[[type_pop]], 1)
-  }
+  pop_dt[[type_pop]] <- round(pop_dt[[type_pop]], 3)
 
   min_year <- min(pop_dt$Year)
   max_year <- max(pop_dt$Year)
@@ -207,10 +205,11 @@ create_pop_time_plot <- function(dt, input_age, country) {
     "95% Lower bound PI",
     "95% Upper bound PI",
     "Type",
-    "Population (in thousands)"
+    "Population per 1000 persons"
   )
 
-  pop_dt[["Population (in thousands)"]] <- round(pop_dt[["Population (in thousands)"]], 1)
+  columns_to_round <- c("Population per 1000 persons", "95% Lower bound PI", "95% Upper bound PI")
+  pop_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   num_cols <- names(pop_dt)[sapply(pop_dt, is.numeric)]
   num_cols <- num_cols[num_cols != "Year"]
@@ -229,8 +228,8 @@ create_pop_time_plot <- function(dt, input_age, country) {
 
   plt <-
     pop_dt %>%
-    ggplot(aes(Year, `Population (in thousands)`, color = Type, , fill = Type, group = Type)) +
-    geom_line() +
+    ggplot(aes(Year, `Population per 1000 persons`, color = Type, , fill = Type, group = Type)) +
+    geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = pop_dt[Type == "UN Projection"],
       aes(
@@ -238,7 +237,8 @@ create_pop_time_plot <- function(dt, input_age, country) {
         ymin = .data[["95% Lower bound PI"]],
         ymax = .data[["95% Upper bound PI"]],
         color = "95% UN PI",
-        fill = "95% UN PI"
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
       ),
       alpha = 0.2
     ) +
@@ -247,6 +247,9 @@ create_pop_time_plot <- function(dt, input_age, country) {
     ) +
     scale_fill_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
     ) +
     scale_y_continuous(
       limits = c(min_y, max_y),
@@ -267,7 +270,7 @@ create_pop_time_plot <- function(dt, input_age, country) {
   type_value <- NULL
   un_pop_95low <- NULL
   un_pop_95high <- NULL
-  `Population (in thousands)` <- NULL
+  `Population per 1000 persons` <- NULL
 
   # This is the visible plot so we vary the font sizes depending on screen resolution
   plt_visible <-
@@ -322,10 +325,12 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  columns_to_round <- c("TFR", "95% Lower bound PI", "95% Upper bound PI")
+  tfr_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   plt <-
     ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
-    geom_line() +
+    geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = tfr_dt[Type == "UN Projection"],
       aes(
@@ -333,7 +338,8 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
         ymin = .data[["95% Lower bound PI"]],
         ymax = .data[["95% Upper bound PI"]],
         color = "95% UN PI",
-        fill = "95% UN PI"
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
       ),
       alpha = 0.2
     ) +
@@ -342,6 +348,9 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
     ) +
     scale_fill_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
     ) +
     labs(title = plt_title) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
@@ -401,6 +410,9 @@ create_annual_growth_plot <- function(dt, end_year, country) {
 
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
+
+  columns_to_round <- c("Population Growth Rate")
+  dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   plt_title <- paste0("Population growth rates for broad age groups: ", country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
@@ -463,6 +475,9 @@ create_tfr_plot <- function(dt, end_year, country) {
 
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
+
+  columns_to_round <- c("TFR")
+  dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
@@ -581,7 +596,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
 #' @param country The country for which the data is plotted
 #'
 #' @return A ggplot object.
-#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
+#' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual scale_linetype_manual geom_blank .data
 #' @importFrom plotly ggplotly
 #' @importFrom data.table setnames .SD :=
 #'
@@ -637,7 +652,8 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 
   names(melt_data) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", var_name)
 
-  melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
+  columns_to_round <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
+  melt_data[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   max_year <- max(melt_data$Year)
   min_year <- min(melt_data$Year)
@@ -660,7 +676,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       melt_data,
       aes(x = Year, y = !!sym(var_name), group = Type, color = Type, fill = Type)
     ) +
-    geom_line() +
+    geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = melt_data[Type == "UN Projection"],
       aes(
@@ -668,7 +684,8 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
         ymin = .data[["95% Lower bound PI"]],
         ymax = .data[["95% Upper bound PI"]],
         color = "95% UN PI",
-        fill = "95% UN PI"
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
       ),
       alpha = 0.2
     ) +
@@ -677,6 +694,9 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     ) +
     scale_fill_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
     ) +
     labs(
       title = plt_title,
@@ -770,6 +790,9 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
   max_year <- max(melt_data$Year)
   min_year <- min(melt_data$Year)
 
+  columns_to_round <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
+  melt_data[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
+
   title_type <- ifelse(
     data_type == "yadr",
     "Young-age dependency ratio (Age <20 / Age 20-64)",
@@ -785,7 +808,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
       melt_data,
       aes(x = Year, y = !!sym(var_name), group = Type, color = Type, fill = Type)
     ) +
-    geom_line() +
+    geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = melt_data[Type == "UN Projection"],
       aes(
@@ -793,9 +816,10 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
         ymin = .data[["95% Lower bound PI"]],
         ymax = .data[["95% Upper bound PI"]],
         color = "95% UN PI",
-        fill = "95% UN PI"
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
       ),
-,
+     ,
       alpha = 0.2
     ) +
     scale_color_manual(
@@ -803,6 +827,9 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     ) +
     scale_fill_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
     ) +
     labs(
       title = plt_title,
@@ -856,7 +883,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
 #'
 #' @return A list containing a ggplot object and an interactive plotly object.
 #'
-#' @importFrom ggplot2 aes_string ggplot geom_point labs theme_minimal
+#' @importFrom ggplot2 aes_string ggplot geom_point labs theme_minimal scale_shape_manual
 #' @importFrom plotly ggplotly
 #' @importFrom data.table data.table setnames
 #' @export
@@ -893,11 +920,14 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
     setnames(combined_data, old_name, col_mappings[[old_name]])
   }
 
+  columns_to_round <- c(names(combined_data)[2], names(combined_data)[3])
+  combined_data[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
+
   # Add text for ggplotly to display on hover
   combined_data$text <- paste("Year:", combined_data$year)
 
   if (names(combined_data)[3] == "Population") {
-    names(combined_data)[3] <- "Population (in thousands)"
+    names(combined_data)[3] <- "Population per 1000 persons"
   }
 
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
@@ -911,10 +941,14 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
         y = !!sym(names(combined_data)[3]),
         color = Type,
         group = Type,
+        shape = Type,
         text = text
       ),
     ) +
     geom_point() +
+    scale_shape_manual(
+      values = c("Projection" = 3, "UN Projection" = 16)
+    ) +
     labs(title = plt_title) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
