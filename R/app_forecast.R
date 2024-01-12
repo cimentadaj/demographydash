@@ -107,6 +107,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     }
 
     req(input$age_pop_time)
+
     create_pop_time_plot(
       simulation_results()$population_by_time,
       input$age_pop_time,

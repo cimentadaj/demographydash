@@ -204,8 +204,8 @@ create_pop_time_plot <- function(dt, input_age, country) {
   names(pop_dt) <- c(
     "Year",
     "Age",
-    "un_pop_95low",
-    "un_pop_95high",
+    "95% Lower bound PI",
+    "95% Upper bound PI",
     "Type",
     "Population (in thousands)"
   )
@@ -233,7 +233,13 @@ create_pop_time_plot <- function(dt, input_age, country) {
     geom_line() +
     geom_ribbon(
       data = pop_dt[Type == "UN Projection"],
-      aes(ymin = un_pop_95low, ymax = un_pop_95high, color = "95% UN PI", fill = "95% UN PI"),
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI"
+      ),
       alpha = 0.2
     ) +
     scale_color_manual(
@@ -272,7 +278,7 @@ create_pop_time_plot <- function(dt, input_age, country) {
       plot.title = element_text(size = plt_title_adapted$font_size)
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -308,7 +314,7 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
   tfr_dt[type_value == "tfr", type_value := "Projection"]
   tfr_dt[type_value == "un_tfr_median", type_value := "UN Projection"]
-  names(tfr_dt) <- c("Year", "un_tfr_95low", "un_tfr_95high", "Type", "TFR")
+  names(tfr_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "TFR")
 
   max_year <- max(tfr_dt$Year)
   min_year <- min(tfr_dt$Year)
@@ -322,7 +328,14 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
     geom_line() +
     geom_ribbon(
       data = tfr_dt[Type == "UN Projection"],
-      aes(ymin = un_tfr_95low, ymax = un_tfr_95high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI"
+      ),
+      alpha = 0.2
     ) +
     scale_color_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
@@ -354,7 +367,7 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
     )
 
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -622,7 +635,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     paste0(tools::toTitleCase(data_type), "s per 1,000 population")
   )
 
-  names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+  names(melt_data) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", var_name)
 
   melt_data[[var_name]] <- round(melt_data[[var_name]], 1)
 
@@ -650,7 +663,14 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     geom_line() +
     geom_ribbon(
       data = melt_data[Type == "UN Projection"],
-      aes(ymin = low, ymax = high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI"
+      ),
+      alpha = 0.2
     ) +
     scale_color_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
@@ -687,7 +707,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -745,7 +765,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     "Persons age 65+ per 100 persons age 20-64"
   )
 
-  names(melt_data) <- c("Year", "low", "high", "Type", var_name)
+  names(melt_data) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", var_name)
 
   max_year <- max(melt_data$Year)
   min_year <- min(melt_data$Year)
@@ -768,7 +788,15 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     geom_line() +
     geom_ribbon(
       data = melt_data[Type == "UN Projection"],
-      aes(ymin = low, ymax = high, color = "95% UN PI", fill = "95% UN PI"), alpha = 0.2
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI"
+      ),
+,
+      alpha = 0.2
     ) +
     scale_color_manual(
       values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
@@ -803,7 +831,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
