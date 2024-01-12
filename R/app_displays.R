@@ -31,10 +31,6 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
     )
 
   pop_dt$age <- as.factor(pop_dt$age)
-
-  males <- pop_dt[["gender"]] == "popM"
-  pop_dt[males, "population"] <- -pop_dt[males, "population"]
-
   pop_dt$sex <- pop_dt$gender
   pop_dt$gender <- NULL
 
@@ -49,31 +45,24 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  tmp_dt <- as.data.frame(pop_dt)
+  males <- tmp_dt[["Sex"]] == "Males"
+  tmp_dt[males, "Population (in thousands)"] <- -tmp_dt[males, "Population (in thousands)"]
+
   plt <-
-    pop_dt %>%
-    ggplot(aes_string(x = "Age", y = "`Population (in thousands)`", fill = "Sex")) +
-    geom_bar(alpha = 0.7, stat = "identity") +
-    scale_x_discrete(
-      breaks = seq(0, 100, by = 5)
-    ) +
-    scale_y_continuous(
-      labels = label_number(scale_cut = cut_short_scale())
-    ) +
-    # This second scale_y_continuous is a hack to remove the minus sign
-    # from the left part of the X axis. Using scales is too complicated
-    # so we just add a new scale and alter the labels formatted by the
-    # labels package.
-    scale_y_continuous(
-      labels = function(x) abs(x)
-    ) +
+    ggplot(pop_dt, aes_string(x = "Age", y = "`Population (in thousands)`", fill = "Sex")) +
+    geom_blank() +
+    geom_bar(data = tmp_dt, alpha = 0.7, stat = "identity") +
+    scale_x_discrete(breaks = seq(0, 100, by = 5)) +
+    scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
     coord_flip() +
     labs(title = plt_title) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "top",
-      panel.grid.major.y = element_blank(), # Remove horizontal grid lines
-      panel.grid.major.x = element_blank() # Remove horizontal grid lines
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_blank()
     )
 
   sex <- NULL
@@ -237,7 +226,6 @@ create_pop_time_plot <- function(dt, input_age, country) {
 
   plt_title <- paste0("Population Age '", input_age, "': ", country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
-
 
   plt <-
     pop_dt %>%
