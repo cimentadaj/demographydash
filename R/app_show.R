@@ -62,6 +62,7 @@ show_forecast_results_ui <- function(input) {
 #' @return A div containing UI elements for step one
 #' @importFrom shiny actionButton tableOutput
 #' @importFrom shiny.semantic grid
+#' @importFrom DT DTOutput
 #' @importFrom plotly plotlyOutput
 #' @export
 #'
@@ -75,7 +76,7 @@ show_pop_results_ui <- function() {
     ),
     div(
       style = "flex: 1;",
-      shiny.semantic::semantic_DTOutput("table_pop")
+      DTOutput("table_pop")
     )
   )
 }
@@ -129,17 +130,6 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
   # around the page to register the time spent
   create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country)
   output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
-}
-
-
-detect_font_size <- function(screen_width) {
-  if (screen_width > 1200) {
-    return(list(title = 15, font = 13, type = "screen"))
-  } else if (screen_width <= 1200 && screen_width > 768) {
-    return(list(title = 12, font = 12, type = "tablet"))
-  } else {
-    return(list(title = 7, font = 11, type = "mobile"))
-  }
 }
 
 adjust_title_and_font <- function(device, title) {

@@ -8,4 +8,4 @@ deploy:
 	unlink(renv::paths[['cache']](), recursive = TRUE); \
   setwd('/home/jorge/repositories/demographydash/'); \
 	rsconnect::forgetDeployment('/home/jorge/repositories/demographydash/'); \
-	rsconnect::deployApp(appName = 'pop_projection', account = 'unpop')"
+	rsconnect::deployApp(appName = 'pop_projection', account = 'unpop', forceUpdate = TRUE)"

@@ -516,7 +516,7 @@ create_tfr_plot <- function(dt, end_year, country) {
 #'
 #' @param wpp_dt Data table with population data.
 #'
-#' @importFrom shiny.semantic semantic_DT
+#' @importFrom DT datatable
 #'
 #' @return A shiny.semantic DataTable object.
 #' @export
@@ -569,7 +569,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
   row.names(summary_table) <- NULL
   summary_table$Percentage <- paste0(summary_table$Percentage, "%")
 
-  shiny.semantic::semantic_DT(
+  DT::datatable(
     summary_table,
     options = list(
       responsive = TRUE,

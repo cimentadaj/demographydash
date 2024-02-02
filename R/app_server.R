@@ -8,6 +8,7 @@
 #' @importFrom shiny reactive reactiveVal observeEvent renderUI observe
 #' @importFrom shinyjs hide show
 #' @importFrom utils read.csv
+#' @importFrom untheme detect_font_size
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr
 #' @export
 #'

@@ -29,7 +29,7 @@ handle_pop_tfr_plots <- function(reactive_pop, reactive_tfr, wpp_starting_year, 
   )
 
   # Render population table
-  output$table_pop <- renderDataTable(prepare_pop_agegroups_table(reactive_pop()))
+  output$table_pop <- renderDT(prepare_pop_agegroups_table(reactive_pop()))
 }
 
 #' Create a Custom Modal UI for Shiny
