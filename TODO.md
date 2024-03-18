@@ -97,21 +97,30 @@ TODO:
 - [X] Change CI to PI (Prediction Intervals)
 - [X] Change upload statement in pop up window to "Upload: starting population by sex and single year of age with an open age interval of 100+"
 - [X] We need a way to download all pyramid population data.  In the current version, we can only download data for 1 year at a time.
+- [X] Reduce the rounding of decimals on the tool tips when showing rates, ratios, percentage, number of children to something like 2 decimals.
+- [X] Can you change the line type between projection and UN estimate? For the color blind people.
+- [X] Remind Tim that Patrick wanted the possibility to skip the TFR section.
+- [X] Confirm lower / upper bound for age group tool tip corresponds with the data. See example of chile, 60+, 2023-2100
+- [X] For the plots it would be nice to add systematically the units in the axis label: per 1000 persons, and for TFR (live births per woman). See for example https://population.un.org/wpp/Graphs/DemographicProfiles/Line/156. JC: This means you need to add "per 1000 persons" instead of the parenthesis and for TFR simply write "Live Births Per Woman".
 
+- [ ] The term 'colour' seems to be appearing inside each of the ribbons of the PI tooltip, why?
+- [ ] the customize window seems to not allow scrolling at first time, is this because of the table not being scrollable?
+- [ ] Plt title cuts in different devices. Would be great to have some sort of automatic title wrapper for different scren
 
 - [ ] Multiply YADR by 100 (hana will do it)
 - [ ] Multiply OADR by 100 (hana will do it)
 - [ ] Include methodological links for interested users.
-- [ ] For the plots it would be nice to add systematically the units in the axis label: per 1000 persons, and for TFR (live births per woman). See for example https://population.un.org/wpp/Graphs/DemographicProfiles/Line/156. JC: This means you need to add "per 1000 persons" instead of the parenthesis and for TFR simply write "Live Births Per Woman".
 - [ ] For the count data, and deal with the scaling issue between small and largest countries like China and India we use a few conditions in R to check what scaling factor to use and unit label (eg billion, million, thousand, etc) based on the max value. JC: I don't think this might be doable a this point because we're fixing the unit label to thousands for now.
 - [ ] For the scatter plots it might be nice to have the option to switch on/off the labeling of some years like event 10 or 20 years depending the length of years plotted. JC: Do they mean to change the label of the X axis to have labels every 10 or 20 years instead of fixed?
 - [ ] Apps time out very quickly.
 - [ ] For the shiny plots it would be good to add some footnote to remind the user whether the figures refer to end of year or mid-year. Hana needs to tell me whether the results are for end of year or mid-year.
-- [ ] Reduce the rounding of decimals on the tool tips when showing rates, ratios, percentage, number of children to something like 2 decimals.
-- [ ] Can you change the line type between projection and UN estimate? For the color blind people.
 - [ ] Change "Data Portal" in the UN logo to "Online Population Projection". How to do that? No idea :D since this is in the HTML file. Perhaps when you read the HTML and place it in the app you could replace that.
-- [ ] Remind Tim that Patrick wanted the possibility to skip the TFR section.
-- [ ] Confirm lower / upper bound for age group tool tip corresponds with the data. See example of chile, 60+, 2023-2100
+
+Mobile changes:
+- [ ] Footer section takes too much space vertically
+- [ ] Summary stats panel for input pop has issues with display of 3 columns vertically - they get stacked into 1 column vertically
+- [ ] One small enhancement for pop pyramids would be to add on the right y-axis the year of birth to track generations
+- [ ] Another nice tweak would be to add an option for pop pyramids to have animation, ie  flipping thru years automatically from whatever start year.
 
 Version 2.0:
 
