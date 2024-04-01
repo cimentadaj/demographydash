@@ -17,20 +17,38 @@
 #' @export
 #'
 begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
-
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
   # temporary directories.
   forecast_res <- reactive({
-    run_forecast(
-      country = input$wpp_country,
-      start_year = wpp_starting_year(),
-      end_year = wpp_ending_year(),
-      output_dir = "/tmp/hasdaney213/",
-      pop = reactive_pop(),
-      tfr = reactive_tfr()
+    res <-
+      run_forecast(
+        country = input$wpp_country,
+        start_year = wpp_starting_year(),
+        end_year = wpp_ending_year(),
+        output_dir = "/tmp/hasdaney213/",
+        pop = reactive_pop(),
+        tfr = reactive_tfr()
+      )
+
+    remove_last_year <- c(
+      "population_by_age_and_sex",
+      "population_by_broad_age_group",
+      "population_by_time",
+      "yadr",
+      "oadr",
+      "pop_aging_and_pop_size"
     )
+
+    res[remove_last_year] <- lapply(
+      res[remove_last_year],
+      function(x) {
+        x$year <- x$year + 1
+        x[x$year != 2101]
+      }
+    )
+    res
   })
 
   # Generates the tabset UI where all plots are rendered
@@ -161,7 +179,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
   })
 
   pop_size_aging_plot <- reactive({
-
     dt <- simulation_results()$pop_aging_and_pop_size
     max_year <- max(dt$year)
     min_year <- min(dt$year)
@@ -288,8 +305,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
 
   ##### Generate all plots and show in the tabset UI #####
   observe({
-    selected_plot <- switch(
-      input$select_id,
+    selected_plot <- switch(input$select_id,
       "Population Pyramid By Age and Sex" = list(
         plt_reactive = pyramid_plot,
         filename = filename_pop_pyramid()

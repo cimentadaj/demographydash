@@ -40,17 +40,17 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   names(pop_dt) <- tools::toTitleCase(names(pop_dt))
   pop_dt <- pop_dt[, c("Population", "Age", "Sex"), with = FALSE]
   pop_dt[["Population"]] <- round(pop_dt[["Population"]], 3)
-  names(pop_dt)[1] <- paste0(names(pop_dt)[1], " per 1000 persons")
+  names(pop_dt)[1] <- paste0(names(pop_dt)[1], " (000s)")
 
   plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   tmp_dt <- as.data.frame(pop_dt)
   males <- tmp_dt[["Sex"]] == "Males"
-  tmp_dt[males, "Population per 1000 persons"] <- -tmp_dt[males, "Population per 1000 persons"]
+  tmp_dt[males, "Population (000s)"] <- -tmp_dt[males, "Population (000s)"]
 
   plt <-
-    ggplot(pop_dt, aes_string(x = "Age", y = "`Population per 1000 persons`", fill = "Sex")) +
+    ggplot(pop_dt, aes_string(x = "Age", y = "`Population (000s)`", fill = "Sex")) +
     geom_blank() +
     geom_bar(data = tmp_dt, alpha = 0.7, stat = "identity") +
     scale_x_discrete(breaks = seq(0, 100, by = 5)) +
@@ -119,7 +119,7 @@ create_age_group_plot <- function(dt, input_scale, country) {
     )
 
   pop_dt <- pop_dt[pop_dt$type_value == y_axis, ]
-  axis_label <- ifelse(input_scale == "Percent", "(Percent)", "per 1000 persons")
+  axis_label <- ifelse(input_scale == "Percent", "(Percent)", " (000s)")
 
   type_pop <- paste0("Population ", axis_label)
   names(pop_dt) <- c("Year", "Age", "Type", type_pop)
@@ -136,7 +136,10 @@ create_age_group_plot <- function(dt, input_scale, country) {
     pop_dt %>%
     ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
-    labs(title = plt_title, color = "Age Group") +
+    labs(
+      title = plt_title,
+      color = "Age Group"
+    ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
@@ -205,10 +208,10 @@ create_pop_time_plot <- function(dt, input_age, country) {
     "95% Lower bound PI",
     "95% Upper bound PI",
     "Type",
-    "Population per 1000 persons"
+    "Population (000s)"
   )
 
-  columns_to_round <- c("Population per 1000 persons", "95% Lower bound PI", "95% Upper bound PI")
+  columns_to_round <- c("Population (000s)", "95% Lower bound PI", "95% Upper bound PI")
   pop_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   num_cols <- names(pop_dt)[sapply(pop_dt, is.numeric)]
@@ -228,7 +231,7 @@ create_pop_time_plot <- function(dt, input_age, country) {
 
   plt <-
     pop_dt %>%
-    ggplot(aes(Year, `Population per 1000 persons`, color = Type, , fill = Type, group = Type)) +
+    ggplot(aes(Year, `Population (000s)`, color = Type, , fill = Type, group = Type)) +
     geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = pop_dt[Type == "UN Projection"],
@@ -317,7 +320,7 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   tfr_dt <- tfr_dt[tfr_dt$year <= as.numeric(end_year), ]
   tfr_dt[type_value == "tfr", type_value := "Projection"]
   tfr_dt[type_value == "un_tfr_median", type_value := "UN Projection"]
-  names(tfr_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "TFR")
+  names(tfr_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "Births per woman")
 
   max_year <- max(tfr_dt$Year)
   min_year <- min(tfr_dt$Year)
@@ -325,11 +328,11 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   plt_title <- paste0("Total Fertility Rate: ", country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
-  columns_to_round <- c("TFR", "95% Lower bound PI", "95% Upper bound PI")
+  columns_to_round <- c("Births per woman", "95% Lower bound PI", "95% Upper bound PI")
   tfr_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   plt <-
-    ggplot(tfr_dt, aes(Year, TFR, group = Type, color = Type, fill = Type)) +
+    ggplot(tfr_dt, aes(Year, `Births per woman`, group = Type, color = Type, fill = Type)) +
     geom_line(aes(linetype = Type)) +
     geom_ribbon(
       data = tfr_dt[Type == "UN Projection"],
@@ -488,6 +491,7 @@ create_tfr_plot <- function(dt, end_year, country) {
     geom_line(size = 2, alpha = 0.7) +
     labs(
       title = plt_title,
+      y = "Total Fertility Rate"
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
