@@ -1,7 +1,10 @@
 color_labels <- function() {
   # Define the labels and corresponding colors
   labels_colors <- scales::hue_pal()(6)
-  labels_colors <- setNames(labels_colors, c("0-19", "20-39", "40-59", "60+", "65+", "Total"))
+  labels_colors <- stats::setNames(
+    labels_colors,
+    c("0-19", "20-39", "40-59", "60+", "65+", "Total")
+  )
   labels_colors
 }
 
@@ -114,7 +117,6 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #' @export
 #'
 create_age_group_plot <- function(dt, input_scale, country) {
-
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
 
   pop_dt <-
@@ -283,6 +285,7 @@ create_pop_time_plot <- function(dt, input_age, country) {
   un_pop_95low <- NULL
   un_pop_95high <- NULL
   `Population per 1000 persons` <- NULL
+  `Population (000s)` <- NULL
 
   # This is the visible plot so we vary the font sizes depending on screen resolution
   plt_visible <-
@@ -377,6 +380,8 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   un_tfr_95low <- NULL
   un_tfr_95high <- NULL
   type_value <- NULL
+  `Births per woman` <- NULL
+
   # This is the visible plot so we vary the font sizes depending on screen resolution
   plt_visible <-
     plt +
