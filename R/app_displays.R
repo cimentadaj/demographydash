@@ -1,3 +1,10 @@
+color_labels <- function() {
+  # Define the labels and corresponding colors
+  labels_colors <- scales::hue_pal()(6)
+  labels_colors <- setNames(labels_colors, c("0-19", "20-39", "40-59", "60+", "65+", "Total"))
+  labels_colors
+}
+
 #' Create Population Pyramid Plot
 #'
 #' This function takes a data table and an optional input year to create a population pyramid plot.
@@ -107,6 +114,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #' @export
 #'
 create_age_group_plot <- function(dt, input_scale, country) {
+
   y_axis <- ifelse(input_scale == "Percent", "pop_percent", "pop")
 
   pop_dt <-
@@ -136,6 +144,7 @@ create_age_group_plot <- function(dt, input_scale, country) {
     pop_dt %>%
     ggplot(aes(Year, !!sym(type_pop), color = Age)) +
     geom_line() +
+    scale_color_manual(values = color_labels()) +
     labs(
       title = plt_title,
       color = "Age Group"
@@ -424,6 +433,7 @@ create_annual_growth_plot <- function(dt, end_year, country) {
     dt %>%
     ggplot(aes(Year, `Population Growth Rate`, color = Age, group = Age)) +
     geom_line() +
+    scale_color_manual(values = color_labels()) +
     labs(title = plt_title) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
@@ -822,8 +832,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
         color = "95% UN PI",
         fill = "95% UN PI",
         linetype = "95% UN PI"
-      ),
-     ,
+      ), ,
       alpha = 0.2
     ) +
     scale_color_manual(
