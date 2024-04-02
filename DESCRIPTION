@@ -27,7 +27,6 @@ Imports:
     shinyjs,
     tools,
     untheme (>= 0.0.0.9000),
-    pkgbuild,
     utils
 Suggests:
     testthat (>= 3.0.0)
