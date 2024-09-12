@@ -4,6 +4,7 @@
 #'
 #' @param reactive_pop Population data
 #' @param reactive_tfr TFR data
+#' @param reactive_tfr e0 data
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameter for `{shiny}`.
@@ -16,7 +17,7 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
@@ -29,7 +30,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
         end_year = wpp_ending_year(),
         output_dir = "/tmp/hasdaney213/",
         pop = reactive_pop(),
-        tfr = reactive_tfr()
+        tfr = reactive_tfr(),
+        e0 = reactive_e0()
       )
 
     remove_last_year <- c(
@@ -75,6 +77,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     ages <- unique(simulation_results()$population_by_time$age)
   })
 
+
+
   output$age_pop_time_ui <- renderUI({
     selectInput(
       inputId = "age_pop_time",
@@ -83,6 +87,20 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
       selected = age_pop_time()[1]
     )
   })
+
+  sex_e0_time <- reactive({
+    c("Both", "Male", "Female")
+  })
+
+  output$sex_e0_time_ui <- renderUI({
+    selectInput(
+      inputId = "sex_e0_time",
+      label = "Select sex",
+      choices = sex_e0_time(),
+      selected = sex_e0_time()[1]
+    )
+  })
+
 
   pop_age_sex_years <- reactive({
     unique(simulation_results()$population_by_age_and_sex$year)
@@ -251,6 +269,21 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     )
   })
 
+  e0_by_time_plot <- reactive({
+    if (is.null(input$sex_e0_time)) {
+      return(NULL)
+    }
+
+    req(input$sex_e0_time)
+
+    create_e0_projected_plot(
+      simulation_results()$e0_by_time,
+      input$sex_e0_time,
+      input$wpp_country
+    )
+  })
+
+
   ##### Reactive Plots End #####
 
   cnt <- reactive({
@@ -303,6 +336,16 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
     )
   })
 
+  filename_e0_over_time_sex <- reactive({
+    paste0(
+      "e0_sex_",
+      cnt(),
+      "_",
+      input$sex_e0_time
+    )
+  })
+
+
   ##### Generate all plots and show in the tabset UI #####
   observe({
     selected_plot <- switch(input$select_id,
@@ -345,6 +388,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, wpp_starting_year, wpp_en
       "CBR and TFR" = list(
         plt_reactive = tfr_by_cdr_plot,
         filename = paste0("tfr_cdr_", cnt())
+      ),
+      "Life Expectancy Over Time" = list(
+        plt_reactive = e0_by_time_plot,
+        filename = filename_e0_over_time_sex()
       ),
       NULL # Default case
     )

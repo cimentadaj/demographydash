@@ -7,7 +7,7 @@
 show_tfr_results_ui()
 }
 \value{
-A div containing UI elements for step two
+A div containing UI elements for TFR page
 }
 \description{
 Generate the UI for the TFR page.

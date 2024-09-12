@@ -47,6 +47,7 @@ show_forecast_results_ui <- function(input) {
       "Population Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
       "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
       "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
+      "Life Expectancy Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("sex_e0_time_ui")),
       # Pages with no widget on the sidebar
       plotWithDownloadButtonsUI(tab) # Default case
     )
@@ -83,7 +84,7 @@ show_pop_results_ui <- function() {
 
 #' Generate the UI for the TFR page.
 #'
-#' @return A div containing UI elements for step two
+#' @return A div containing UI elements for TFR page
 #' @importFrom shiny actionButton tableOutput
 #' @importFrom shiny.semantic grid
 #' @importFrom plotly plotlyOutput
@@ -99,6 +100,26 @@ show_tfr_results_ui <- function() {
     )
   )
 }
+
+#' Generate the UI for the e0 page.
+#'
+#' @return A div containing UI elements for e0 page
+#' @importFrom shiny actionButton tableOutput
+#' @importFrom shiny.semantic grid
+#' @importFrom plotly plotlyOutput
+#' @export
+#'
+show_e0_results_ui <- function() {
+  div(
+    class = "ui raised very padded container segment",
+    style = "display: flex; align-items: flex-start; gap: 10px;",
+    div(
+      style = "flex: 3;",
+      plotlyOutput("plot_e0_custom", height = "600px", width = "100%")
+    )
+  )
+}
+
 
 #' Show and compute the TFR page
 #'
@@ -131,6 +152,39 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
   create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country)
   output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
 }
+
+#' Show and compute the e0 page
+#'
+#' @param reactive_e0 A reactive function returning the e0 data frame
+#' @param wpp_ending_year A reactive expression returning the ending year.
+#' @param input,output Internal parameters for `{shiny}`.
+#'
+#' @importFrom shinyjs hide show
+#' @importFrom shiny.semantic hide_modal
+#' @export
+#'
+show_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
+  hide("tfr_page")
+  show("e0_page")
+  compute_e0(reactive_e0, wpp_ending_year, input, output)
+}
+
+
+#' Compute the e0 page
+#'
+#' @param reactive_e0 A reactive function returning the e0 data frame
+#' @param wpp_ending_year A reactive expression returning the ending year.
+#' @param input,output Internal parameters for `{shiny}`.
+#' @importFrom shiny renderUI
+#' @export
+#'
+compute_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
+  # Repeated the create_tfr_plot here because it allows the spinner
+  # around the page to register the time spent
+  create_e0_plot(reactive_e0(), end_year = wpp_ending_year(), country = input$wpp_country)
+  output$show_e0_results_ui <- renderUI(show_e0_results_ui())
+}
+
 
 adjust_title_and_font <- function(device, title) {
   # Define maximum characters for each device type and corresponding font sizes

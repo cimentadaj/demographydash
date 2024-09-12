@@ -104,7 +104,7 @@ app_ui <- function(request) {
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_pop_page", "Back", class = "ui grey button"),
-            action_button("begin", "Run Projection", class = "ui blue button"),
+            action_button("forward_e0_page", "Forward", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")
@@ -115,12 +115,48 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_tfr_results_ui")),
         )
       ),
+
+      hidden(
+        div(
+          id = "e0_page",
+          div(
+            style = "display: flex; gap: 10px;", # 20px gap between buttons
+            action_button("back_to_tfr_page", "Back", class = "ui grey button"),
+            action_button("forward_mig_page", "Forward", class = "ui blue button"),
+            div(
+              style = "margin-left: auto;",
+              action_button("customize_e0", "Customize", icon = icon("refresh"), class = "ui blue button")
+            )
+          ),
+          uiOutput("popup_e0"),
+          br(),
+          withSpinner(uiOutput("show_e0_results_ui")),
+        )
+      ),
+
+      hidden(
+        div(
+          id = "mig_page",
+          div(
+            style = "display: flex; gap: 10px;", # 20px gap between buttons
+            action_button("back_to_e0_page", "Back", class = "ui grey button"),
+            action_button("begin", "Run Projection", class = "ui blue button"),
+            div(
+              style = "margin-left: auto;",
+              action_button("customize_mig", "Customize", icon = icon("refresh"), class = "ui blue button")
+            )
+          ),
+          br(),
+          withSpinner(uiOutput("show_mig_results_ui")),
+        )
+      ),
+
       hidden(
         div(
           id = "forecast_page",
           div(
             style = "display: flex; gap: 20px;", # 20px gap between buttons
-            action_button("back_to_tfr_page", "Back", class = "ui grey button"),
+            action_button("back_to_mig_page", "Back", class = "ui grey button"),
             div(
               style = "margin-left: auto;",
               uiOutput("main_analysis_hover")
@@ -132,6 +168,7 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),
+
       hidden(
         numericInput("step", label = NULL, value = 1)
       ),

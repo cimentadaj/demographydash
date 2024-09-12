@@ -100,6 +100,206 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   )
 }
 
+
+#' Create e0 Plot
+#'
+#' This function takes a data table to create a total life expectancy plot.
+#'
+#' @param dt Data table with life expectancy data.
+#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param country The country for which the data is plotted
+#'
+#' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
+#' @importFrom plotly ggplotly
+#' @importFrom data.table as.data.table
+#'
+#' @return A ggplot2 object.
+#' @export
+#'
+create_e0_plot <- function(dt, end_year, country) {
+  Year <- e0M <- e0F <- value <- Sex <- NULL  # To avoid R CMD check notes
+
+  # Ensure the data is in the correct format
+  dt <- as.data.table(dt)
+  setnames(dt, c("year", "e0M", "e0F"), c("Year", "e0M", "e0F"))
+
+  # Filter data up to end_year
+  dt <- dt[Year <= end_year]
+
+  # Pivot the data to long format
+  dt_long <- melt(dt, id.vars = "Year",
+                  measure.vars = c("e0M", "e0F"),
+                  variable.name = "Sex", value.name = "LifeExpectancy")
+
+  # Update Sex labels
+  dt_long[, Sex := ifelse(Sex == "e0M", "Male", "Female")]
+
+  # Round the life expectancy values
+  dt_long[, LifeExpectancy := round(LifeExpectancy, 3)]
+
+  # Get min and max years for the title
+  max_year <- max(dt$Year)
+  min_year <- min(dt$Year)
+
+  # Create plot title
+  plt_title <- paste0("Life Expectancy: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  # Create ggplot
+  plt <- ggplot(dt_long, aes(x = Year, y = LifeExpectancy, color = Sex)) +
+    geom_line(size = 2, alpha = 0.7) +
+    labs(
+      title = plt_title,
+      y = "Life Expectancy (years)",
+      color = "Sex"
+    ) +
+
+    scale_color_manual(values = c("Male" = "#F8766D", "Female" = "#00BFC4")) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  # Create plotly version
+  plt_visible <- plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible)
+
+  # Return both ggplot and plotly versions
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
+}
+
+
+#' Create Projected e0 Plot
+#'
+#' This function takes a data table to create a total life expectancy plot from
+#' the model's prediction.
+#'
+#' @param dt Data table with projected life expectancy data.
+#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param country The country for which the data is plotted
+#'
+#' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
+#' @importFrom plotly ggplotly
+#'
+#' @return A ggplot2 object.
+#' @export
+#'
+create_e0_projected_plot <- function(dt, input_sex, country) {
+
+  # Update Sex labels
+  dt[, sex := fcase(
+    sex == "M", "Male",
+    sex == "F", "Female",
+    sex == "B", "Total",
+    default = sex
+  )]
+
+  e0_dt <- melt(
+    dt,
+    id.vars = c("year", "sex", "un_e0_95low", "un_e0_95high"),
+    measure.vars = c("e0", "un_e0_median"),
+    variable.name = "type_value",
+    value.name = "value"
+  )
+
+  e0_dt <- e0_dt[e0_dt$sex == input_sex, ]
+
+  e0_dt[type_value == "e0", type_value := "Projection"]
+  e0_dt[type_value == "un_e0_median", type_value := "UN Projection"]
+
+  names(e0_dt) <- c(
+    "Year",
+    "Sex",
+    "95% Lower bound PI",
+    "95% Upper bound PI",
+    "Type",
+    "Life Expectancy"
+  )
+
+  columns_to_round <- c("Life Expectancy", "95% Lower bound PI", "95% Upper bound PI")
+
+  e0_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
+
+  num_cols <- names(e0_dt)[sapply(e0_dt, is.numeric)]
+  num_cols <- num_cols[num_cols != "Year"]
+  res <- e0_dt[, num_cols, with = FALSE]
+  min_y <- min(sapply(res, min, na.rm = TRUE))
+  min_y <- min_y - (min_y * 0.05)
+  max_y <- max(sapply(res, max, na.rm = TRUE))
+  max_y <- max_y + (max_y * 0.05)
+
+  max_year <- max(e0_dt$Year)
+  min_year <- min(e0_dt$Year)
+  plt_title <- paste0("Life Expectancy '", input_sex, "': ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    e0_dt %>%
+    ggplot(aes(Year, `Life Expectancy`, color = Type, fill = Type, group = Type)) +
+    geom_line(aes(linetype = Type)) +
+    geom_ribbon(
+      data = e0_dt[Type == "UN Projection"],
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
+      ),
+      alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
+    ) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = label_number(big.mark = "")
+    ) +
+    labs(title = plt_title, y = "Life Expectancy (years)") +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  # This is the visible plot so we vary the font sizes depending on screen resolution
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <-
+    ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
+}
+
 #' Create Age Group Plot
 #'
 #' This function takes a data table and an input scale to create an age group plot.

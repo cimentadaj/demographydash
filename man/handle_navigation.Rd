@@ -7,6 +7,7 @@
 handle_navigation(
   reactive_pop,
   reactive_tfr,
+  reactive_e0,
   wpp_starting_year,
   wpp_ending_year,
   input,

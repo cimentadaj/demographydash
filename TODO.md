@@ -132,3 +132,30 @@ Version 2.0:
 
 - [ ] Add option to download all years from a single button for plots with have widget to select a single year.
 - [ ] In Pop Pyramid export plot, remove the negative values for males from the exported data.
+
+
+
+- [ ] Need to fix the feedback that Patrick sent
+
+
+- UI for life expectancy by sex (Hana to provide get_wpp_e0)
+- You need to understand the output of get_wpp_e0 to set up the UI interface for updating e0
+- run_forecast will have a slot for e0
+
+
+- UI for migration (Hana to provide get_wpp_mig)
+- You need to understand the output of get_wpp_mig to set up the UI interface for updating migration
+- run_forecast will have a slot for mig
+
+
+- e0_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
+- mig_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
+
+
+- Need to change the initial year of the forecast. Set it t 1970 for now to avoid weird errors (tested this with Hana)
+
+
+- Need to add widget for changing between country and region aggregation. Hana to provide get_wpp_region to show it in the UI.
+
+
+- Need to install the private version of wppp2024 package on the server so that it overrides the public one. Need to think how to automate this. Hana will give access to this repository so that I can install it on the server.

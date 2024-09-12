@@ -7,6 +7,7 @@
 begin_forecast(
   reactive_pop,
   reactive_tfr,
+  reactive_e0,
   wpp_starting_year,
   wpp_ending_year,
   input,
@@ -17,7 +18,7 @@ begin_forecast(
 \arguments{
 \item{reactive_pop}{Population data}
 
-\item{reactive_tfr}{TFR data}
+\item{reactive_tfr}{e0 data}
 
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
 

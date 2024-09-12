@@ -59,6 +59,17 @@ app_server <- function(input, output, session) {
     res
   })
 
+
+  reactive_e0 <- reactive({
+    if (!is.null(input$upload_e0) && nrow(input$upload_e0) > 0) {
+      res <- data.table(read.csv(input$upload_e0$datapath))
+      names(res) <- c("year", "e0M", "e0F")
+    } else {
+      res <- get_wpp_e0(input$wpp_country)
+    }
+    res
+  })
+
   # This is a very weird thing. If I use this in the title of the TFR customize
   # tab, weird things start to happen. I think it's because of the circularity
   # that this reactive_tfr is updated from the same modal that uploads a new
@@ -70,20 +81,45 @@ app_server <- function(input, output, session) {
   handle_validity_checks(wpp_starting_year, wpp_ending_year, output)
 
   # Handle pop/tfr plots/tables before analysis
-  handle_pop_tfr_plots(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+  handle_before_analysis_plots(
+    reactive_pop,
+    reactive_tfr,
+    reactive_e0,
+    wpp_starting_year,
+    wpp_ending_year,
+    input,
+    output
+  )
 
   # Handle navigation between steps
-  handle_navigation(reactive_pop, reactive_tfr, wpp_starting_year, wpp_ending_year, input, output)
+  handle_navigation(
+    reactive_pop,
+    reactive_tfr,
+    reactive_e0,
+    wpp_starting_year,
+    wpp_ending_year,
+    input,
+    output
+  )
 
   # Handle all customize actions
-  handle_customize_data(reactive_pop, reactive_tfr, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output)
+  handle_customize_data(
+    reactive_pop,
+    reactive_tfr,
+    reactive_e0,
+    tfr_starting_year,
+    wpp_starting_year,
+    wpp_ending_year,
+    input,
+    output
+  )
 
   # Everything that doesn't fit into other handles is here look tooltip server side code.
   handle_misc(wpp_starting_year, wpp_ending_year, input, output)
 
   # Begin simulation on button click
   observeEvent(input$begin, {
-    hide("tfr_page")
+    hide("mig_page")
     show("forecast_page")
 
     # Define a reactiveVal to store simulation results
@@ -93,6 +129,7 @@ app_server <- function(input, output, session) {
     begin_forecast(
       reactive_pop,
       reactive_tfr,
+      reactive_e0,
       wpp_starting_year,
       wpp_ending_year,
       input,

@@ -7,6 +7,7 @@
 handle_customize_data(
   reactive_pop,
   reactive_tfr,
+  reactive_e0,
   tfr_starting_year,
   wpp_starting_year,
   wpp_ending_year,

@@ -8,7 +8,8 @@ TAB_NAMES <- c(
   "YADR and OADR",
   "Population Size and Aging",
   "CDR and Life Expectancy",
-  "CBR and TFR"
+  "CBR and TFR",
+  "Life Expectancy Over Time"
 )
 # Font size of text from a plot
 DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
