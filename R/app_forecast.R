@@ -89,7 +89,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
   })
 
   sex_e0_time <- reactive({
-    c("Both", "Male", "Female")
+    c("Total", "Male", "Female")
   })
 
   output$sex_e0_time_ui <- renderUI({
