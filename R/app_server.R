@@ -9,7 +9,7 @@
 #' @importFrom shinyjs hide show
 #' @importFrom utils read.csv
 #' @importFrom untheme detect_font_size
-#' @importFrom OPPPserver get_wpp_pop get_wpp_tfr
+#' @importFrom OPPPserver get_wpp_pop get_wpp_tfr get_wpp_e0 get_wpp_mig
 #' @export
 #'
 app_server <- function(input, output, session) {
@@ -70,6 +70,16 @@ app_server <- function(input, output, session) {
     res
   })
 
+  reactive_mig <- reactive({
+    if (!is.null(input$upload_mig) && nrow(input$upload_mig) > 0) {
+      res <- data.table(read.csv(input$upload_mig$datapath))
+      names(res) <- c("year", "mig")
+      } else {
+        res <- get_wpp_mig(input$wpp_country)
+      }
+      res
+  })
+
   # This is a very weird thing. If I use this in the title of the TFR customize
   # tab, weird things start to happen. I think it's because of the circularity
   # that this reactive_tfr is updated from the same modal that uploads a new
@@ -85,6 +95,7 @@ app_server <- function(input, output, session) {
     reactive_pop,
     reactive_tfr,
     reactive_e0,
+    reactive_mig,
     wpp_starting_year,
     wpp_ending_year,
     input,
@@ -96,6 +107,7 @@ app_server <- function(input, output, session) {
     reactive_pop,
     reactive_tfr,
     reactive_e0,
+    reactive_mig,
     wpp_starting_year,
     wpp_ending_year,
     input,
@@ -107,6 +119,7 @@ app_server <- function(input, output, session) {
     reactive_pop,
     reactive_tfr,
     reactive_e0,
+    reactive_mig,
     tfr_starting_year,
     wpp_starting_year,
     wpp_ending_year,
@@ -130,6 +143,7 @@ app_server <- function(input, output, session) {
       reactive_pop,
       reactive_tfr,
       reactive_e0,
+      reactive_mig,
       wpp_starting_year,
       wpp_ending_year,
       input,

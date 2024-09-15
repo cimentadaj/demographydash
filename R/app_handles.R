@@ -3,6 +3,7 @@
 #' @param reactive_pop A reactive expression returning the population data.
 #' @param reactive_tfr A reactive expression returning the TFR (Total Fertility Rate) data.
 #' @param reactive_e0 A reactive expression returning the e0 data.
+#' @param reactive_mig A reactive expression returning the mig data.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}.
@@ -11,7 +12,7 @@
 #' @importFrom plotly ggplotly renderPlotly
 #' @export
 #'
-handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting_year, wpp_ending_year, input, output) {
+handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output) {
   # Render plots for population pyramid and total fertility rate
   output$plot_pop <- renderPlotly(
     create_pop_pyramid_plot(
@@ -32,6 +33,14 @@ handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0
   output$plot_e0_custom <- renderPlotly(
     create_e0_plot(
       reactive_e0(),
+      end_year = wpp_ending_year(),
+      country = input$wpp_country
+    )$plotly
+  )
+
+  output$plot_mig_custom <- renderPlotly(
+    create_mig_plot(
+      reactive_mig(),
       end_year = wpp_ending_year(),
       country = input$wpp_country
     )$plotly
@@ -119,6 +128,8 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #'
 #' @param reactive_pop A reactive expression that returns the population data to be displayed.
 #' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
+#' @param reactive_e0 A reactive expression that returns the e0 data to be displayed.
+#' @param reactive_mig A reactive expression that returns the migration data to be displayed.
 #' @param tfr_starting_year A reactive expression returning the TFR starting year.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
@@ -131,7 +142,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
+handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
 
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
@@ -155,6 +166,14 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
 
   observeEvent(input$hide_e0, {
     hide_modal("modal_e0")
+  })
+
+  observeEvent(input$customize_mig, {
+    show_modal("modal_mig")
+  })
+
+  observeEvent(input$hide_mig, {
+    hide_modal("modal_mig")
   })
 
 
@@ -190,6 +209,15 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
     )
   })
 
+  output$tmp_mig_dt <- renderDT({
+    res <- reactive_mig()
+    names(res) <- c("Year", "Migration")
+    datatable(
+      res,
+      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+    )
+  })
+
 
   output$popup_pop <- renderUI({
     create_modal_ui(
@@ -219,7 +247,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
   output$popup_e0 <- renderUI({
     create_modal_ui(
       modal_id = "modal_e0",
-      header_title = paste0("Life Expectancy for", input$wpp_country, " in analysis period."),
+      header_title = paste0("Life Expectancy for ", input$wpp_country, " in analysis period."),
       output_id = "tmp_e0_dt",
       file_input_id = "upload_e0",
       download_button_id = "download_e0",
@@ -227,10 +255,23 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
     )
   })
 
+  output$popup_mig <- renderUI({
+    create_modal_ui(
+      modal_id = "modal_mig",
+      header_title = paste0("Migration data for ", input$wpp_country, " in analysis period."),
+      output_id = "tmp_mig_dt",
+      file_input_id = "upload_mig",
+      download_button_id = "download_mig",
+      hide_button_id = "hide_mig"
+    )
+  })
+
 
   data_uploaded_pop <- reactiveVal(NULL)
   data_uploaded_tfr <- reactiveVal(NULL)
   data_uploaded_e0 <- reactiveVal(NULL)
+  data_uploaded_mig <- reactiveVal(NULL)
+
 
   observeEvent(input$upload_pop, {
     req(input$upload_pop)
@@ -250,6 +291,11 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
     reactive_e0()
   })
 
+  observeEvent(input$upload_mig, {
+    req(input$upload_mig)
+    data_uploaded_mig(TRUE)
+    reactive_mig()
+  })
 
   cnt_years <-
     reactive({
@@ -284,7 +330,14 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
   output$download_e0 <- shiny::downloadHandler(
     filename = function() paste0("e0_", tfr_years(), ".csv"),
     content = function(file) write.csv(reactive_e0(), file, row.names = FALSE)
+
   )
+
+  output$download_mig <- shiny::downloadHandler(
+    filename = function() paste0("mig_", tfr_years(), ".csv"),
+    content = function(file) write.csv(reactive_mig(), file, row.names = FALSE)
+  )
+
 }
 
 #' Handle Navigation Between Steps
@@ -293,6 +346,8 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
 #'
 #' @param reactive_pop A reactive expression that returns the population data to be displayed.
 #' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
+#' @param reactive_e0 A reactive expression that returns the e0 data to be displayed.
+#' @param reactive_mig A reactive expression that returns the migration data to be displayed.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameters for `{shiny}`.
@@ -304,7 +359,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, tfr_s
 #' @importFrom utils write.csv
 #' @export
 #'
-handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting_year, wpp_ending_year, input, output) {
+handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output) {
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
   simulation_results <- reactiveVal()
@@ -393,18 +448,16 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_start
     hide_modal("modal_passtfr")
     hide("tfr_page")
     show("e0_page")
-  })
-
-
-  observeEvent(input$forward_e0_page, {
-      show_e0(reactive_e0, wpp_ending_year, input, output)
+    show_e0(reactive_e0, wpp_ending_year, input, output)
   })
 
 
   observeEvent(input$forward_mig_page, {
     hide("e0_page")
     show("mig_page")
+    show_mig(reactive_mig, wpp_ending_year, input, output)
   })
+
 
   observeEvent(input$pass_source_btn, {
     hide_modal("modal_passtfr")
@@ -417,11 +470,13 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_start
     # before the simulation.
     compute_tfr(reactive_tfr, wpp_ending_year, input, output)
     compute_e0(reactive_e0, wpp_ending_year, input, output)
+    compute_mig(reactive_mig, wpp_ending_year, input, output)
 
     begin_forecast(
       reactive_pop,
       reactive_tfr,
       reactive_e0,
+      reactive_mig,
       wpp_starting_year,
       wpp_ending_year,
       input,

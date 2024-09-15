@@ -117,7 +117,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #' @export
 #'
 create_e0_plot <- function(dt, end_year, country) {
-  Year <- e0M <- e0F <- value <- Sex <- NULL  # To avoid R CMD check notes
+  LifeExpectancy <- Year <- e0M <- e0F <- value <- Sex <- NULL  # To avoid R CMD check notes
 
   # Ensure the data is in the correct format
   dt <- as.data.table(dt)
@@ -179,6 +179,156 @@ create_e0_plot <- function(dt, end_year, country) {
   )
 }
 
+#' Create Migration Plot
+#'
+#' This function takes a data table to create a net migration plot.
+#'
+#' @param dt Data table with migration data.
+#' @param end_year The date in YYYY-MM-DD where the projection should end.
+#' @param country The country for which the data is plotted.
+#'
+#' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
+#' @importFrom plotly ggplotly
+#' @importFrom data.table as.data.table
+#'
+#' @return A list containing ggplot2 and plotly objects.
+#' @export
+#'
+create_mig_plot <- function(dt, end_year, country) {
+  Migration <- Year <- mig <- value <- Type <- NULL  # To avoid R CMD check notes
+
+  # Ensure the data is in the correct format
+  dt <- as.data.table(dt)
+  setnames(dt, c("year", "mig"), c("Year", "Migration"))
+
+  # Filter data up to end_year
+  dt <- dt[Year <= end_year]
+
+  # Pivot the data to long format
+  dt_long <- melt(dt, id.vars = "Year",
+                  measure.vars = "Migration",
+                  variable.name = "Type", value.name = "Migration")
+
+  max_year <- max(dt_long$Year)
+  min_year <- min(dt_long$Year)
+  plt_title <- paste0("Net Migration: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <- ggplot(dt_long, aes(x = Year, y = Migration)) +
+    geom_line(size = 2, alpha = 0.7) +
+    labs(title = plt_title,
+         x = "Year",
+         y = "Net Migration") +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title)
+    )
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
+}
+
+#' Create Projected Migration Plot
+#'
+#' This function takes a data table to create a projected net migration plot.
+#'
+#' @param dt Data table with projected migration data.
+#' @param end_year The date in YYYY-MM-DD where the projection should end.
+#' @param country The country for which the data is plotted.
+#'
+#' @importFrom ggplot2 aes ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual scale_fill_manual scale_linetype_manual
+#' @importFrom plotly ggplotly layout
+#' @importFrom data.table as.data.table
+#'
+#' @return A list containing ggplot2 and plotly objects.
+#' @export
+#'
+create_mig_projected_plot <- function(dt, end_year, country) {
+  `Net Migration` <- type_value <- Year <- Migration <- Type <- NULL
+  if (!"un_mig_95low" %in% names(dt)) {
+    dt$un_mig_95low <- dt[dt$year == max(dt$year), "mig"]
+    dt$un_mig_95high <- dt[dt$year == max(dt$year), "mig"]
+  }
+
+  mig_dt <- melt(
+    dt,
+    id.vars = c("year", "un_mig_95low", "un_mig_95high"),
+    measure.vars = c("mig", "un_mig_median"),
+    variable.name = "type_value",
+    value.name = "value"
+  )
+
+  mig_dt <- mig_dt[mig_dt$year <= as.numeric(end_year), ]
+  mig_dt[type_value == "mig", type_value := "Projection"]
+  mig_dt[type_value == "un_mig_median", type_value := "UN Projection"]
+  names(mig_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "Net Migration")
+
+  max_year <- max(mig_dt$Year)
+  min_year <- min(mig_dt$Year)
+  plt_title <- paste0("Net Migration: ", country, ", ", min_year, "-", max_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  columns_to_round <- c("Net Migration", "95% Lower bound PI", "95% Upper bound PI")
+  mig_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
+
+  plt <- ggplot(mig_dt, aes(x = Year, y = `Net Migration`, group = Type, color = Type, fill = Type)) +
+    geom_line(aes(linetype = Type)) +
+    geom_ribbon(
+      data = mig_dt[Type == "UN Projection"],
+      aes(
+        y = NULL,
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
+        color = "95% UN PI",
+        fill = "95% UN PI",
+        linetype = "95% UN PI"
+      ),
+      alpha = 0.2
+    ) +
+    scale_color_manual(
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_fill_manual(
+      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+    ) +
+    scale_linetype_manual(
+      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
+    ) +
+    labs(title = plt_title) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>%
+    layout(legend = update_plotly_legend_opts(PLOTLY_LEGEND_OPTS))
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
+}
 
 #' Create Projected e0 Plot
 #'
@@ -186,16 +336,18 @@ create_e0_plot <- function(dt, end_year, country) {
 #' the model's prediction.
 #'
 #' @param dt Data table with projected life expectancy data.
-#' @param end_year the date in YYYY-MM-DD where the projection should end.
+#' @param input_sex the sex to filter on the e0 projected as a string.
 #' @param country The country for which the data is plotted
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
+#' @importFrom data.table fcase
 #'
 #' @return A ggplot2 object.
 #' @export
 #'
 create_e0_projected_plot <- function(dt, input_sex, country) {
+  `Life Expectancy` <- sex <- type_value <- Year <- LifeExpectancy <- Type <- NULL
 
   # Update Sex labels
   dt[, sex := fcase(

@@ -8,6 +8,7 @@ handle_before_analysis_plots(
   reactive_pop,
   reactive_tfr,
   reactive_e0,
+  reactive_mig,
   wpp_starting_year,
   wpp_ending_year,
   input,
@@ -20,6 +21,8 @@ handle_before_analysis_plots(
 \item{reactive_tfr}{A reactive expression returning the TFR (Total Fertility Rate) data.}
 
 \item{reactive_e0}{A reactive expression returning the e0 data.}
+
+\item{reactive_mig}{A reactive expression returning the mig data.}
 
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
 

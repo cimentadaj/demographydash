@@ -8,6 +8,7 @@ handle_navigation(
   reactive_pop,
   reactive_tfr,
   reactive_e0,
+  reactive_mig,
   wpp_starting_year,
   wpp_ending_year,
   input,
@@ -18,6 +19,10 @@ handle_navigation(
 \item{reactive_pop}{A reactive expression that returns the population data to be displayed.}
 
 \item{reactive_tfr}{A reactive expression that returns the TFR data to be displayed.}
+
+\item{reactive_e0}{A reactive expression that returns the e0 data to be displayed.}
+
+\item{reactive_mig}{A reactive expression that returns the migration data to be displayed.}
 
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
 

@@ -121,6 +121,17 @@ show_e0_results_ui <- function() {
 }
 
 
+show_mig_results_ui <- function() {
+  div(
+    class = "ui raised very padded container segment",
+    style = "display: flex; align-items: flex-start; gap: 10px;",
+    div(
+      style = "flex: 3;",
+      plotlyOutput("plot_mig_custom", height = "600px", width = "100%")
+    )
+  )
+}
+
 #' Show and compute the TFR page
 #'
 #' @param reactive_tfr A reactive function returning the TFR data frame
@@ -169,6 +180,12 @@ show_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
   compute_e0(reactive_e0, wpp_ending_year, input, output)
 }
 
+show_mig <- function(reactive_mig, wpp_ending_year, input, output) {
+  hide("e0_page")
+  show("mig_page")
+  compute_mig(reactive_mig, wpp_ending_year, input, output)
+}
+
 
 #' Compute the e0 page
 #'
@@ -183,6 +200,12 @@ compute_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
   # around the page to register the time spent
   create_e0_plot(reactive_e0(), end_year = wpp_ending_year(), country = input$wpp_country)
   output$show_e0_results_ui <- renderUI(show_e0_results_ui())
+}
+
+
+compute_mig <- function(reactive_mig, wpp_ending_year, input, output) {
+  create_mig_plot(reactive_mig(), end_year = wpp_ending_year(), country = input$wpp_country)
+  output$show_mig_results_ui <- renderUI(show_mig_results_ui())
 }
 
 

@@ -146,6 +146,7 @@ app_ui <- function(request) {
               action_button("customize_mig", "Customize", icon = icon("refresh"), class = "ui blue button")
             )
           ),
+          uiOutput("popup_mig"),
           br(),
           withSpinner(uiOutput("show_mig_results_ui")),
         )
@@ -172,6 +173,7 @@ app_ui <- function(request) {
       hidden(
         numericInput("step", label = NULL, value = 1)
       ),
+
       width = NULL
     )
   )

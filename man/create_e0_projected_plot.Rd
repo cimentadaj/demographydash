@@ -9,9 +9,9 @@ create_e0_projected_plot(dt, input_sex, country)
 \arguments{
 \item{dt}{Data table with projected life expectancy data.}
 
-\item{country}{The country for which the data is plotted}
+\item{input_sex}{the sex to filter on the e0 projected as a string.}
 
-\item{end_year}{the date in YYYY-MM-DD where the projection should end.}
+\item{country}{The country for which the data is plotted}
 }
 \value{
 A ggplot2 object.

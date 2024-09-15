@@ -4,7 +4,8 @@
 #'
 #' @param reactive_pop Population data
 #' @param reactive_tfr TFR data
-#' @param reactive_tfr e0 data
+#' @param reactive_e0 e0 data
+#' @param reactive_mig migration data
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param input,output Internal parameter for `{shiny}`.
@@ -17,7 +18,7 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
@@ -31,7 +32,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
         output_dir = "/tmp/hasdaney213/",
         pop = reactive_pop(),
         tfr = reactive_tfr(),
-        e0 = reactive_e0()
+        e0 = reactive_e0(),
+        mig = reactive_mig()
       )
 
     remove_last_year <- c(
@@ -61,6 +63,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
     )
   })
 
+
   output$all_pop_data <- shiny::downloadHandler(
     filename = function() paste0("all_data_pyramid_age_sex_", input$wpp_country, ".csv"),
     content = function(file) {
@@ -78,7 +81,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
   })
 
 
-
   output$age_pop_time_ui <- renderUI({
     selectInput(
       inputId = "age_pop_time",
@@ -88,9 +90,11 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
     )
   })
 
+
   sex_e0_time <- reactive({
     c("Total", "Male", "Female")
   })
+
 
   output$sex_e0_time_ui <- renderUI({
     selectInput(
@@ -269,6 +273,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
     )
   })
 
+
   e0_by_time_plot <- reactive({
     if (is.null(input$sex_e0_time)) {
       return(NULL)
@@ -279,6 +284,15 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
     create_e0_projected_plot(
       simulation_results()$e0_by_time,
       input$sex_e0_time,
+      input$wpp_country
+    )
+  })
+
+
+  mig_by_time_plot <- reactive({
+    create_mig_projected_plot(
+      simulation_results()$mig_by_time,
+      wpp_ending_year(),
       input$wpp_country
     )
   })
@@ -348,7 +362,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
 
   ##### Generate all plots and show in the tabset UI #####
   observe({
-    selected_plot <- switch(input$select_id,
+    print(input$select_id)
+    selected_plot <- switch(
+      input$select_id,
       "Population Pyramid By Age and Sex" = list(
         plt_reactive = pyramid_plot,
         filename = filename_pop_pyramid()
@@ -392,6 +408,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, wpp_starting
       "Life Expectancy Over Time" = list(
         plt_reactive = e0_by_time_plot,
         filename = filename_e0_over_time_sex()
+      ),
+      "Projected Net Migration" = list(
+        plt_reactive = mig_by_time_plot,
+        filename = paste0("mig_projection_", cnt())
       ),
       NULL # Default case
     )

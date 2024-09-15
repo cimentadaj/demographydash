@@ -9,7 +9,8 @@ TAB_NAMES <- c(
   "Population Size and Aging",
   "CDR and Life Expectancy",
   "CBR and TFR",
-  "Life Expectancy Over Time"
+  "Life Expectancy Over Time",
+  "Projected Net Migration"
 )
 # Font size of text from a plot
 DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
