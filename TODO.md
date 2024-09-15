@@ -138,18 +138,18 @@ Version 2.0:
 - [ ] Need to fix the feedback that Patrick sent
 
 
-- UI for life expectancy by sex (Hana to provide get_wpp_e0)
-- You need to understand the output of get_wpp_e0 to set up the UI interface for updating e0
-- run_forecast will have a slot for e0
+-  [X] UI for life expectancy by sex (Hana to provide get_wpp_e0)
+-  [X] You need to understand the output of get_wpp_e0 to set up the UI interface for updating e0
+-  [X] run_forecast will have a slot for e0
 
 
-- UI for migration (Hana to provide get_wpp_mig)
-- You need to understand the output of get_wpp_mig to set up the UI interface for updating migration
-- run_forecast will have a slot for mig
+- [X] UI for migration (Hana to provide get_wpp_mig)
+- [X] You need to understand the output of get_wpp_mig to set up the UI interface for updating migration
+- [X] run_forecast will have a slot for mig
 
 
-- e0_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
-- mig_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
+- [X] e0_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
+- [X] mig_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
 
 
 - Need to change the initial year of the forecast. Set it t 1970 for now to avoid weird errors (tested this with Hana)

@@ -2,25 +2,49 @@
 #'
 #' @return A div containing the input page UI elements.
 #' @importFrom untheme create_field_set
+#' @importFrom shiny.semantic toggle
 #' @export
 #'
 show_input_ui <- function() {
   div(
+    toggle("toggle_region", "Region", is_marked = FALSE),
+    br(),
+    br(),
+    uiOutput("location_selector"),
+    br(),
+    div(
+      class = "two fields",
+      create_field_set("calendar", "Starting Year", "wpp_starting_year", 1970:2099, 2023),
+      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
+    )
+  )
+}
+
+#' Generate the location selector UI based on the toggle state
+#'
+#' @param input The input object from the Shiny server function
+#' @return A UI element for selecting a country or region
+#' @export
+#'
+location_selector_ui <- function(input) {
+  if (isTRUE(input$toggle_region)) {
+    create_field_set(
+      "globe",
+      "Select a region",
+      "wpp_country",
+      OPPPserver::get_wpp_regions(),
+      NULL
+    )
+  } else {
     create_field_set(
       "globe",
       "Select a country",
       "wpp_country",
       OPPPserver::get_wpp_countries(),
       NULL
-    ),
-    div(
-      class = "two fields",
-      create_field_set("calendar", "Starting Year", "wpp_starting_year", 2023:2099, 2023),
-      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
     )
-  )
+  }
 }
-
 
 #' Generate the UI for the page containing the results of the forecast.
 #'

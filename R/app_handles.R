@@ -144,6 +144,9 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #'
 handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
 
+
+  output$location_selector <- renderUI(location_selector_ui(input))
+
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
   })
