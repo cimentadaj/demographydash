@@ -31,7 +31,7 @@ Imports:
 Suggests:
     testthat (>= 3.0.0)
 Remotes:
-    PPgp/OPPPserver,
+    PPgp/OPPPserver@dev,
     cimentadaj/untheme,
     daattali/shinyalert
 Config/testthat/edition: 3
