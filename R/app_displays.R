@@ -27,9 +27,12 @@ color_labels <- function() {
 create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   if ("year" %in% names(dt)) {
     dt <- dt[year == input_year]
+    id_vars <- c("year", "age")
+    cols_to_pick <- c("Year", "Sex", "Age", "Population")
+  } else {
+    id_vars <- c("age")
+    cols_to_pick <- c("Sex", "Age", "Population")
   }
-
-  id_vars <- c("age")
 
   pop_dt <-
     melt(
@@ -48,26 +51,26 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   pop_dt[sex == "popF", sex := "Females"]
 
   names(pop_dt) <- tools::toTitleCase(names(pop_dt))
-  pop_dt <- pop_dt[, c("Population", "Age", "Sex"), with = FALSE]
+  pop_dt <- pop_dt[, cols_to_pick, with = FALSE]
   pop_dt[["Population"]] <- round(pop_dt[["Population"]], 3)
-  names(pop_dt)[1] <- paste0(names(pop_dt)[1], " (000s)")
+  pop_index <- which(grepl("Population", names(pop_dt)))
+  names(pop_dt)[pop_index] <- paste0(names(pop_dt)[pop_index], " (000s)")
 
   plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   tmp_dt <- as.data.frame(pop_dt)
   males <- tmp_dt[["Sex"]] == "Males"
-  tmp_dt[males, "Population (000s)"] <- -tmp_dt[males, "Population (000s)"]
+  tmp_dt[males, "Population (000s)"] <- -as.numeric(tmp_dt[males, "Population (000s)"])
 
   plt <-
-    ggplot(pop_dt, aes_string(x = "Age", y = "`Population (000s)`", fill = "Sex")) +
-    geom_blank() +
-    geom_bar(data = tmp_dt, alpha = 0.7, stat = "identity") +
+    ggplot(tmp_dt, aes(x = Age, y = `Population (000s)`, fill = Sex)) +
+    geom_bar(alpha = 0.7, stat = "identity") +
     scale_x_discrete(breaks = seq(0, 100, by = 5)) +
-    scale_y_continuous(labels = label_number(scale_cut = cut_short_scale())) +
+    scale_y_continuous(labels = function(x) paste0(abs(x))) +
     coord_flip() +
     labs(title = plt_title) +
-    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "top",
@@ -257,10 +260,6 @@ create_mig_plot <- function(dt, end_year, country) {
 #'
 create_mig_projected_plot <- function(dt, end_year, country) {
   `Net Migration` <- type_value <- Year <- Migration <- Type <- NULL
-  if (!"un_mig_95low" %in% names(dt)) {
-    dt$un_mig_95low <- dt[dt$year == max(dt$year), "mig"]
-    dt$un_mig_95high <- dt[dt$year == max(dt$year), "mig"]
-  }
 
   mig_dt <- melt(
     dt,
@@ -273,7 +272,9 @@ create_mig_projected_plot <- function(dt, end_year, country) {
   mig_dt <- mig_dt[mig_dt$year <= as.numeric(end_year), ]
   mig_dt[type_value == "mig", type_value := "Projection"]
   mig_dt[type_value == "un_mig_median", type_value := "UN Projection"]
-  names(mig_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "Net Migration")
+
+  mig_dt <- mig_dt[, c("year", "type_value", "value", "un_mig_95low", "un_mig_95high")]
+  names(mig_dt) <- c("Year", "Type", "Net Migration", "95% Lower bound PI", "95% Upper bound PI")
 
   max_year <- max(mig_dt$Year)
   min_year <- min(mig_dt$Year)
@@ -321,7 +322,8 @@ create_mig_projected_plot <- function(dt, end_year, country) {
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>%
+  plt_visible <-
+    ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>%
     layout(legend = update_plotly_legend_opts(PLOTLY_LEGEND_OPTS))
 
   list(
@@ -370,13 +372,16 @@ create_e0_projected_plot <- function(dt, input_sex, country) {
   e0_dt[type_value == "e0", type_value := "Projection"]
   e0_dt[type_value == "un_e0_median", type_value := "UN Projection"]
 
+
+  e0_dt <- e0_dt[, c("year", "sex", "type_value", "value", "un_e0_95low", "un_e0_95high")]
+
   names(e0_dt) <- c(
     "Year",
     "Sex",
-    "95% Lower bound PI",
-    "95% Upper bound PI",
     "Type",
-    "Life Expectancy"
+    "Life Expectancy",
+    "95% Lower bound PI",
+    "95% Upper bound PI"
   )
 
   columns_to_round <- c("Life Expectancy", "95% Lower bound PI", "95% Upper bound PI")
@@ -565,13 +570,15 @@ create_pop_time_plot <- function(dt, input_age, country) {
   pop_dt[type_value == "pop", type_value := "Projection"]
   pop_dt[type_value == "un_pop_median", type_value := "UN Projection"]
 
+  pop_dt <- pop_dt[, c("year", "age", "type_value", "value", "un_pop_95low", "un_pop_95high")]
+
   names(pop_dt) <- c(
     "Year",
     "Age",
-    "95% Lower bound PI",
-    "95% Upper bound PI",
     "Type",
-    "Population (000s)"
+    "Population (000s)",
+    "95% Lower bound PI",
+    "95% Upper bound PI"
   )
 
   columns_to_round <- c("Population (000s)", "95% Lower bound PI", "95% Upper bound PI")
@@ -686,6 +693,8 @@ create_tfr_projected_plot <- function(dt, end_year, country) {
   tfr_dt[type_value == "un_tfr_median", type_value := "UN Projection"]
   names(tfr_dt) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", "Births per woman")
 
+  tfr_dt <- tfr_dt[, c("Year", "Type", "Births per woman", "95% Lower bound PI", "95% Upper bound PI")]
+
   max_year <- max(tfr_dt$Year)
   min_year <- min(tfr_dt$Year)
 
@@ -775,7 +784,8 @@ create_annual_growth_plot <- function(dt, end_year, country) {
   dt$type_value <- dt$age
   dt$age <- NULL
 
-  names(dt) <- c("Year", "Population Growth Rate", "Age")
+  dt <- dt[, c("year", "type_value", "value")]
+  names(dt) <- c("Year", "Age", "Population Growth Rate")
 
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
@@ -812,7 +822,11 @@ create_annual_growth_plot <- function(dt, end_year, country) {
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(
+    plt_visible,
+    tooltip = c("x", "y", "color")
+  ) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -1021,7 +1035,8 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
     paste0(tools::toTitleCase(data_type), "s per 1,000 population")
   )
 
-  names(melt_data) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", var_name)
+  melt_data <- melt_data[, c("year", "type_value", "value", "low", "high")]
+  names(melt_data) <- c("Year", "Type", var_name, "95% Lower bound PI", "95% Upper bound PI")
 
   columns_to_round <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
   melt_data[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
@@ -1156,7 +1171,9 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country) {
     "Persons age 65+ per 100 persons age 20-64"
   )
 
-  names(melt_data) <- c("Year", "95% Lower bound PI", "95% Upper bound PI", "Type", var_name)
+
+  melt_data <- melt_data[, c("year", "type_value", "value", "low", "high")]
+  names(melt_data) <- c("Year", "Type", var_name, "95% Lower bound PI", "95% Upper bound PI")
 
   max_year <- max(melt_data$Year)
   min_year <- min(melt_data$Year)
@@ -1302,13 +1319,24 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  col_to_move <- "Type"
+  first_col <- names(combined_data)[1]
+
+  col_ordering <- c(
+    first_col,
+    col_to_move,
+    names(combined_data)[!names(combined_data) %in% c(first_col, col_to_move)]
+  )
+
+  combined_data <- combined_data[, ..col_ordering]
+
   # Create the ggplot object with the mappings
   plt <-
     ggplot(
       combined_data,
       aes(
-        x = !!sym(names(combined_data)[2]),
-        y = !!sym(names(combined_data)[3]),
+        x = !!sym(names(combined_data)[3]),
+        y = !!sym(names(combined_data)[4]),
         color = Type,
         group = Type,
         shape = Type,

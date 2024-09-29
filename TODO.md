@@ -152,10 +152,98 @@ Version 2.0:
 - [X] mig_by_time data frame will now be in the output of run_forecast, need to create a plot to show it
 
 
-- Need to change the initial year of the forecast. Set it t 1970 for now to avoid weird errors (tested this with Hana)
+- [X] Need to change the initial year of the forecast. Set it t 1970 for now to avoid weird errors (tested this with Hana)
 
 
-- Need to add widget for changing between country and region aggregation. Hana to provide get_wpp_region to show it in the UI.
+- [X] Need to add widget for changing between country and region aggregation. Hana to provide get_wpp_region to show it in the UI.
 
 
 - Need to install the private version of wppp2024 package on the server so that it overrides the public one. Need to think how to automate this. Hana will give access to this repository so that I can install it on the server.
+
+
+Patrick Feedback:
+
+General Updates
+
+- [ ] Switch Server (Optional): Attempt to run the shiny app on a new test server without port 3838.
+
+- [ ] Responsive Design: Ensure UI screens/windows automatically resize based on the computer screen size for better accessibility.
+
+- [X] Back/Forward Navigation Bug: Ensure pop-up boxes are accessible even when navigating using ‘Back’ or ‘Forward’ buttons (consider adding an icon or button to re-trigger pop-ups). JC: Not sure what this means? When you go to the pop page a pop up comes up with some general remarks about how the app works. This is shown once simply as informative. Otherwise the "assume tfr, life expectancy and migration" pop up is just a convenient to skip specifying all the sources. You can back/forward to any of these steps at any time so you can actually see all information.
+
+UI & General Usability Improvements
+
+- [ ] Mobile Usability: Improve UI for desktop and tablet; add automatic detection for mobile devices and simplify options accordingly.
+
+- [ ] Session Timeout Issue: Prevent session disconnection on mobile when the user is inactive for a brief period.
+- [ ] Optional Age Group Cutoff Customization: Allow users to define the start and end of broad age cutoffs for young (default 20) and older ages (default 65).
+
+Population Data & Excel Template
+
+- [X] Label for 'Per Thousand': Add a label to downloaded Excel files specifying that population data is in 'per thousand'.
+- [X] Edit Uploaded Data Requirements: Clarify that any uploaded population data must also be in 'per thousand'.
+- [X] Consolidate Age Data on One Screen: Display the entire age series on one scrollable screen, removing the need to navigate multiple pages.
+- [ ] Editable WPP2022 Table: Allow users to directly edit cells in the WPP2022 data table within the app and run projections based on the edited data.
+
+Total Fertility Rate (TFR)
+
+- [ ] Editable TFR Table: Provide the ability to modify the TFR table from WPP2022 directly within the app.
+- [ ] Interactive TFR Curve Editing: Enable the TFR curve to be modified interactively using a cursor, and have these changes reflected in projections.
+- [ ] Alternative TFR Input Options: Add a slider to set target values for specific years and specify interpolation type (linear or exponential).
+
+Results & Projections
+
+- [X] Rename 'Choose a Plot' Page: Change the title of the page to "Results" or "Projections."
+- [ ] Comparison of User vs. UN Projections: Include both WPP projected series and user-defined projections for comparison on figures.
+- [ ] Export Data Reordering:
+    - [X] Reorder data columns in downloadable Excel files (e.g., Year, Sex, Age, Indicator).
+    - [ ] Move Prediction Interval (PI) series to the right end of the file.
+
+Population Pyramid by Age and Sex
+
+- [ ] Vertical Line for Projection Start: Add a vertical line to the figures to indicate the start of the projection period.
+- [ ] Display More X-axis Years: Increase the number of years shown on the x-axis for broader context.
+- [ ] Dotted Projection Series: Use a dotted line to distinguish projected series on graphs.
+
+Population Over Time
+
+- [ ] Vertical Line for Projection Start: Add a vertical line indicating the start of projections.
+- [ ] Display User and UN PI Series: Display both user-defined and UN WPP Prediction Interval (PI) series on figures.
+    - [ ] Separate Sheets for User and UN Data: Consider splitting user-defined and UN series into different sheets in the downloadable Excel file.
+
+Projected Total Fertility Rate
+
+- [ ] Clarify Display of PIs: Ensure that user-defined projections do not erroneously show PIs unless intended.
+    - [X] Reorder Excel Columns: Rearrange columns in exported Excel files (e.g., with 95% PIs after the TFR series used as a medium variant).
+
+Population Growth Rate by Age
+
+- [X] Reorder Excel Columns: Rearrange columns in exported Excel files (e.g., Year, Age, Population Growth Rate).
+
+Births and Deaths (Counts and Rates)
+
+- [ ] Display User-Defined Series Over WPP: Ensure user-defined birth and death series are plotted over the WPP series for visibility.
+- [X] Reorder Excel Columns: Organize the Excel file with Year, Type, Indicator (e.g., Births/Deaths per 1000 population), and move PIs to the right end.
+
+YADR and OADR
+
+- [ ] Plot User-Defined Series Over WPP: Ensure user-defined series are plotted over WPP2022 series for all figures.
+- [X] Reorder Excel Columns: Rearrange the downloaded data as Year, Type, Indicator, and place PIs at the right end.
+
+Population Size and Aging
+
+- [ ] Clarify Population Size Metric: Keep the population size, either for the whole population or specifically for those aged 65+, as an option.
+- [ ] Label Start and End Years: Label the first and last years clearly on the figure.
+- [X] Reorder Excel Columns: Rearrange columns in Excel files as Year, Type, Indicator, with PIs moved to the right end.
+
+CDR and Life Expectancy
+
+- [ ] Reverse CDR Axis: Display Crude Death Rate (CDR) on the x-axis in reverse order for logical movement (upper right corner alignment).
+- [ ] Plot User-Defined Series Over WPP: Plot user-defined series over WPP2022 series for all relevant figures.
+- [X] Reorder Excel Columns: Organize Excel data as Year, Type, Indicator, and PIs at the right end.
+
+CBR and TFR
+
+- [ ] Reverse CBR Axis: Reverse Crude Birth Rate (CBR) axis for logical alignment with TFR.
+- [ ] Plot User-Defined Series Over WPP: Plot user-defined series over WPP2022 series.
+- [X] Reorder Excel Columns: Arrange Excel data as Year, Type, Indicator, and move PIs to the right end.eorder Excel Columns: Arrange Excel data as Year, Type, Indicator, and move PIs to the right end.

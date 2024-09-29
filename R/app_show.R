@@ -14,7 +14,7 @@ show_input_ui <- function() {
     br(),
     div(
       class = "two fields",
-      create_field_set("calendar", "Starting Year", "wpp_starting_year", 1970:2099, 2023),
+      create_field_set("calendar", "Starting Year", "wpp_starting_year", 1965:2099, 2024),
       create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
     )
   )

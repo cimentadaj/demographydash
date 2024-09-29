@@ -180,17 +180,20 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   })
 
 
+  dt_options <- list(
+    paging = FALSE,
+    searching = FALSE,
+    lengthChange = FALSE,
+    scrollY = "400px", # Enable vertical scrolling, adjust "400px" as needed
+    dom = "lfrtp"
+  )
+
   output$tmp_pop_dt <- renderDT({
     res <- reactive_pop()
-    names(res) <- c("Age", "Female", "Male")
+    names(res) <- c("Age", "Female (in thousands)", "Male (in thousands)")
     datatable(
       res,
-      options = list(
-        paging = TRUE,
-        searching = FALSE,
-        lengthChange = FALSE,
-        dom = "lfrtp"
-      )
+      options = dt_options
     )
   })
 
@@ -199,16 +202,16 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
     names(res) <- c("Year", "TFR")
     datatable(
       res,
-      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+      options = dt_options
     )
   })
 
   output$tmp_e0_dt <- renderDT({
     res <- reactive_e0()
-    names(res) <- c("Year", "e0M", "e0F")
+    names(res) <- c("Year", "Males", "Females")
     datatable(
       res,
-      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+      options = dt_options
     )
   })
 
@@ -217,7 +220,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
     names(res) <- c("Year", "Migration")
     datatable(
       res,
-      options = list(paging = TRUE, searching = FALSE, lengthChange = FALSE)
+      options = dt_options
     )
   })
 
