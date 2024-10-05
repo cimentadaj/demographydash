@@ -504,7 +504,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
         div(
           style = "display: flex; gap: 10px;", # 20px gap between buttons
           action_button("change_source_btn", "Enter Custom Values", class = "ui grey button"),
-          action_button("pass_source_btn", "Use WPP 2022 Median Values", class = "ui blue button")
+          action_button("pass_source_btn", "Use WPP 2024 Median Values", class = "ui blue button")
         )
       ),
       class = "small"
