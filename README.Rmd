@@ -40,11 +40,11 @@ library(demographydash)
 run_app()
 ```
 
-To launch the app through docker, save a `.env` file in the root of the repository containing the environment variable `GITHUB_PAT` and run this in the terminal at the root of the repository:
+To launch the app through docker run this in the terminal at the root of the repository:
 
 ```{bash, eval = FALSE}
-docker build -t demoapp .
-docker run --env-file .env -p 3838:3838 -d demoapp
+docker build -t proj-app.
+docker run -p 8180:8180 -d proj-app
 ```
 
 And test the app in [http://localhost:3838](http://localhost:3838).,
