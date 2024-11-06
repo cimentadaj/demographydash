@@ -1,3 +1,109 @@
+#' Create Landing Page UI
+#'
+#' @description
+#' Creates a modern, informative landing page that introduces users to the app's functionality
+#'
+#' @importFrom shiny div h1 h2 p HTML
+#' @importFrom shiny.semantic grid grid_template segment
+#' @importFrom shiny.semantic icon
+#' @export
+create_landing_page <- function() {
+  # Define the main grid template
+  main_grid <- grid_template(
+    default = list(
+      areas = rbind(
+        c("hero", "hero", "hero"),
+        c("feature1", "feature2", "feature3"),
+        c("cta", "cta", "cta")
+      ),
+      rows_height = c("auto", "auto", "auto"),
+      cols_width = c("1fr", "1fr", "1fr")
+    )
+  )
+
+  div(
+    class = "landing-page",
+    grid(
+      main_grid,
+      container_style = "gap: 2rem; padding: 2rem;",
+
+      # Hero Section
+      hero = div(
+        class = "hero-section",
+        h1("Population Projection Tool", class = "hero-title"),
+        p("Create detailed population projections using United Nations World Population Prospects data or your own custom inputs",
+          class = "hero-subtitle"
+        )
+      ),
+
+      # Feature 1: Population Data
+      feature1 = segment(
+        class = "ui raised segment feature-card",
+        div(
+          class = "feature-content",
+          div(class = "feature-icon", icon("users")),
+          h2(class = "feature-title", "Population Data"),
+          p("Upload or use UN WPP data for:"),
+          HTML("
+            <ul>
+              <li>Base population by age and sex</li>
+              <li>Total fertility rates</li>
+              <li>Life expectancy</li>
+              <li>Migration patterns</li>
+            </ul>
+          ")
+        )
+      ),
+
+      # Feature 2: Interactive Visualization
+      feature2 = segment(
+        class = "ui raised segment feature-card",
+        div(
+          class = "feature-content",
+          div(class = "feature-icon", icon("chart bar")),
+          h2(class = "feature-title", "Interactive Visualization"),
+          p("Explore your data through:"),
+          HTML("
+            <ul>
+              <li>Population pyramids</li>
+              <li>Time series charts</li>
+              <li>Customizable projections</li>
+              <li>Downloadable results</li>
+            </ul>
+          ")
+        )
+      ),
+
+      # Feature 3: Data Requirements
+      feature3 = segment(
+        class = "ui raised segment feature-card",
+        div(
+          class = "feature-content",
+          div(class = "feature-icon", icon("exchange")),
+          h2(class = "feature-title", "Scenario Comparison"),
+          p("Compare your projections with UN WPP:"),
+          HTML("
+      <ul>
+        <li>Side-by-side visualization</li>
+        <li>Compare with UN median variant</li>
+        <li>Validate your assumptions</li>
+        <li>Export comparison results</li>
+      </ul>
+    ")
+        )
+      ),
+
+      # CTA Section
+      cta = div(
+        class = "cta-section",
+        action_button("start_analysis", "Start Your Analysis",
+          class = "ui huge primary button"
+        )
+      )
+    )
+  )
+}
+
 #' Render Plots Before Analysis
 #'
 #' @param reactive_pop A reactive expression returning the population data.
@@ -80,21 +186,27 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
       div(style = "display: flex;", header_title),
       additional_header
     ),
-    div(DTOutput(output_id)),
+    DTOutput(output_id),
     footer = div(
-      class = "footer-container",
       div(
-        class = "file-input-container",
-        shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%")
-      ),
-      div(
-        class = "button-container",
+        class = "footer-container",
         div(
-          style = "display: flex; gap: 5px",
-          shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
-          action_button(hide_button_id, "Close", class = "ui red button"),
-        )
-      )
+          class = "file-input-container",
+          div(
+            style = "display: flex; align-items: center; gap: 5px;",
+            shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%"),
+          )
+        ),
+        div(
+          class = "button-container",
+          div(
+            style = "display: flex; gap: 5px",
+            shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
+            action_button(hide_button_id, "Close", class = "ui red button"),
+          )
+        ),
+      ),
+      div("Uploaded data must match exactly the format, column names and ordering shown in the table above", style = "color: #8B0000; font-weight: bold; font-size: 12px;")
     ),
     class = "small"
   )
@@ -143,8 +255,6 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @export
 #'
 handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
-
-
   output$location_selector <- renderUI(location_selector_ui(input))
 
   observeEvent(input$customize_pop, {
@@ -336,14 +446,12 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   output$download_e0 <- shiny::downloadHandler(
     filename = function() paste0("e0_", tfr_years(), ".csv"),
     content = function(file) write.csv(reactive_e0(), file, row.names = FALSE)
-
   )
 
   output$download_mig <- shiny::downloadHandler(
     filename = function() paste0("mig_", tfr_years(), ".csv"),
     content = function(file) write.csv(reactive_mig(), file, row.names = FALSE)
   )
-
 }
 
 #' Handle Navigation Between Steps
@@ -369,6 +477,17 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
   simulation_results <- reactiveVal()
+
+  observeEvent(input$start_analysis, {
+    hide("landing_page")
+    show("input_page")
+  })
+
+  # In handle_navigation function, add this new observer:
+  observeEvent(input$back_to_landing, {
+    hide("input_page")
+    show("landing_page")
+  })
 
   observeEvent(input$back_to_input_page, {
     hide("pop_page")
@@ -400,7 +519,6 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
     show("pop_page")
 
     output$show_pop_results_ui <- renderUI({
-
       create_pop_pyramid_plot(
         reactive_pop(),
         country = input$wpp_country,

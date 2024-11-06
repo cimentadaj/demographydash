@@ -66,18 +66,108 @@ app_ui <- function(request) {
               margin-bottom: 20px; /* Add some inches of space below the buttons */
           }
         }
+
+
+      .landing-page {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .hero-section {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(to right, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+      }
+
+      .hero-title {
+        font-size: 3.5rem;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.5rem;
+        color: #6c757d;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .feature-card {
+        transition: transform 0.2s;
+        height: 100%;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+      }
+
+      .feature-content {
+        text-align: center;
+        padding: 1rem;
+      }
+
+      .feature-icon {
+        font-size: 2.5rem;
+        color: #2185d0;
+        margin-bottom: 1rem;
+      }
+
+      .feature-title {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+      }
+
+      .feature-content ul {
+        text-align: left;
+        margin-top: 1rem;
+        padding-left: 1.5rem;
+      }
+
+      .feature-content li {
+        margin-bottom: 0.5rem;
+        color: #6c757d;
+      }
+
+      .cta-section {
+        text-align: center;
+        padding: 2rem 0;
+      }
+
+      .ui.huge.primary.button {
+        font-size: 1.25rem;
+        padding: 1.25rem 2.5rem;
+        background-color: #2185d0;
+        color: white;
+        border-radius: 30px;
+        box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+        transition: all 0.2s;
+      }
+
+      .ui.huge.primary.button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        background-color: #1678c2;
+      }
       "))
     ),
     tags$script(JS_CODE_SCREEN_SIZE),
     useShinyjs(),
     main_panel(
-      div(
-        id = "input_page",
-        class = "ui raised very padded text container segment responsive-container",
+      # Add the landing page as the first page
+      div(id = "landing_page", create_landing_page()),
+
+      # Hide the input page initially
+      shinyjs::hidden(
         div(
-          class = "ui form",
-          show_input_ui(),
-          uiOutput("next_pop_page")
+          id = "input_page",
+          class = "ui raised very padded text container segment responsive-container",
+          div(
+            class = "ui form",
+            show_input_ui(),
+            uiOutput("next_pop_page")
+          )
         )
       ),
       hidden(
@@ -115,7 +205,6 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_tfr_results_ui")),
         )
       ),
-
       hidden(
         div(
           id = "e0_page",
@@ -133,7 +222,6 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_e0_results_ui")),
         )
       ),
-
       hidden(
         div(
           id = "mig_page",
@@ -151,7 +239,6 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_mig_results_ui")),
         )
       ),
-
       hidden(
         div(
           id = "forecast_page",
@@ -169,11 +256,9 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),
-
       hidden(
         numericInput("step", label = NULL, value = 1)
       ),
-
       width = NULL
     )
   )
