@@ -7,8 +7,17 @@
 #'
 show_input_ui <- function() {
   div(
-    toggle("toggle_region", "Region", is_marked = FALSE),
-    br(),
+    multiple_radio(
+      input_id = "toggle_region",
+      label = "Which geographic aggregation do you want to work with?",
+      choices = c(
+        "Country",
+        "Region"
+      ),
+      selected = "Country",
+      position = "grouped",
+      type = "checkbox"
+    ),
     br(),
     uiOutput("location_selector"),
     br(),
@@ -27,7 +36,7 @@ show_input_ui <- function() {
 #' @export
 #'
 location_selector_ui <- function(input) {
-  if (isTRUE(input$toggle_region)) {
+  if (input$toggle_region == "Region") {
     create_field_set(
       "globe",
       "Select a region",
