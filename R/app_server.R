@@ -1,3 +1,96 @@
+# File validation rules for each data type
+validation_rules <- list(
+  pop = list(
+    expected_cols = 3,
+    col_types = c("numeric", "numeric", "numeric"),
+    col_names = c("age", "popF", "popM")
+  ),
+  tfr = list(
+    expected_cols = 2,
+    col_types = c("numeric", "numeric"),
+    col_names = c("year", "tfr")
+  ),
+  e0 = list(
+    expected_cols = 3,
+    col_types = c("numeric", "numeric", "numeric"),
+    col_names = c("year", "e0M", "e0F")
+  ),
+  mig = list(
+    expected_cols = 2,
+    col_types = c("numeric", "numeric"),
+    col_names = c("year", "mig")
+  )
+)
+
+# Generic validation functions
+check_column_count <- function(data, expected_cols) {
+  ncol(data) == expected_cols
+}
+
+check_column_types <- function(data, expected_types) {
+  actual_types <- sapply(data, class)
+  all(mapply(function(actual, expected) {
+    if (expected == "numeric") {
+      return(is.numeric(data[[actual]]))
+    }
+    if (expected == "character") {
+      return(is.character(data[[actual]]))
+    }
+    return(FALSE)
+  }, names(data), expected_types))
+}
+
+# Main file parser function
+file_parser <- function(file, data_type) {
+  if (!data_type %in% names(validation_rules)) {
+    return(list(
+      success = FALSE,
+      message = "Unknown data type"
+    ))
+  }
+
+  rules <- validation_rules[[data_type]]
+
+  tryCatch(
+    {
+      # Try reading the CSV
+      data <- readr::read_csv(file$datapath)
+
+      # Check number of columns
+      if (!check_column_count(data, rules$expected_cols)) {
+        return(list(
+          success = FALSE,
+          message = sprintf(
+            "Expected %d columns but found %d",
+            rules$expected_cols, ncol(data)
+          )
+        ))
+      }
+
+      # Check column types
+      if (!check_column_types(data, rules$col_types)) {
+        return(list(
+          success = FALSE,
+          message = "One or more columns have incorrect data types"
+        ))
+      }
+
+      # If all checks pass
+      return(list(
+        success = TRUE,
+        message = "Validation successful",
+        data = data
+      ))
+    },
+    error = function(e) {
+      return(list(
+        success = FALSE,
+        message = paste("Error reading file:", e$message)
+      ))
+    }
+  )
+}
+
 #' The Application Server-Side Logic
 #'
 #' This function defines the server logic for the Shiny application,
@@ -50,18 +143,57 @@ app_server <- function(input, output, session) {
     file_input_mig(NULL)
   })
 
-  # Step 3: Observe new file uploads and update corresponding file_input
+  # Modified observers using the new parser
   observeEvent(input$upload_pop, {
-    file_input_pop(input$upload_pop)
+    result <- file_parser(input$upload_pop, "pop")
+    if (result$success) {
+      file_input_pop(input$upload_pop)
+    } else {
+      shinyalert(
+        title = "Error",
+        text = paste("Population file validation failed:", result$message),
+        type = "error"
+      )
+    }
   })
+
   observeEvent(input$upload_tfr, {
-    file_input_tfr(input$upload_tfr)
+    result <- file_parser(input$upload_tfr, "tfr")
+    if (result$success) {
+      file_input_tfr(input$upload_tfr)
+    } else {
+      shinyalert(
+        title = "Error",
+        text = paste("TFR file validation failed:", result$message),
+        type = "error"
+      )
+    }
   })
+
   observeEvent(input$upload_e0, {
-    file_input_e0(input$upload_e0)
+    result <- file_parser(input$upload_e0, "e0")
+    if (result$success) {
+      file_input_e0(input$upload_e0)
+    } else {
+      shinyalert(
+        title = "Error",
+        text = paste("Life expectancy file validation failed:", result$message),
+        type = "error"
+      )
+    }
   })
+
   observeEvent(input$upload_mig, {
-    file_input_mig(input$upload_mig)
+    result <- file_parser(input$upload_mig, "mig")
+    if (result$success) {
+      file_input_mig(input$upload_mig)
+    } else {
+      shinyalert(
+        title = "Error",
+        text = paste("Migration file validation failed:", result$message),
+        type = "error"
+      )
+    }
   })
 
   # Step 4: Define the get_file_input function for each type of data
@@ -81,7 +213,7 @@ app_server <- function(input, output, session) {
   # Step 5: Define the reactive functions using the specific get_file_input function
   reactive_pop <- reactive({
     if (!is.null(get_file_input_pop())) {
-      res <- data.table(read.csv(get_file_input_pop()$datapath))
+      res <- data.table(readr::read_csv(get_file_input_pop()$datapath))
       names(res) <- c("age", "popF", "popM")
     } else {
       res <- get_wpp_pop(input$wpp_country, wpp_starting_year())
@@ -92,7 +224,7 @@ app_server <- function(input, output, session) {
 
   reactive_tfr <- reactive({
     if (!is.null(get_file_input_tfr())) {
-      res <- data.table(read.csv(get_file_input_tfr()$datapath))
+      res <- data.table(readr::read_csv(get_file_input_tfr()$datapath))
       names(res) <- c("year", "tfr")
     } else {
       res <- get_wpp_tfr(input$wpp_country)
@@ -103,7 +235,7 @@ app_server <- function(input, output, session) {
 
   reactive_e0 <- reactive({
     if (!is.null(get_file_input_e0())) {
-      res <- data.table(read.csv(get_file_input_e0()$datapath))
+      res <- data.table(readr::read_csv(get_file_input_e0()$datapath))
       names(res) <- c("year", "e0M", "e0F")
     } else {
       res <- get_wpp_e0(input$wpp_country)
@@ -114,7 +246,7 @@ app_server <- function(input, output, session) {
 
   reactive_mig <- reactive({
     if (!is.null(get_file_input_mig())) {
-      res <- data.table(read.csv(get_file_input_mig()$datapath))
+      res <- data.table(readr::read_csv(get_file_input_mig()$datapath))
       names(res) <- c("year", "mig")
     } else {
       res <- get_wpp_mig(input$wpp_country)
