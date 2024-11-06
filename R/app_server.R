@@ -36,48 +36,91 @@ app_server <- function(input, output, session) {
   # dependency issue
   library(OPPPserver)
 
-  # These are the two main  sources of data: population and tfr data.
-  # If these are uploaded, they reactively are read from the upload.
-  # If not, they are used downloaded directly from WPP.
+  # Step 1: Create a reactiveVal to manage each file input state
+  file_input_pop <- reactiveVal(NULL)
+  file_input_tfr <- reactiveVal(NULL)
+  file_input_e0 <- reactiveVal(NULL)
+  file_input_mig <- reactiveVal(NULL)
+
+  # Step 2: Observe changes to wpp_countries and reset each file input
+  observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year), {
+    file_input_pop(NULL)
+    file_input_tfr(NULL)
+    file_input_e0(NULL)
+    file_input_mig(NULL)
+  })
+
+  # Step 3: Observe new file uploads and update corresponding file_input
+  observeEvent(input$upload_pop, {
+    file_input_pop(input$upload_pop)
+  })
+  observeEvent(input$upload_tfr, {
+    file_input_tfr(input$upload_tfr)
+  })
+  observeEvent(input$upload_e0, {
+    file_input_e0(input$upload_e0)
+  })
+  observeEvent(input$upload_mig, {
+    file_input_mig(input$upload_mig)
+  })
+
+  # Step 4: Define the get_file_input function for each type of data
+  get_file_input_pop <- reactive({
+    file_input_pop()
+  })
+  get_file_input_tfr <- reactive({
+    file_input_tfr()
+  })
+  get_file_input_e0 <- reactive({
+    file_input_e0()
+  })
+  get_file_input_mig <- reactive({
+    file_input_mig()
+  })
+
+  # Step 5: Define the reactive functions using the specific get_file_input function
   reactive_pop <- reactive({
-    if (!is.null(input$upload_pop) && nrow(input$upload_pop) > 0) {
-      res <- data.table(read.csv(input$upload_pop$datapath))
+    if (!is.null(get_file_input_pop())) {
+      res <- data.table(read.csv(get_file_input_pop()$datapath))
       names(res) <- c("age", "popF", "popM")
     } else {
       res <- get_wpp_pop(input$wpp_country, wpp_starting_year())
     }
+
     res
   })
 
   reactive_tfr <- reactive({
-    if (!is.null(input$upload_tfr) && nrow(input$upload_tfr) > 0) {
-      res <- data.table(read.csv(input$upload_tfr$datapath))
+    if (!is.null(get_file_input_tfr())) {
+      res <- data.table(read.csv(get_file_input_tfr()$datapath))
       names(res) <- c("year", "tfr")
     } else {
       res <- get_wpp_tfr(input$wpp_country)
     }
+
     res
   })
 
-
   reactive_e0 <- reactive({
-    if (!is.null(input$upload_e0) && nrow(input$upload_e0) > 0) {
-      res <- data.table(read.csv(input$upload_e0$datapath))
+    if (!is.null(get_file_input_e0())) {
+      res <- data.table(read.csv(get_file_input_e0()$datapath))
       names(res) <- c("year", "e0M", "e0F")
     } else {
       res <- get_wpp_e0(input$wpp_country)
     }
+
     res
   })
 
   reactive_mig <- reactive({
-    if (!is.null(input$upload_mig) && nrow(input$upload_mig) > 0) {
-      res <- data.table(read.csv(input$upload_mig$datapath))
+    if (!is.null(get_file_input_mig())) {
+      res <- data.table(read.csv(get_file_input_mig()$datapath))
       names(res) <- c("year", "mig")
-      } else {
-        res <- get_wpp_mig(input$wpp_country)
-      }
-      res
+    } else {
+      res <- get_wpp_mig(input$wpp_country)
+    }
+
+    res
   })
 
   # This is a very weird thing. If I use this in the title of the TFR customize
