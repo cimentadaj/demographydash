@@ -183,8 +183,12 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
   modal(
     id = modal_id,
     header = div(
-      div(style = "display: flex;", header_title),
-      additional_header
+      div(
+        style = "display: flex; justify-content: space-between;",
+        header_title,
+        action_button("customize_help", "Instructions", class = "ui red button")
+      ),
+      additional_header,
     ),
     DTOutput(output_id),
     footer = div(
@@ -194,15 +198,14 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
           class = "file-input-container",
           div(
             style = "display: flex; align-items: center; gap: 5px;",
-            shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%"),
+            shiny.semantic::file_input(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%"),
           )
         ),
         div(
           class = "button-container",
           div(
             style = "display: flex; gap: 5px",
-            shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
-            action_button(hide_button_id, "Close", class = "ui red button"),
+            shiny::downloadButton(download_button_id, "Download", class = "ui blue button")
           )
         ),
       ),
@@ -254,41 +257,28 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, input, output) {
+handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output) {
   output$location_selector <- renderUI(location_selector_ui(input))
 
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
-  })
-
-  observeEvent(input$hide_pop, {
-    hide_modal("modal_population")
+    current_tab("modal_pop")
   })
 
   observeEvent(input$customize_tfr, {
     show_modal("modal_tfr")
-  })
-
-  observeEvent(input$hide_tfr, {
-    hide_modal("modal_tfr")
+    current_tab("modal_tfr")
   })
 
   observeEvent(input$customize_e0, {
     show_modal("modal_e0")
-  })
-
-  observeEvent(input$hide_e0, {
-    hide_modal("modal_e0")
+    current_tab("modal_e0")
   })
 
   observeEvent(input$customize_mig, {
     show_modal("modal_mig")
+    current_tab("modal_mig")
   })
-
-  observeEvent(input$hide_mig, {
-    hide_modal("modal_mig")
-  })
-
 
   dt_options <- list(
     paging = FALSE,
@@ -473,7 +463,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
 #' @importFrom utils write.csv
 #' @export
 #'
-handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output) {
+handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, current_tab, input, output) {
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
   simulation_results <- reactiveVal()
@@ -481,42 +471,50 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
   observeEvent(input$start_analysis, {
     hide("landing_page")
     show("input_page")
+    current_tab("input_page")
   })
 
   # In handle_navigation function, add this new observer:
   observeEvent(input$back_to_landing, {
     hide("input_page")
     show("landing_page")
+    current_tab("landing_page")
   })
 
   observeEvent(input$back_to_input_page, {
     hide("pop_page")
     show("input_page")
+    current_tab("input_page")
   })
 
   observeEvent(input$back_to_pop_page, {
     hide("tfr_page")
     show("pop_page")
+    current_tab("pop_page")
   })
 
   observeEvent(input$back_to_tfr_page, {
     hide("e0_page")
     show("tfr_page")
+    current_tab("tfr_page")
   })
 
   observeEvent(input$back_to_e0_page, {
     hide("mig_page")
     show("e0_page")
+    current_tab("e0_page")
   })
 
   observeEvent(input$back_to_mig_page, {
     hide("forecast_page")
     show("mig_page")
+    current_tab("mig_page")
   })
 
   observeEvent(input$forward_pop_page, {
     hide("input_page")
     show("pop_page")
+    current_tab("pop_page")
 
     output$show_pop_results_ui <- renderUI({
       create_pop_pyramid_plot(
@@ -587,6 +585,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
     hide_modal("modal_passtfr")
     hide("pop_page")
     show("forecast_page")
+    current_tab("forecast_page")
 
     # Compute in the background because sincer we're
     # jumping the actual TFR (jumping the traditional TFR page

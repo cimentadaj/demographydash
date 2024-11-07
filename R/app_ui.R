@@ -5,6 +5,7 @@
 #' @importFrom shiny.semantic main_panel action_button selectInput icon
 #' @importFrom untheme fluidUnTheme
 #' @importFrom shinycssloaders withSpinner
+#' @importFrom rintrojs introjsUI
 #' @noRd
 app_ui <- function(request) {
   fluidUnTheme(
@@ -154,6 +155,7 @@ app_ui <- function(request) {
     ),
     tags$script(JS_CODE_SCREEN_SIZE),
     useShinyjs(),
+    introjsUI(),
     main_panel(
       # Add the landing page as the first page
       div(id = "landing_page", create_landing_page()),
@@ -177,6 +179,7 @@ app_ui <- function(request) {
             style = "display: flex; gap: 10px;", # 20px gap between buttons
             action_button("back_to_input_page", "Back", class = "ui grey button"),
             action_button("forward_tfr_page", "Forward", class = "ui blue button"),
+            action_button("pop_help", "Instructions", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_pop", "Customize", icon = icon("refresh"), class = "ui blue button")
@@ -244,7 +247,11 @@ app_ui <- function(request) {
           id = "forecast_page",
           div(
             style = "display: flex; gap: 20px;", # 20px gap between buttons
-            action_button("back_to_mig_page", "Back", class = "ui grey button"),
+            div(
+              style = "display: flex; gap: 5px;",
+              action_button("back_to_mig_page", "Back", class = "ui grey button"),
+              uiOutput("forecast_help_ui")
+            ),
             div(
               style = "margin-left: auto;",
               uiOutput("main_analysis_hover")

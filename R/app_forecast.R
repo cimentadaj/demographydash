@@ -64,6 +64,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
 
+  output$forecast_help_ui <- renderUI({
+    action_button("forecast_help", "Instructions", class = "ui blue button")
+  })
+
   output$all_pop_data <- shiny::downloadHandler(
     filename = function() paste0("all_data_pyramid_age_sex_", input$wpp_country, ".csv"),
     content = function(file) {

@@ -11,6 +11,7 @@ handle_navigation(
   reactive_mig,
   wpp_starting_year,
   wpp_ending_year,
+  current_tab,
   input,
   output
 )

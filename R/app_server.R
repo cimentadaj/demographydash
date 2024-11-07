@@ -103,9 +103,12 @@ file_parser <- function(file, data_type) {
 #' @importFrom utils read.csv
 #' @importFrom untheme detect_font_size
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr get_wpp_e0 get_wpp_mig
+#' @importFrom rintrojs introjs
 #' @export
 #'
 app_server <- function(input, output, session) {
+  current_tab <- reactiveVal()
+
   observe({
     req(input$get_screen_width)
     sizes <- detect_font_size(input$get_screen_width)
@@ -124,6 +127,66 @@ app_server <- function(input, output, session) {
   # the beginning and  use from these reactive expressions
   wpp_starting_year <- reactive(as.numeric(input$wpp_starting_year))
   wpp_ending_year <- reactive(as.numeric(input$wpp_ending_year))
+
+  observeEvent(input$pop_help, {
+    if (current_tab() == "pop_page") {
+      rintrojs::introjs(session, options = list(
+        steps = data.frame(
+          element = c("#customize_pop", "#show_pop_results_ui", "#forward_tfr_page"),
+          intro = c(
+            "Click here to upload your own data for the starting year of the chosen country",
+            "This is the current population values for the starting year of the chosen country",
+            "When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one."
+          )
+        )
+      ))
+    }
+  })
+
+  observeEvent(input$customize_help, {
+    if (grepl("modal_", current_tab())) {
+      # Extract the base name (everything after "modal_")
+      base_name <- sub("modal_", "", current_tab())
+
+      # Dynamically construct widget IDs
+      dt_output_id <- paste0("tmp_", base_name, "_dt")
+      download_id <- paste0("download_", base_name)
+      # The file input widget for some reason is no recognized
+      # for that reason we simply pick the parent class from the footer
+      file_input_id <- "footer-container"
+
+      steps_df <- data.frame(
+        element = c(
+          paste0("#", dt_output_id),
+          paste0("#", download_id),
+          paste0("#", file_input_id)
+        ),
+        intro = c(
+          "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example.",
+          "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values.",
+          "Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values."
+        )
+      )
+
+      rintrojs::introjs(session, options = list(
+        steps = steps_df
+      ))
+    }
+  })
+
+  observeEvent(input$forecast_help, {
+    if (current_tab() == "forecast_page") {
+      rintrojs::introjs(session, options = list(
+        steps = data.frame(
+          element = c("#select_id", "#show_forecast_results_ui"),
+          intro = c(
+            "Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes.",
+            "Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results."
+          )
+        )
+      ))
+    }
+  })
 
   # TODO: remove this and import directly run_forecast. Need to fix
   # dependency issue
@@ -285,6 +348,7 @@ app_server <- function(input, output, session) {
     reactive_mig,
     wpp_starting_year,
     wpp_ending_year,
+    current_tab,
     input,
     output
   )
@@ -298,6 +362,7 @@ app_server <- function(input, output, session) {
     tfr_starting_year,
     wpp_starting_year,
     wpp_ending_year,
+    current_tab,
     input,
     output
   )
@@ -325,5 +390,139 @@ app_server <- function(input, output, session) {
       output,
       simulation_results
     )
+
+
   })
 }
+
+
+## library(rintrojs)
+## library(shiny)
+## library(shiny.semantic)
+
+## # Define UI for application that draws a histogram
+## ui <- semanticPage(
+##   introjsUI(),
+
+##   # Application title
+##   introBox(
+##     titlePanel("Old Faithful Geyser Data"),
+##     data.step = 1,
+##     data.intro = "This is the title panel"
+##   ),
+
+##   # Sidebar with a slider input for number of bins
+##   sidebarLayout(
+##     sidebarPanel(
+##       introBox(
+##         introBox(
+##           shiny.semantic::slider_input(
+##             "bins",
+##             value = 30,
+##             min = 1,
+##             max = 50,
+##           ),
+##           data.step = 3,
+##           data.intro = "This is a slider"
+##         ),
+##         introBox(
+##           actionButton("help", "Press for instructions"),
+##           data.step = 4,
+##           data.intro = "This is a button"
+##         ),
+##         data.step = 2,
+##         data.intro = "This is the sidebar. Look how intro elements can nest"
+##       )
+##     ),
+
+##     # Show a plot of the generated distribution
+##     mainPanel(
+##       introBox(
+##         plotOutput("distPlot"),
+##         data.step = 5,
+##         data.intro = "This is the main plot"
+##       )
+##     )
+##   )
+## )
+
+## # Define server logic required to draw a histogram
+## server <- function(input, output, session) {
+##   output$distPlot <- renderPlot({
+##     # generate bins based on input$bins from ui.R
+##     x <- faithful[, 2]
+##     bins <- seq(min(x), max(x), length.out = input$bins + 1)
+
+
+##     # draw the histogram with the specified number of bins
+##     hist(x,
+##       breaks = bins,
+##       col = "darkgray",
+##       border = "white"
+##     )
+##   })
+
+##   # start introjs when button is pressed with custom options and events
+##   observeEvent(
+##     input$help,
+##     introjs(
+##       session,
+##       options = list(
+##         "nextLabel" = "Onwards and Upwards",
+##         "prevLabel" = "Did you forget something?",
+##         "skipLabel" = "Don't be a quitter"
+##       )
+##     )
+##   )
+## }
+
+## # Run the application
+## shinyApp(ui = ui, server = server)
+
+## create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, download_button_id, hide_button_id, additional_header = NULL) {
+##   modal(
+##     id = modal_id,
+##     header = div(
+##       div(
+##         style = "display: flex; justify-content: space-between;",
+##         header_title,
+##         action_button("customize_help", "Instructions", class = "ui red button")
+##       ),
+##       additional_header,
+##     ),
+##     introBox(
+##       DTOutput(output_id),
+##       data.step = 4,
+##       data.intro = "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."
+##     ),
+##     footer = div(
+##       div(
+##         class = "footer-container",
+##         div(
+##           class = "file-input-container",
+##           div(
+##             style = "display: flex; align-items: center; gap: 5px;",
+##             introBox(
+##               shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%"),
+##               data.step = 5,
+##               data.intro = "Finally, when your data is ready, click here to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values."
+##             )
+##           )
+##         ),
+##         div(
+##           class = "button-container",
+##           div(
+##             style = "display: flex; gap: 5px",
+##             introBox(
+##               shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
+##               data.step = {,
+##               data.intro = "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."
+##             )
+##           )
+##         ),
+##       ),
+##       div("Uploaded data must match exactly the format, column names and ordering shown in the table above", style = "color: #8B0000; font-weight: bold; font-size: 12px;")
+##     ),
+##     class = "small"
+##   )
+## }
