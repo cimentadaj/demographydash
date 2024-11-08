@@ -36,11 +36,12 @@ To launch the app through docker run this in the terminal at the root of
 the repository:
 
 ``` bash
-docker build -t proj-app.
-docker run -p 8180:8180 -d proj-app
+PORT=8180
+docker build -t proj-app --build-arg PORT=$PORT .
+docker run -p $PORT:$PORT -e PORT=$PORT -d proj-app
 ```
 
-And test the app in <http://localhost:3838>.,
+And test the app in <http://localhost:8180>.,
 
 ## Brief explanation
 
