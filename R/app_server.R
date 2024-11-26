@@ -22,6 +22,13 @@ validation_rules <- list(
   )
 )
 
+data_source <- reactiveValues(
+  tfr = "downloaded", # "downloaded" or "uploaded"
+  e0 = "downloaded",
+  mig = "downloaded"
+)
+
+
 # Generic validation functions
 check_column_count <- function(data, expected_cols) {
   ncol(data) == expected_cols
@@ -263,12 +270,15 @@ app_server <- function(input, output, session) {
   get_file_input_pop <- reactive({
     file_input_pop()
   })
+
   get_file_input_tfr <- reactive({
     file_input_tfr()
   })
+
   get_file_input_e0 <- reactive({
     file_input_e0()
   })
+
   get_file_input_mig <- reactive({
     file_input_mig()
   })
@@ -289,8 +299,10 @@ app_server <- function(input, output, session) {
     if (!is.null(get_file_input_tfr())) {
       res <- data.table(readr::read_csv(get_file_input_tfr()$datapath))
       names(res) <- c("year", "tfr")
+      data_source$tfr <- "uploaded"
     } else {
       res <- get_wpp_tfr(input$wpp_country)
+      data_source$tfr <- "downloaded"
     }
 
     res
@@ -300,8 +312,10 @@ app_server <- function(input, output, session) {
     if (!is.null(get_file_input_e0())) {
       res <- data.table(readr::read_csv(get_file_input_e0()$datapath))
       names(res) <- c("year", "e0M", "e0F")
+      data_source$e0 <- "uploaded"
     } else {
       res <- get_wpp_e0(input$wpp_country)
+      data_source$e0 <- "downloaded"
     }
 
     res
@@ -311,8 +325,10 @@ app_server <- function(input, output, session) {
     if (!is.null(get_file_input_mig())) {
       res <- data.table(readr::read_csv(get_file_input_mig()$datapath))
       names(res) <- c("year", "mig")
+      data_source$mig <- "uploaded"
     } else {
       res <- get_wpp_mig(input$wpp_country)
+      data_source$mig <- "downloaded"
     }
 
     res
@@ -367,6 +383,7 @@ app_server <- function(input, output, session) {
     output
   )
 
+
   # Everything that doesn't fit into other handles is here look tooltip server side code.
   handle_misc(wpp_starting_year, wpp_ending_year, input, output)
 
@@ -380,15 +397,15 @@ app_server <- function(input, output, session) {
 
     # Begin forecast. This can take a up to a minute of calculation
     begin_forecast(
-      reactive_pop,
-      reactive_tfr,
-      reactive_e0,
-      reactive_mig,
-      wpp_starting_year,
-      wpp_ending_year,
-      input,
-      output,
-      simulation_results
+      reactive_pop = reactive_pop,
+      reactive_tfr = reactive_tfr,
+      reactive_e0 = reactive_e0,
+      reactive_mig = reactive_mig,
+      wpp_starting_year = wpp_starting_year,
+      wpp_ending_year = wpp_ending_year,
+      input = input,
+      output = output,
+      simulation_results = simulation_results
     )
 
 

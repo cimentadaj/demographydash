@@ -24,17 +24,27 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   # raises error. By fixing the output directory run_forecast and plotly use different
   # temporary directories.
   forecast_res <- reactive({
-    res <-
-      run_forecast(
-        country = input$wpp_country,
-        start_year = wpp_starting_year(),
-        end_year = wpp_ending_year(),
-        output_dir = "/tmp/hasdaney213/",
-        pop = reactive_pop(),
-        tfr = reactive_tfr(),
-        e0 = reactive_e0(),
-        mig = reactive_mig()
-      )
+
+    # Here we check the each of these in case the user did NOT upload the data
+    # because if they didn't, we provide a NULL a value so that Hana downloads
+    # the data in a way we can't do in the front end and complies with what Patrick
+    # needs
+    pop <- reactive_pop()
+    tfr <- check_data("tfr", reactive_tfr)
+    e0 <- check_data("e0", reactive_e0)
+    mig <- check_data("mig", reactive_mig)
+
+    # Call the run_forecast function with the processed data
+    res <- run_forecast(
+      country = input$wpp_country,
+      start_year = wpp_starting_year(),
+      end_year = wpp_ending_year(),
+      output_dir = "/tmp/hasdaney213/",
+      pop = pop,
+      tfr = tfr,
+      e0 = e0,
+      mig = mig
+    )
 
     remove_last_year <- c(
       "population_by_age_and_sex",
@@ -423,4 +433,14 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     plots_tabset(input, output, input$select_id, selected_plot)
   })
   ##### Finish plotting in tabs #####
+}
+
+
+# Helper function to check the condition
+check_data <- function(indicator_name, reactive_data) {
+  if (data_source[[indicator_name]] == "downloaded") {
+    return(NULL)
+  }
+
+  return(reactive_data())
 }
