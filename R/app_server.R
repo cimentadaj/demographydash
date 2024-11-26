@@ -22,7 +22,7 @@ validation_rules <- list(
   )
 )
 
-data_source <- reactiveValues(
+data_source <- shiny::reactiveValues(
   tfr = "downloaded", # "downloaded" or "uploaded"
   e0 = "downloaded",
   mig = "downloaded"
