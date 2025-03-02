@@ -18,7 +18,7 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
@@ -69,13 +69,13 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   output$show_forecast_results_ui <- renderUI({
     simulation_results(forecast_res())
     div(
-      show_forecast_results_ui(input)
+      show_forecast_results_ui(input, i18n)
     )
   })
 
 
   output$forecast_help_ui <- renderUI({
-    action_button("forecast_help", "Instructions", class = "ui blue button")
+    action_button("forecast_help", i18n$t("Instructions"), class = "ui blue button")
   })
 
   output$all_pop_data <- shiny::downloadHandler(
@@ -98,7 +98,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   output$age_pop_time_ui <- renderUI({
     selectInput(
       inputId = "age_pop_time",
-      label = "Select age group",
+      label = i18n$t("Select age group"),
       choices = age_pop_time(),
       selected = age_pop_time()[1]
     )
@@ -106,14 +106,14 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
 
   sex_e0_time <- reactive({
-    c("Total", "Male", "Female")
+    i18n$translate(c("Total", "Male", "Female"))
   })
 
 
   output$sex_e0_time_ui <- renderUI({
     selectInput(
       inputId = "sex_e0_time",
-      label = "Select sex",
+      label = i18n$translate("Select sex"),
       choices = sex_e0_time(),
       selected = sex_e0_time()[1]
     )
@@ -127,7 +127,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   output$pop_age_sex_years_ui <- renderUI({
     selectInput(
       inputId = "pop_age_sex_years",
-      label = "Select year",
+      label = i18n$t("Select year"),
       choices = pop_age_sex_years(),
       selected = wpp_starting_year() + 1
     )
@@ -148,9 +148,17 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   age_group_plot <- reactive({
     req(input$radio_population_by_broad_age_group)
 
+    # Find which "Percent" or "Absolute" translates to the selected value
+    ops_vals <- c("Percent", "Absolute")
+    chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$radio_population_by_broad_age_group)]
+    # If no match found (e.g., during initialization), use the input directly
+    if (is.na(chosen_val) || is.null(chosen_val)) {
+      chosen_val <- input$radio_population_by_broad_age_group
+    }
+
     create_age_group_plot(
       simulation_results()$population_by_broad_age_group,
-      input$radio_population_by_broad_age_group,
+      chosen_val,
       input$wpp_country
     )
   })
@@ -188,10 +196,18 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   deaths_births_plot <- reactive({
     req(input$radio_death_births)
 
+    # Find which "Percent" or "Absolute" translates to the selected value
+    ops_vals <- c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")
+    chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$radio_death_births)]
+    # If no match found (e.g., during initialization), use the input directly
+    if (is.na(chosen_val) || is.null(chosen_val)) {
+      chosen_val <- input$radio_death_births
+    }
+
     # type_value here is something like "Birth Counts" or "Birth Rates"
     # we split it to define the type of value and titles and use
     # each word for different labels.
-    type_value <- tolower(strsplit(input$radio_death_births, " ")[[1]])
+    type_value <- tolower(strsplit(chosen_val, " ")[[1]])
     create_deaths_births_plot(
       simulation_results()$births_counts_rates,
       simulation_results()$deaths_counts_rates,
@@ -219,7 +235,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     max_year <- max(dt$year)
     min_year <- min(dt$year)
     plt_title <- paste0(
-      "Population size and percent of population 65+: ",
+      "Population size and percent of population 65+",
+      ": ",
       input$wpp_country,
       ", ",
       min_year,
@@ -295,9 +312,18 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
     req(input$sex_e0_time)
 
+
+    # Find which "Percent" or "Absolute" translates to the selected value
+    ops_vals <- c("Total", "Male", "Female")
+    chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$sex_e0_time)]
+    # If no match found (e.g., during initialization), use the input directly
+    if (is.na(chosen_val) || is.null(chosen_val)) {
+      chosen_val <- input$sex_e0_time
+    }
+
     create_e0_projected_plot(
       simulation_results()$e0_by_time,
-      input$sex_e0_time,
+      chosen_val,
       input$wpp_country
     )
   })

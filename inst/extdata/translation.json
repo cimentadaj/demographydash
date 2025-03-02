@@ -1,0 +1,998 @@
+{
+    "languages": ["en", "fr"],
+    "translation": [
+      {
+        "en": "Change language",
+        "fr": "Changer de langue"
+      },
+      {
+        "en": "Demographic Analysis Suite",
+        "fr": "Suite d'Analyse Démographique"
+      },
+      {
+        "en": "Go to module",
+        "fr": "Aller au module"
+      },
+      {
+        "en": "Advanced tools for demographic research and analysis",
+        "fr": "Outils avancés pour la recherche et l'analyse démographique"
+      },
+      {
+        "en": "Life Table Analysis",
+        "fr": "Analyse de Table de Mortalité"
+      },
+      {
+        "en": "Create comprehensive life tables with advanced smoothing capabilities and mortality analysis tools.",
+        "fr": "Créez des tables de mortalité complètes avec des capacités avancées de lissage et des outils d'analyse de mortalité."
+      },
+      {
+        "en": "Demographic Interpolation",
+        "fr": "Interpolation Démographique"
+      },
+      {
+        "en": "Fill data gaps and estimate demographic indicators between time points using advanced interpolation methods.",
+        "fr": "Comblez les lacunes de données et estimez les indicateurs démographiques entre les points temporels à l'aide de méthodes d'interpolation avancées."
+      },
+      {
+        "en": "Coming Soon",
+        "fr": "Bientôt Disponible"
+      },
+      {
+        "en": "Life Table Analysis Platform",
+        "fr": "Plateforme d'Analyse de Table de Mortalité"
+      },
+      {
+        "en": "Transform mortality data into comprehensive life table analyses with just a few clicks",
+        "fr": "Transformez les données de mortalité en analyses complètes de table de mortalité en quelques clics"
+      },
+      {
+        "en": "← Previous",
+        "fr": "← Précédent"
+      },
+      {
+        "en": "Upload Your Data",
+        "fr": "Téléchargez Vos Données"
+      },
+      {
+        "en": "Import your mortality data in CSV format containing Age, Deaths, and Exposures",
+        "fr": "Importez vos données de mortalité au format CSV contenant l'âge, les décès et les expositions"
+      },
+      {
+        "en": "Run Diagnostics",
+        "fr": "Exécuter les Diagnostics"
+      },
+      {
+        "en": "Analyze data quality and identify potential issues with built-in diagnostic tools",
+        "fr": "Analysez la qualité des données et identifiez les problèmes potentiels avec les outils de diagnostic intégrés"
+      },
+      {
+        "en": "Transform Data",
+        "fr": "Transformer les Données"
+      },
+      {
+        "en": "Apply sophisticated smoothing and adjustments by groups",
+        "fr": "Appliquez des lissages sophistiqués et des ajustements par groupes"
+      },
+      {
+        "en": "Get Results",
+        "fr": "Obtenir les Résultats"
+      },
+      {
+        "en": "Download complete life table results and visualizations",
+        "fr": "Téléchargez les résultats complets de la table de mortalité et les visualisations"
+      },
+      {
+        "en": "Start",
+        "fr": "Commencer"
+      },
+      {
+        "en": "Data upload and validation",
+        "fr": "Téléchargement et validation des données"
+      },
+      {
+        "en": "Begin by uploading your CSV file. Not sure about your file? Here's what we're looking for:",
+        "fr": "Commencez par télécharger votre fichier CSV. Vous n'êtes pas sûr de votre fichier ? Voici ce que nous recherchons :"
+      },
+      {
+        "en": "Exposures refer to the person-years lived over the same period where Deaths were registered. If Deaths refer to a single year, then sometimes mid-year population can be used to approximate Exposures.",
+        "fr": "Les expositions font référence aux années-personnes vécues au cours de la même période où les décès ont été enregistrés. Si les décès font référence à une seule année, la population de milieu d'année peut parfois être utilisée pour approximer les expositions."
+      },
+      {
+        "en": "Ready? Click 'Browse...' to select your file or start with our sample data.",
+        "fr": "Prêt ? Cliquez sur 'Parcourir...' pour sélectionner votre fichier ou commencez avec nos données d'exemple."
+      },
+      {
+        "en": "Use sample data",
+        "fr": "Utiliser les données d'exemple"
+      },
+      {
+        "en": "Show Advanced Options",
+        "fr": "Afficher les Options Avancées"
+      },
+      {
+        "en": "Hide Advanced Options",
+        "fr": "Masquer les Options Avancées"
+      },
+      {
+        "en": "Next →",
+        "fr": "Suivant →"
+      },
+      {
+        "en": "Smoothing",
+        "fr": "Lissage"
+      },
+      {
+        "en": "smoothing",
+        "fr": "lissage"
+      },
+      {
+        "en": "Calculate",
+        "fr": "Calculer"
+      },
+      {
+        "en": "Reset Options",
+        "fr": "Réinitialiser les Options"
+      },
+      {
+        "en": "Execute",
+        "fr": "Exécuter"
+      },
+      {
+        "en": "Ages to fit extrapolation model",
+        "fr": "Âges à ajuster pour le modèle d'extrapolation"
+      },
+      {
+        "en": "Extrap. Jump-off Age",
+        "fr": "Âge de Départ pour l'Extrapolation"
+      },
+      {
+        "en": "Life Table Summary Statistics",
+        "fr": "Statistiques de la Table de Mortalité"
+      },
+      {
+        "en": "Download life table results",
+        "fr": "Télécharger les résultats de la table de mortalité"
+      },
+      {
+        "en": "Download preprocessing results",
+        "fr": "Télécharger les résultats du prétraitement"
+      },
+      {
+        "en": "Download diagnostic results",
+        "fr": "Télécharger les résultats des diagnostics"
+      },
+      {
+        "en": "Download PDF Report",
+        "fr": "Télécharger le Rapport PDF"
+      },
+      {
+        "en": "Download Options",
+        "fr": "Options de Téléchargement"
+      },
+      {
+        "en": "Select an option:",
+        "fr": "Sélectionnez une option :"
+      },
+      {
+        "en": "Cancel",
+        "fr": "Annuler"
+      },
+      {
+        "en": "Download",
+        "fr": "Télécharger"
+      },
+      {
+        "en": "Desired Open Age Group",
+        "fr": "Groupe d'Âge Ouvert Souhaité"
+      },
+      {
+        "en": "Output Age Classes",
+        "fr": "Classes d'Âge de Sortie"
+      },
+      {
+        "en": "single",
+        "fr": "unique"
+      },
+      {
+        "en": "abridged",
+        "fr": "abrégé"
+      },
+      {
+        "en": "Extrapolation Law",
+        "fr": "Loi d'Extrapolation"
+      },
+      {
+        "en": "Lifetable Radix",
+        "fr": "Radix de la Table de Mortalité"
+      },
+      {
+        "en": "Sex Ratio at Birth",
+        "fr": "Rapport de Masculinité à la Naissance"
+      },
+      {
+        "en": "a(0) Rule",
+        "fr": "Règle a(0)"
+      },
+      {
+        "en": "Andreev-Kingkade",
+        "fr": "Andreev-Kingkade"
+      },
+      {
+        "en": "Coale-Demeny",
+        "fr": "Coale-Demeny"
+      },
+      {
+        "en": "a(x) Method",
+        "fr": "Méthode a(x)"
+      },
+      {
+        "en": "UN (Greville)",
+        "fr": "ONU (Greville)"
+      },
+      {
+        "en": "PASEX",
+        "fr": "PASEX"
+      },
+      {
+        "en": "Language",
+        "fr": "Langue"
+      },
+      {
+        "en": "English",
+        "fr": "Anglais"
+      },
+      {
+        "en": "French",
+        "fr": "Français"
+      },
+      {
+        "en": "Join The Conversation:",
+        "fr": "Rejoignez La Conversation :"
+      },
+      {
+        "en": "Donate",
+        "fr": "Faire un don"
+      },
+      {
+        "en": "Contact",
+        "fr": "Contact"
+      },
+      {
+        "en": "Copyright",
+        "fr": "Droits d'auteur"
+      },
+      {
+        "en": "Fraud Alert",
+        "fr": "Alerte à la fraude"
+      },
+      {
+        "en": "Privacy Notice",
+        "fr": "Avis de confidentialité"
+      },
+      {
+        "en": "Site Index",
+        "fr": "Index du site"
+      },
+      {
+        "en": "Terms of Use",
+        "fr": "Conditions d'utilisation"
+      },
+      {
+        "en": "Column Selection",
+        "fr": "Sélection des Colonnes"
+      },
+      {
+        "en": "If you're analysis needs to be performed by groups (e.g Sex, Province, Region, etc..), please select the columns that group your data. If your data is not group-wise, tick the box below.",
+        "fr": "Si votre analyse doit être effectuée par groupes (par exemple Sexe, Province, Région, etc.), veuillez sélectionner les colonnes qui regroupent vos données. Si vos données ne sont pas groupées, cochez la case ci-dessous."
+      },
+      {
+        "en": "Select Identifier Columns",
+        "fr": "Sélectionner les Colonnes d'Identification"
+      },
+      {
+        "en": "No grouping needed for this analysis",
+        "fr": "Pas de regroupement nécessaire pour cette analyse"
+      },
+      {
+        "en": "Confirm",
+        "fr": "Confirmer"
+      },
+      {
+        "en": "A maximum of 3 grouping variables are allowed.",
+        "fr": "Un maximum de 3 variables de regroupement est autorisé."
+      },
+      {
+        "en": "The specified columns do not identify each row uniquely or we've identified there are grouping columns not specified.",
+        "fr": "Les colonnes spécifiées n'identifient pas chaque ligne de manière unique ou nous avons identifié qu'il y a des colonnes de regroupement non spécifiées."
+      },
+      {
+        "en": "✅ Everything is great, all checks passed!",
+        "fr": "✅ Tout est parfait, tous les contrôles sont passés !"
+      },
+      {
+        "en": "Check Failures:",
+        "fr": "Échecs des contrôles :"
+      },
+      {
+        "en": "Diagnostics",
+        "fr": "Diagnostics"
+      },
+      {
+        "en": "Continue",
+        "fr": "Continuer"
+      },
+      {
+        "en": "Age column not found",
+        "fr": "Colonne âge non trouvée"
+      },
+      {
+        "en": "Type",
+        "fr": "Type"
+      },
+      {
+        "en": "Age Scale",
+        "fr": "Échelle d'Âge"
+      },
+      {
+        "en": "Method",
+        "fr": "Méthode"
+      },
+      {
+        "en": "Result",
+        "fr": "Résultat"
+      },
+      {
+        "en": "Level",
+        "fr": "Niveau"
+      },
+      {
+        "en": "Color",
+        "fr": "Couleur"
+      },
+      {
+        "en": "Deaths column not found",
+        "fr": "Colonne décès non trouvée"
+      },
+      {
+        "en": "Exposures column not found",
+        "fr": "Colonne expositions non trouvée"
+      },
+      {
+        "en": "Duplicate ages found",
+        "fr": "Âges en double trouvés"
+      },
+      {
+        "en": "Negative values found in Deaths",
+        "fr": "Valeurs négatives trouvées dans les décès"
+      },
+      {
+        "en": "Negative values found in Exposures",
+        "fr": "Valeurs négatives trouvées dans les expositions"
+      },
+      {
+        "en": "Zero values found in Exposures",
+        "fr": "Valeurs nulles trouvées dans les expositions"
+      },
+      {
+        "en": "Data Diagnostics",
+        "fr": "Diagnostics des Données"
+      },
+      {
+        "en": "Exposures",
+        "fr": "Expositions"
+      },
+      {
+        "en": "Deaths",
+        "fr": "Décès"
+      },
+      {
+        "en": "Empirical Mx",
+        "fr": "Mx Empirique"
+      },
+      {
+        "en": "The Roughness method measures the average absolute percentage deviation from a smoothed trend through the five-year age group data. The Sawtooth method takes the average of the ratios of the value in each five-year age group (in adult ages) to the average of the two adjacent age groups (age groups below and above). Both of these methods are trying to pick up on a phenomenon known as differential age heaping where digit preference is stronger on zeroes than on fives. This phenomenon can cause an apparent sawtooth pattern in demographic count data.",
+        "fr": "La méthode de Rugosité mesure l'écart absolu moyen en pourcentage par rapport à une tendance lissée à travers les données par groupe d'âge de cinq ans. La méthode en Dents de Scie prend la moyenne des ratios de la valeur dans chaque groupe d'âge de cinq ans (aux âges adultes) par rapport à la moyenne des deux groupes d'âge adjacents (groupes d'âge inférieurs et supérieurs). Ces deux méthodes tentent de détecter un phénomène connu sous le nom d'attraction différentielle des âges où la préférence pour les chiffres est plus forte sur les zéros que sur les cinq. Ce phénomène peut causer un motif apparent en dents de scie dans les données démographiques."
+      },
+      {
+        "en": "The Myers and Bachi indices both measure digit preference for single-age data. If there were no digit preference, then the distribution over terminal digits (0-9) would be roughly uniform. Both of these indices measure the departure from uniformity, with slight variations on the implementation. Higher values indicate digit distributions that are farther from uniform. If these indices are high, but the _roughness_ and _sawtooth_ indices are low, then you might adjust data using one of the _fine_ smoothing methods offered.",
+        "fr": "Les indices de Myers et Bachi mesurent tous deux la préférence pour les chiffres dans les données d'âge simple. S'il n'y avait pas de préférence pour les chiffres, la distribution sur les chiffres terminaux (0-9) serait à peu près uniforme. Ces deux indices mesurent l'écart par rapport à l'uniformité, avec de légères variations dans leur mise en œuvre. Des valeurs plus élevées indiquent des distributions de chiffres plus éloignées de l'uniforme. Si ces indices sont élevés, mais que les indices de _rugosité_ et de _dents de scie_ sont faibles, vous pourriez ajuster les données en utilisant l'une des méthodes de lissage _fin_ proposées."
+      },
+      {
+        "en": "This step simultaneously smooths age patterns in both exposures and deaths.",
+        "fr": "Cette étape lisse simultanément les modèles d'âge dans les expositions et les décès."
+      },
+      {
+        "en": "Exposures Parameters",
+        "fr": "Paramètres des Expositions"
+      },
+      {
+        "en": "Deaths Parameters",
+        "fr": "Paramètres des Décès"
+      },
+      {
+        "en": "Rough Method (Exposures)",
+        "fr": "Méthode Grossière (Expositions)"
+      },
+      {
+        "en": "Rough Method (Deaths)",
+        "fr": "Méthode Grossière (Décès)"
+      },
+      {
+        "en": "Shared Parameters",
+        "fr": "Paramètres Partagés"
+      },
+      {
+        "en": "Age Output",
+        "fr": "Sortie d'Âge"
+      },
+      {
+        "en": "Fine Method (Exposures)",
+        "fr": "Méthode Fine (Expositions)"
+      },
+      {
+        "en": "Fine Method (Deaths)",
+        "fr": "Méthode Fine (Décès)"
+      },
+      {
+        "en": "Under-5 Mortality (optional, Exposures)",
+        "fr": "Mortalité des Moins de 5 Ans (optionnel, Expositions)"
+      },
+      {
+        "en": "Under-5 Mortality (optional, Deaths)",
+        "fr": "Mortalité des Moins de 5 Ans (optionnel, Décès)"
+      },
+      {
+        "en": "Constrain Infants (Exposures)",
+        "fr": "Contraindre les Nourrissons (Expositions)"
+      },
+      {
+        "en": "Constrain Infants (Deaths)",
+        "fr": "Contraindre les Nourrissons (Décès)"
+      },
+      {
+        "en": "If you want to test out the app's functionalty, click here to use a sample dataset. A pop up window will be prompted for the grouping variables that identify your data. Simply tick the no-grouping box and you'll be able to inspect the diagnostics and perform additional preprocessing.",
+        "fr": "Si vous souhaitez tester les fonctionnalités de l'application, cliquez ici pour utiliser un jeu de données d'exemple. Une fenêtre contextuelle s'affichera pour les variables de regroupement qui identifient vos données. Cochez simplement la case sans regroupement et vous pourrez inspecter les diagnostics et effectuer un prétraitement supplémentaire."
+      },
+      {
+        "en": "Alternatively, upload your own data. Make sure your data is cleaned and ready for analysis (no age duplicates, unless by groups), correct column names (we expect at least the basic to be 'Sex', 'Deaths' and 'Exposures'), either single or abridged ages but nothing else.",
+        "fr": "Alternativement, téléchargez vos propres données. Assurez-vous que vos données sont nettoyées et prêtes pour l'analyse (pas de doublons d'âge, sauf par groupes), noms de colonnes corrects (nous attendons au minimum les bases 'Sexe', 'Décès' et 'Expositions'), âges simples ou abrégés mais rien d'autre."
+      },
+      {
+        "en": "These are the tabs for the preprocessing. Every time you click execute from each of the preprocessing it will use the output of the previous preprocessing step.",
+        "fr": "Voici les onglets pour le prétraitement. Chaque fois que vous cliquez sur exécuter depuis chaque prétraitement, il utilisera la sortie de l'étape de prétraitement précédente."
+      },
+      {
+        "en": "In this icon you can see which data is used as input for each preprocessing, whether the initial data or the output of a previous preprocessing step.",
+        "fr": "Dans cette icône, vous pouvez voir quelles données sont utilisées comme entrée pour chaque prétraitement, qu'il s'agisse des données initiales ou de la sortie d'une étape de prétraitement précédente."
+      },
+      {
+        "en": "Once you've implemented all the preprocessing needed, you can click next to use the output of the final preprocessing step as the input to the lifetable. Equally important, if you've applied a preprocessing step, you'll see the sequential order at which they were executed as pills above this button. You can delete any step and the chain of excution will be recalculated.",
+        "fr": "Une fois que vous avez implémenté tous les prétraitements nécessaires, vous pouvez cliquer sur suivant pour utiliser la sortie de l'étape finale de prétraitement comme entrée pour la table de mortalité. Tout aussi important, si vous avez appliqué une étape de prétraitement, vous verrez l'ordre séquentiel dans lequel ils ont été exécutés sous forme de pilules au-dessus de ce bouton. Vous pouvez supprimer n'importe quelle étape et la chaîne d'exécution sera recalculée."
+      },
+      {
+        "en": "Here you can estimate the lifetable using the output of the final step of your preprocessing. After tweaking the parameters below, click here to see the plot and table outputs.",
+        "fr": "Ici, vous pouvez estimer la table de mortalité en utilisant la sortie de l'étape finale de votre prétraitement. Après avoir ajusté les paramètres ci-dessous, cliquez ici pour voir les sorties graphiques et tabulaires."
+      },
+      {
+        "en": "Preparing download:",
+        "fr": "Préparation du téléchargement:"
+      },
+      {
+        "en": "Saving lifetable results... Estimated time:",
+        "fr": "Enregistrement des résultats de la table de mortalité... Temps estimé:"
+      },
+      {
+        "en": "Saving preprocessing results... Estimated time:",
+        "fr": "Enregistrement des résultats du prétraitement... Temps estimé:"
+      },
+      {
+        "en": "Saving diagnostic results... Estimated time:",
+        "fr": "Enregistrement des résultats des diagnostics... Temps estimé:"
+      },
+      {
+        "en": "Preparing diagnostic data...",
+        "fr": "Préparation des données de diagnostic..."
+      },
+      {
+        "en": "Generating PDF report...",
+        "fr": "Génération du rapport PDF..."
+      },
+      {
+        "en": "Creating zip file...",
+        "fr": "Création du fichier zip..."
+      },
+      {
+        "en": "Export",
+        "fr": "Exporter"
+      },
+      {
+        "en": "Welcome to the United Nations",
+        "fr": "Bienvenue aux Nations Unies"
+      },
+      {
+        "en": "Data Portal",
+        "fr": "Portail de Données"
+      },
+      {
+        "en": "Population Division",
+        "fr": "Division de la Population"
+      },
+      {
+        "en": "This step will use the initial uploaded data",
+        "fr": "Cette étape utilisera les données initiales téléchargées"
+      },
+      {
+        "en": "This step uses the initial uploaded data",
+        "fr": "Cette étape utilise les données initiales téléchargées"
+      },
+      {
+        "en": "This step uses the output data from the",
+        "fr": "Cette étape utilise les données de sortie de"
+      },
+      {
+        "en": "step",
+        "fr": "étape"
+      },
+      {
+        "en": "Mortality Rate",
+        "fr": "Taux de Mortalité"
+      },
+      {
+        "en": "Survival Curve",
+        "fr": "Courbe de Survie"
+      },
+      {
+        "en": "Death Distribution",
+        "fr": "Distribution des Décès"
+      },
+      {
+        "en": "Conditional Death Probabilities",
+        "fr": "Probabilités Conditionnelles de Décès"
+      },
+      {
+        "en": "Lifetable Results",
+        "fr": "Résultats de la Table de Mortalité"
+      },
+      {
+        "en": "Customize",
+        "fr": "Personnaliser"
+      },
+      {
+        "en": "Run Projection",
+        "fr": "Exécuter la Projection"
+      },
+      {
+        "en": "Results",
+        "fr": "Résultats"
+      },
+      {
+        "en": "Population Projection Tool",
+        "fr": "Outil de Projection de Population"
+      },
+      {
+        "en": "Create detailed population projections using United Nations World Population Prospects data or your own custom inputs",
+        "fr": "Créer des projections de population détaillées en utilisant les données de la Projection de Population Mondiale des Nations Unies ou vos propres entrées personnalisées"
+      },
+      {
+        "en": "Population Data",
+        "fr": "Données de Population"
+      },
+      {
+        "en": "Upload or use UN WPP data for:",
+        "fr": "Télécharger ou utiliser les données UN WPP pour:"
+      },
+      {
+        "en": "Base population by age and sex",
+        "fr": "Population de base par âge et sexe"
+      },
+      {
+        "en": "Total fertility rates",
+        "fr": "Taux de fécondité totaux"
+      },
+      {
+        "en": "Life expectancy",
+        "fr": "Espérance de vie"
+      },
+      {
+        "en": "Migration patterns",
+        "fr": "Modèles de migration"
+      },
+      {
+        "en": "Interactive Visualization",
+        "fr": "Visualisation Interactive"
+      },
+      {
+        "en": "Explore your data through:",
+        "fr": "Explorez vos données à travers:"
+      },
+      {
+        "en": "Population pyramids",
+        "fr": "Pyramides des âges"
+      },
+      {
+        "en": "Time series charts",
+        "fr": "Graphiques de séries temporelles"
+      },
+      {
+        "en": "Customizable projections",
+        "fr": "Projections personnalisables"
+      },
+      {
+        "en": "Downloadable results",
+        "fr": "Résultats téléchargeables"
+      },
+      {
+      
+        "en": "Compare with UN median variant",
+        "fr": "Comparer avec la variante médiane de l'ONU"
+      },
+      {
+        "en": "Validate your assumptions",
+        "fr": "Valider vos hypothèses"
+      },
+      {
+        "en": "Export comparison results",
+        "fr": "Exporter les résultats de comparaison"
+      },
+      {
+        "en": "Which geographic aggregation do you want to work with?",
+        "fr": "Quelle agrégation géographique souhaitez-vous utiliser?"
+      },
+      {
+        "en": "Country",
+        "fr": "Pays"
+      },
+      {
+        "en": "Region",
+        "fr": "Région"
+      },  
+      {
+        "en": "Starting Year",
+        "fr": "Année de départ"
+      },
+      {
+        "en": "Ending Year",
+        "fr": "Année de fin"
+      },
+      {
+        "en": "Explore UN Estimates 🌐",
+        "fr": "Explorer les estimations de l'ONU 🌐"
+      },
+      {
+        "en": "🔢 The data shown here are estimates from the United Nations<br/>\n              🔄 Click 'Customize' to enter your own data<br/>\n              🧮 Upload: starting population by sex and single year of age with an open age interval of 100+",
+        "fr": "🔢 Les données présentées ici sont des estimations des Nations Unies<br/>\n              🔄 Cliquez sur 'Personnaliser' pour saisir vos propres données<br/>\n              🧮 Téléchargez : population initiale par sexe et année d'âge avec un intervalle d'âge ouvert de 100+"
+      },
+      {
+        "en": "Got it!",
+        "fr": "Compris !"
+      },
+      {
+        "en": "Click here to upload your own data for the starting year of the chosen country",
+        "fr": "Cliquez ici pour télécharger vos propres données pour l'année de départ du pays choisi"
+      },
+      {
+        "en": "This is the current population values for the starting year of the chosen country",
+        "fr": "Voici les valeurs de population actuelles pour l'année de départ du pays choisi"
+      },
+      {
+        "en": "When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.",
+        "fr": "Quand vous êtes prêt, cliquez ici pour passer aux étapes suivantes. Si vous souhaitez télécharger vos propres données pour d'autres indicateurs, l'interface sera similaire à celle-ci."
+      },
+      {
+        "en": "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example.",
+        "fr": "Voici les données de l'année de départ pour cet indicateur. Si vous téléchargez de nouvelles données, elles doivent avoir exactement ce format : même nombre de colonnes, même ordre de colonnes et, surtout, la même métrique. Certains de ces indicateurs sont exprimés en milliers, par exemple."
+      },
+      {
+        "en": "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values.",
+        "fr": "Si vous souhaitez télécharger vos propres données, une bonne stratégie consiste à télécharger les données actuelles et à les adapter à vos besoins. De cette façon, vous pouvez conserver le format attendu et n'ajouter que vos propres valeurs."
+      },
+      {
+        "en": "Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.",
+        "fr": "Enfin, lorsque vos données sont prêtes, cliquez sur le bouton 'Parcourir' pour télécharger votre fichier CSV. Nous attendons un fichier CSV formaté exactement comme le tableau ci-dessus. Une fois téléchargé, le tableau devrait se mettre à jour avec vos nouvelles valeurs."
+      },
+      {
+        "en": "Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes.",
+        "fr": "Utilisez ce menu déroulant pour explorer différents aspects de votre projection de population. Vous pouvez visualiser divers indicateurs démographiques comme les pyramides des âges, les structures par âge, les ratios de dépendance et d'autres métriques clés qui aident à comprendre les changements démographiques projetés."
+      },
+      {
+        "en": "Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results.",
+        "fr": "Vous trouverez ici les graphiques de projection et les moyens d'interagir avec eux. Dans la barre latérale gauche, vous pouvez filtrer vos projections et télécharger une variété de résultats, soit des résultats individuels, soit un ensemble combiné des résultats."
+      },
+      {
+        "en": "Error",
+        "fr": "Erreur"
+      },
+      {
+        "en": "Population file validation failed:",
+        "fr": "La validation du fichier de population a échoué :"
+      },
+      {
+        "en": "TFR file validation failed:",
+        "fr": "La validation du fichier TFR a échoué :"
+      },
+      {
+        "en": "Life expectancy file validation failed:",
+        "fr": "La validation du fichier d'espérance de vie a échoué :"
+      },
+      {
+        "en": "Migration file validation failed:",
+        "fr": "La validation du fichier de migration a échoué :"
+      },
+      {
+        "en": "Unknown data type",
+        "fr": "Type de données inconnu"
+      },
+      {
+        "en": "Expected %d columns but found %d",
+        "fr": "Attendu %d colonnes mais trouvé %d"
+      },
+      {
+        "en": "One or more columns have incorrect data types",
+        "fr": "Une ou plusieurs colonnes ont des types de données incorrects"
+      },
+      {
+        "en": "Validation successful",
+        "fr": "Validation réussie"
+      },
+      {
+        "en": "Error reading file:",
+        "fr": "Erreur de lecture du fichier :"
+      },
+      {
+        "en": "Age",
+        "fr": "Âge"
+      },
+      {
+        "en": "Female (in thousands)",
+        "fr": "Femmes (en milliers)"
+      },
+      {
+        "en": "Male (in thousands)",
+        "fr": "Hommes (en milliers)"
+      },
+      {
+        "en": "Year",
+        "fr": "Année"
+      },
+      {
+        "en": "TFR",
+        "fr": "TFR"
+      },
+      {
+        "en": "Males",
+        "fr": "Hommes"
+      },
+      {
+        "en": "Females",
+        "fr": "Femmes"
+      },
+      {
+        "en": "Migration",
+        "fr": "Migration"
+      },
+      {
+        "en": "Population data for",
+        "fr": "Données de population pour"
+      },
+      {
+        "en": "in base year",
+        "fr": "dans l'année de base"
+      },
+      {
+        "en": "Population units are in thousands. Any edits need to be added in thousands",
+        "fr": "Les unités de population sont en milliers. Toutes les modifications doivent être ajoutées en milliers"
+      },
+      {
+        "en": "Select year",
+        "fr": "Sélectionner l'année"
+      },
+      {
+        "en": "Download All Population Data",
+        "fr": "Télécharger toutes les données de population"
+      },
+      {
+        "en": "Population Pyramid By Age and Sex",
+        "fr": "Pyramide des âges par sexe"
+      },
+      {
+        "en": "Population by Broad Age Groups",
+        "fr": "Population par grands groupes d'âge"
+      },
+      {
+        "en": "Population Over Time",
+        "fr": "Évolution de la population"
+      },
+      {
+        "en": "Projected Total Fertility Rate",
+        "fr": "Indice synthétique de fécondité projeté"
+      },
+      {
+        "en": "Population Growth Rate by Age",
+        "fr": "Taux de croissance de la population par âge"
+      },
+      {
+        "en": "Deaths and Births",
+        "fr": "Décès et naissances"
+      },
+      {
+        "en": "YADR and OADR",
+        "fr": "RJAD et RVAD"
+      },
+      {
+        "en": "Population Size and Aging",
+        "fr": "Taille de la population et vieillissement"
+      },
+      {
+        "en": "CDR and Life Expectancy",
+        "fr": "TBM et espérance de vie"
+      },
+      {
+        "en": "CBR and TFR",
+        "fr": "TBN et ISF"
+      },
+      {
+        "en": "Life Expectancy Over Time",
+        "fr": "Évolution de l'espérance de vie"
+      },
+      {
+        "en": "Projected Net Migration",
+        "fr": "Migration nette projetée"
+      },
+      {
+        "en": "Download Plot",
+        "fr": "Télécharger le graphique"
+      },
+      {
+        "en": "Download Data",
+        "fr": "Télécharger les données"
+      },
+      {
+        "en": "Select sex",
+        "fr": "Sélectionner le sexe"
+      },
+      {
+        "en": "Male",
+        "fr": "Homme"
+      },  
+      {
+        "en": "Female",
+        "fr": "Femme"
+      },
+      {
+        "en": "Select age group",
+        "fr": "Sélectionner le groupe d'âge"
+      },
+      {
+        "en": "Scale Type",
+        "fr": "Type d'échelle"
+      },
+      {
+        "en": "Type of plot",
+        "fr": "Type de graphique"
+      },
+      {
+        "en": "Total Fertility Rate for",
+        "fr": "Indice synthétique de fécondité pour"
+      },
+      {
+        "en": "in analysis period.",
+        "fr": "dans la période d'analyse."
+      },
+      {
+        "en": "Life Expectancy for",
+        "fr": "Espérance de vie pour"
+      },
+      {
+        "en": "Migration data for",
+        "fr": "Données de migration pour"
+      },
+      {
+        "en": "Upload CSV file",
+        "fr": "Télécharger un fichier CSV"
+      },
+      {
+        "en": "Uploaded data must match exactly the format, column names and ordering shown in the table above",
+        "fr": "Les données téléchargées doivent correspondre exactement au format, aux noms de colonnes et à l'ordre indiqués dans le tableau ci-dessus"
+      },
+      {
+        "en": "Instructions",
+        "fr": "Instructions"
+      },
+      {
+        "en": "Select TFR, Life Expectancy and Migration Source",
+        "fr": "Sélectionner la source de l'TFR, de l'espérance de vie et de la migration"
+      },
+      {
+        "en": "Enter Custom Values",
+        "fr": "Saisir des valeurs personnalisées"
+      },
+      {
+        "en": "Use WPP 2024 Median Values",
+        "fr": "Utiliser les valeurs médianes WPP 2024"
+      },
+      {
+        "en": "Next",
+        "fr": "Suivant"
+      },
+      {
+        "en": "Ending year should be higher than starting year",
+        "fr": "L'année de fin doit être supérieure à l'année de début"
+      },
+      {
+        "en": "Analysis for",
+        "fr": "Analyse pour"
+      },
+      {
+        "en": "between",
+        "fr": "entre"
+      },
+      {
+        "en": "and",
+        "fr": "et"
+      },
+      {
+        "en": "Scenario Comparison",
+        "fr": "Comparaison de scénarios"
+      },
+      {
+        "en": "Compare your projections with UN WPP:",
+        "fr": "Comparez vos projections avec UN WPP:"
+      },
+      {
+        "en": "Side-by-side visualization",
+        "fr": "Visualisation côte à côte"
+      },
+      {
+        "en": "Start Your Analysis",
+        "fr": "Commencer votre analyse"
+      },
+      {
+        "en": "Select a country",
+        "fr": "Sélectionner un pays"
+      },
+      {
+        "en": "Select a region",
+        "fr": "Sélectionner une région"
+      },
+      {
+        "en": "Total",
+        "fr": "Total"
+      },
+      {
+        "en": "Population",
+        "fr": "Population"
+      },
+      {
+        "en": "Percentage",
+        "fr": "Pourcentage"
+      },
+      {
+        "en": "Age groups",
+        "fr": "Groupes d'âge"
+      },
+      {
+        "en": "Birth Counts",
+        "fr": "Naissances"
+      },
+      {
+        "en": "Birth Rates",
+        "fr": "Taux de naissances"
+      },
+      {
+        "en": "Death Counts",
+        "fr": "Morts"
+      },
+      {
+        "en": "Death Rates",
+        "fr": "Taux de mortalité"
+      },
+      {
+        "en": "Percent",
+        "fr": "Pourcentage"
+      },
+      {
+        "en": "Absolute",
+        "fr": "Absolu"
+      }
+    ]
+}

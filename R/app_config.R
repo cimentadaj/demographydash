@@ -12,6 +12,7 @@ TAB_NAMES <- c(
   "Life Expectancy Over Time",
   "Projected Net Migration"
 )
+
 # Font size of text from a plot
 DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
 

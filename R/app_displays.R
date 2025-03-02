@@ -906,7 +906,7 @@ create_tfr_plot <- function(dt, end_year, country) {
 #' @return A shiny.semantic DataTable object.
 #' @export
 #'
-prepare_pop_agegroups_table <- function(wpp_dt) {
+prepare_pop_agegroups_table <- function(wpp_dt, i18n) {
   wpp_dt$population <- wpp_dt$popF + wpp_dt$popM
 
   # Function to categorize ages
@@ -934,7 +934,7 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
   # Add a row for the total
   summary_table <- rbind(
     summary_table,
-    data.frame(age_group = "Total", population = sum(summary_table$population))
+    data.frame(age_group = i18n$t("Total"), population = sum(summary_table$population))
   )
 
   # Format population
@@ -950,9 +950,9 @@ prepare_pop_agegroups_table <- function(wpp_dt) {
   summary_table$percentage <- round(c(summary_table$population[1:(nrow(summary_table) - 1)] / total_population * 100, 100), 0)
 
   summary_table$population <- NULL
-  names(summary_table) <- c("Age groups", "Population", "Percentage")
+  summary_table$percentage <- paste0(summary_table$percentage, "%")
+  names(summary_table) <- c(i18n$t("Age groups"), i18n$t("Population"), i18n$t("Percentage"))
   row.names(summary_table) <- NULL
-  summary_table$Percentage <- paste0(summary_table$Percentage, "%")
 
   DT::datatable(
     summary_table,

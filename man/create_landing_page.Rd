@@ -4,7 +4,7 @@
 \alias{create_landing_page}
 \title{Create Landing Page UI}
 \usage{
-create_landing_page()
+create_landing_page(i18n)
 }
 \description{
 Creates a modern, informative landing page that introduces users to the app's functionality

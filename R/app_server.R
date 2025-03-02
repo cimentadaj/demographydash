@@ -48,11 +48,11 @@ check_column_types <- function(data, expected_types) {
 }
 
 # Main file parser function
-file_parser <- function(file, data_type) {
+file_parser <- function(file, data_type, i18n = NULL) {
   if (!data_type %in% names(validation_rules)) {
     return(list(
       success = FALSE,
-      message = "Unknown data type"
+      message = if (!is.null(i18n)) i18n$t("Unknown data type") else "Unknown data type"
     ))
   }
 
@@ -68,7 +68,7 @@ file_parser <- function(file, data_type) {
         return(list(
           success = FALSE,
           message = sprintf(
-            "Expected %d columns but found %d",
+            if (!is.null(i18n)) i18n$t("Expected %d columns but found %d") else "Expected %d columns but found %d",
             rules$expected_cols, ncol(data)
           )
         ))
@@ -78,21 +78,21 @@ file_parser <- function(file, data_type) {
       if (!check_column_types(data, rules$col_types)) {
         return(list(
           success = FALSE,
-          message = "One or more columns have incorrect data types"
+          message = if (!is.null(i18n)) i18n$t("One or more columns have incorrect data types") else "One or more columns have incorrect data types"
         ))
       }
 
       # If all checks pass
       return(list(
         success = TRUE,
-        message = "Validation successful",
+        message = if (!is.null(i18n)) i18n$t("Validation successful") else "Validation successful",
         data = data
       ))
     },
     error = function(e) {
       return(list(
         success = FALSE,
-        message = paste("Error reading file:", e$message)
+        message = paste(if (!is.null(i18n)) i18n$t("Error reading file:") else "Error reading file:", e$message)
       ))
     }
   )
@@ -109,11 +109,24 @@ file_parser <- function(file, data_type) {
 #' @importFrom shinyjs hide show
 #' @importFrom utils read.csv
 #' @importFrom untheme detect_font_size
+#' @importFrom shiny.i18n update_lang
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr get_wpp_e0 get_wpp_mig
 #' @importFrom rintrojs introjs
 #' @export
 #'
 app_server <- function(input, output, session) {
+  
+  i18n <- usei18n_local()
+
+  # Language change observer
+  observeEvent(c(input$selected_language), {
+    
+    # Update language if it changed
+    if (!is.null(input$selected_language)) {
+      update_lang(input$selected_language)
+    }
+    
+  })
   current_tab <- reactiveVal()
 
   observe({
@@ -141,9 +154,9 @@ app_server <- function(input, output, session) {
         steps = data.frame(
           element = c("#customize_pop", "#show_pop_results_ui", "#forward_tfr_page"),
           intro = c(
-            "Click here to upload your own data for the starting year of the chosen country",
-            "This is the current population values for the starting year of the chosen country",
-            "When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one."
+            i18n$t("Click here to upload your own data for the starting year of the chosen country"),
+            i18n$t("This is the current population values for the starting year of the chosen country"),
+            i18n$t("When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.")
           )
         )
       ))
@@ -169,9 +182,9 @@ app_server <- function(input, output, session) {
           paste0("#", file_input_id)
         ),
         intro = c(
-          "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example.",
-          "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values.",
-          "Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values."
+          i18n$t("This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."),
+          i18n$t("If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."),
+          i18n$t("Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.")
         )
       )
 
@@ -187,8 +200,8 @@ app_server <- function(input, output, session) {
         steps = data.frame(
           element = c("#select_id", "#show_forecast_results_ui"),
           intro = c(
-            "Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes.",
-            "Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results."
+            i18n$t("Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes."),
+            i18n$t("Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results.")
           )
         )
       ))
@@ -215,52 +228,52 @@ app_server <- function(input, output, session) {
 
   # Modified observers using the new parser
   observeEvent(input$upload_pop, {
-    result <- file_parser(input$upload_pop, "pop")
+    result <- file_parser(input$upload_pop, "pop", i18n)
     if (result$success) {
       file_input_pop(input$upload_pop)
     } else {
       shinyalert(
-        title = "Error",
-        text = paste("Population file validation failed:", result$message),
+        title = i18n$t("Error"),
+        text = paste(i18n$t("Population file validation failed:"), result$message),
         type = "error"
       )
     }
   })
 
   observeEvent(input$upload_tfr, {
-    result <- file_parser(input$upload_tfr, "tfr")
+    result <- file_parser(input$upload_tfr, "tfr", i18n)
     if (result$success) {
       file_input_tfr(input$upload_tfr)
     } else {
       shinyalert(
-        title = "Error",
-        text = paste("TFR file validation failed:", result$message),
+        title = i18n$t("Error"),
+        text = paste(i18n$t("TFR file validation failed:"), result$message),
         type = "error"
       )
     }
   })
 
   observeEvent(input$upload_e0, {
-    result <- file_parser(input$upload_e0, "e0")
+    result <- file_parser(input$upload_e0, "e0", i18n)
     if (result$success) {
       file_input_e0(input$upload_e0)
     } else {
       shinyalert(
-        title = "Error",
-        text = paste("Life expectancy file validation failed:", result$message),
+        title = i18n$t("Error"),
+        text = paste(i18n$t("Life expectancy file validation failed:"), result$message),
         type = "error"
       )
     }
   })
 
   observeEvent(input$upload_mig, {
-    result <- file_parser(input$upload_mig, "mig")
+    result <- file_parser(input$upload_mig, "mig", i18n)
     if (result$success) {
       file_input_mig(input$upload_mig)
     } else {
       shinyalert(
-        title = "Error",
-        text = paste("Migration file validation failed:", result$message),
+        title = i18n$t("Error"),
+        text = paste(i18n$t("Migration file validation failed:"), result$message),
         type = "error"
       )
     }
@@ -342,7 +355,7 @@ app_server <- function(input, output, session) {
   tfr_starting_year <- reactive(min(reactive_tfr()[[1]], na.rm = TRUE))
 
   # Handle any checks on inputs to make sure everything is correct
-  handle_validity_checks(wpp_starting_year, wpp_ending_year, output)
+  handle_validity_checks(wpp_starting_year, wpp_ending_year, output, i18n)
 
   # Handle pop/tfr plots/tables before analysis
   handle_before_analysis_plots(
@@ -353,7 +366,8 @@ app_server <- function(input, output, session) {
     wpp_starting_year,
     wpp_ending_year,
     input,
-    output
+    output,
+    i18n
   )
 
   # Handle navigation between steps
@@ -366,7 +380,8 @@ app_server <- function(input, output, session) {
     wpp_ending_year,
     current_tab,
     input,
-    output
+    output,
+    i18n
   )
 
   # Handle all customize actions
@@ -380,12 +395,13 @@ app_server <- function(input, output, session) {
     wpp_ending_year,
     current_tab,
     input,
-    output
+    output,
+    i18n
   )
 
 
   # Everything that doesn't fit into other handles is here look tooltip server side code.
-  handle_misc(wpp_starting_year, wpp_ending_year, input, output)
+  handle_misc(wpp_starting_year, wpp_ending_year, input, output, i18n)
 
   # Begin simulation on button click
   observeEvent(input$begin, {
@@ -405,12 +421,30 @@ app_server <- function(input, output, session) {
       wpp_ending_year = wpp_ending_year,
       input = input,
       output = output,
-      simulation_results = simulation_results
+      simulation_results = simulation_results,
+      i18n = i18n
     )
 
 
   })
 }
+
+#' Create a translator object for internationalization
+#' 
+#' @return A Translator object initialized with the package's translation file
+#' @importFrom shiny.i18n Translator
+#' @export
+usei18n_local <- function() {
+  translation_path <- system.file("extdata", "translation.json", package = "demographydash")
+  if (translation_path == "") {
+    stop("Could not find translation.json in package. Please ensure the package is installed correctly.")
+  }
+  i18n <- Translator$new(translation_json_path = translation_path)
+  i18n$set_translation_language("en")
+  i18n
+}
+
+
 
 
 ## library(rintrojs)

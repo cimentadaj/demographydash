@@ -5,9 +5,12 @@
 #' @importFrom shiny.semantic main_panel action_button selectInput icon
 #' @importFrom untheme fluidUnTheme
 #' @importFrom shinycssloaders withSpinner
+#' @importFrom shiny.i18n usei18n
 #' @importFrom rintrojs introjsUI
 #' @noRd
 app_ui <- function(request) {
+  i18n <- usei18n_local()
+
   fluidUnTheme(
     tags$head(
       tags$style(HTML("
@@ -154,11 +157,12 @@ app_ui <- function(request) {
       "))
     ),
     tags$script(JS_CODE_SCREEN_SIZE),
+    shiny.i18n::usei18n(i18n),
     useShinyjs(),
     introjsUI(),
     main_panel(
       # Add the landing page as the first page
-      div(id = "landing_page", create_landing_page()),
+      div(id = "landing_page", create_landing_page(i18n)),
 
       # Hide the input page initially
       shinyjs::hidden(
@@ -167,22 +171,23 @@ app_ui <- function(request) {
           class = "ui raised very padded text container segment responsive-container",
           div(
             class = "ui form",
-            show_input_ui(),
+            show_input_ui(i18n),
             uiOutput("next_pop_page")
           )
         )
       ),
+
       hidden(
         div(
           id = "pop_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_input_page", "Back", class = "ui grey button"),
-            action_button("forward_tfr_page", "Forward", class = "ui blue button"),
-            action_button("pop_help", "Instructions", class = "ui blue button"),
+            action_button("back_to_input_page", i18n$t("← Previous"), class = "ui grey button"),
+            action_button("forward_tfr_page", i18n$t("Next →"), class = "ui blue button"),
+            action_button("pop_help", i18n$t("Instructions"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_pop", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_pop", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_pop"),
@@ -196,11 +201,11 @@ app_ui <- function(request) {
           id = "tfr_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_pop_page", "Back", class = "ui grey button"),
-            action_button("forward_e0_page", "Forward", class = "ui blue button"),
+            action_button("back_to_pop_page", i18n$t("← Previous"), class = "ui grey button"),
+            action_button("forward_e0_page", i18n$t("Next →"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_tfr", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_tfr", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_tfr"),
@@ -213,11 +218,11 @@ app_ui <- function(request) {
           id = "e0_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_tfr_page", "Back", class = "ui grey button"),
-            action_button("forward_mig_page", "Forward", class = "ui blue button"),
+            action_button("back_to_tfr_page", "← Previous", class = "ui grey button"),
+            action_button("forward_mig_page", "Next →", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_e0", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_e0", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_e0"),
@@ -230,11 +235,11 @@ app_ui <- function(request) {
           id = "mig_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_e0_page", "Back", class = "ui grey button"),
-            action_button("begin", "Run Projection", class = "ui blue button"),
+            action_button("back_to_e0_page", i18n$t("← Previous"), class = "ui grey button"),
+            action_button("begin", i18n$t("Run Projection"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_mig", "Customize", icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_mig", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_mig"),
@@ -249,7 +254,7 @@ app_ui <- function(request) {
             style = "display: flex; gap: 20px;", # 20px gap between buttons
             div(
               style = "display: flex; gap: 5px;",
-              action_button("back_to_mig_page", "Back", class = "ui grey button"),
+              action_button("back_to_mig_page", i18n$t("← Previous"), class = "ui grey button"),
               uiOutput("forecast_help_ui")
             ),
             div(
@@ -258,7 +263,7 @@ app_ui <- function(request) {
             )
           ),
           br(),
-          selectInput("select_id", "Results", choices = TAB_NAMES, selected = TAB_NAMES[1]),
+          selectInput("select_id", i18n$t("Results"), choices = TAB_NAMES, selected = TAB_NAMES[1]),
           br(),
           withSpinner(uiOutput("show_forecast_results_ui"))
         )

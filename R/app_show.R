@@ -5,11 +5,11 @@
 #' @importFrom shiny.semantic toggle
 #' @export
 #'
-show_input_ui <- function() {
+show_input_ui <- function(i18n) {
   div(
     multiple_radio(
       input_id = "toggle_region",
-      label = "Which geographic aggregation do you want to work with?",
+      label = i18n$t("Which geographic aggregation do you want to work with?"),
       choices = c(
         "Country",
         "Region"
@@ -23,8 +23,8 @@ show_input_ui <- function() {
     br(),
     div(
       class = "two fields",
-      create_field_set("calendar", "Starting Year", "wpp_starting_year", 1965:2099, 2024),
-      create_field_set("calendar", "Ending Year", "wpp_ending_year", 2024:2100, 2100)
+      create_field_set("calendar", i18n$t("Starting Year"), "wpp_starting_year", 1965:2099, 2024),
+      create_field_set("calendar", i18n$t("Ending Year"), "wpp_ending_year", 2024:2100, 2100)
     )
   )
 }
@@ -35,11 +35,13 @@ show_input_ui <- function() {
 #' @return A UI element for selecting a country or region
 #' @export
 #'
-location_selector_ui <- function(input) {
+location_selector_ui <- function(input, i18n) {
+  print("location_selector_ui")
+  print(input$toggle_region)
   if (input$toggle_region == "Region") {
     create_field_set(
       "globe",
-      "Select a region",
+      i18n$t("Select a region"),
       "wpp_country",
       OPPPserver::get_wpp_regions(),
       NULL
@@ -47,7 +49,7 @@ location_selector_ui <- function(input) {
   } else {
     create_field_set(
       "globe",
-      "Select a country",
+      i18n$t("Select a country"),
       "wpp_country",
       OPPPserver::get_wpp_countries(),
       NULL
@@ -64,7 +66,7 @@ location_selector_ui <- function(input) {
 #' @importFrom untheme plotWithDownloadButtonsUI
 #' @export
 #'
-show_forecast_results_ui <- function(input) {
+show_forecast_results_ui <- function(input, i18n) {
   req(input$select_id) # Ensure input$select_id is not NULL
 
   # Empty list to store the UI elements
@@ -75,14 +77,14 @@ show_forecast_results_ui <- function(input) {
     ui_elements[[tab]] <- switch(
       tab,
       # Pages with some widget on the sidebar
-      "Population Pyramid By Age and Sex" = plotWithDownloadButtonsUI(tab, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", "Download All Population Data"))),
-      "Population by Broad Age Groups" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", "Scale Type", choices = c("Percent", "Absolute"), type = "inline")),
-      "Population Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui")),
-      "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", "Type of plot", choices = c("Birth counts", "Birth rates", "Death counts", "Death rates"), type = "inline")),
-      "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", "Type of plot", choices = c("YADR", "OADR"), type = "inline")),
-      "Life Expectancy Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("sex_e0_time_ui")),
+      "Population Pyramid By Age and Sex" = plotWithDownloadButtonsUI(tab, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", label = i18n$translate("Download All Population Data"))), i18n = i18n),
+      "Population by Broad Age Groups" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", i18n$translate("Scale Type"), choices = c(i18n$translate("Percent"), i18n$translate("Absolute")), type = "inline"), i18n = i18n),
+      "Population Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui"), i18n = i18n),
+      "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", i18n$translate("Type of plot"), choices = c(i18n$translate("Birth Counts"), i18n$translate("Birth Rates"), i18n$translate("Death Counts"), i18n$translate("Death Rates")), type = "inline"), i18n = i18n),
+      "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", i18n$translate("Type of plot"), choices = c("YADR", "OADR"), type = "inline"), i18n = i18n),
+      "Life Expectancy Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("sex_e0_time_ui"), i18n = i18n),
       # Pages with no widget on the sidebar
-      plotWithDownloadButtonsUI(tab) # Default case
+      plotWithDownloadButtonsUI(tab, i18n = i18n) # Default case
     )
   }
 
