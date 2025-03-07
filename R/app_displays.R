@@ -24,7 +24,7 @@ color_labels <- function() {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
+create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n = NULL) {
   if ("year" %in% names(dt)) {
     dt <- dt[year == input_year]
     id_vars <- c("year", "age")
@@ -56,15 +56,26 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
   pop_index <- which(grepl("Population", names(pop_dt)))
   names(pop_dt)[pop_index] <- paste0(names(pop_dt)[pop_index], " (000s)")
 
-  plt_title <- paste0("Population by age and sex: ", country, ", ", input_year)
+  translate_title <- i18n$translate("Population by age and sex: ")
+  plt_title <- paste0(translate_title, country, ", ", input_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   tmp_dt <- as.data.frame(pop_dt)
   males <- tmp_dt[["Sex"]] == "Males"
   tmp_dt[males, "Population (000s)"] <- -as.numeric(tmp_dt[males, "Population (000s)"])
 
+  tmp_dt <- tmp_dt[c("Age", "Population (000s)", "Sex")]
+
+  tmp_dt$Sex <- i18n$translate(as.character(tmp_dt$Sex))
+  names(tmp_dt) <- i18n$translate(names(tmp_dt))
+
+  cols_nm <- names(tmp_dt)
+
   plt <-
-    ggplot(tmp_dt, aes(x = Age, y = `Population (000s)`, fill = Sex)) +
+    ggplot(
+      tmp_dt,
+      aes(x = .data[[cols_nm[1]]], y = .data[[cols_nm[2]]], fill = .data[[cols_nm[3]]])
+    ) +
     geom_bar(alpha = 0.7, stat = "identity") +
     scale_x_discrete(breaks = seq(0, 100, by = 5)) +
     scale_y_continuous(labels = function(x) paste0(abs(x))) +
@@ -119,7 +130,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_e0_plot <- function(dt, end_year, country) {
+create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
   LifeExpectancy <- Year <- e0M <- e0F <- value <- Sex <- NULL  # To avoid R CMD check notes
 
   # Ensure the data is in the correct format
@@ -132,32 +143,43 @@ create_e0_plot <- function(dt, end_year, country) {
   # Pivot the data to long format
   dt_long <- melt(dt, id.vars = "Year",
                   measure.vars = c("e0M", "e0F"),
-                  variable.name = "Sex", value.name = "LifeExpectancy")
+                  variable.name = "Sex", value.name = "Life Expectancy")
 
   # Update Sex labels
   dt_long[, Sex := ifelse(Sex == "e0M", "Male", "Female")]
 
   # Round the life expectancy values
-  dt_long[, LifeExpectancy := round(LifeExpectancy, 3)]
+  dt_long[, `Life Expectancy` := round(`Life Expectancy`, 3)]
 
   # Get min and max years for the title
   max_year <- max(dt$Year)
   min_year <- min(dt$Year)
 
   # Create plot title
-  plt_title <- paste0("Life Expectancy: ", country, ", ", min_year, "-", max_year)
+
+  translated_title <- i18n$translate("Life Expectancy: ")
+  plt_title <- paste0(translated_title, country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+
+  dt_long$Sex <- i18n$translate(as.character(dt_long$Sex))
+  names(dt_long) <- i18n$translate(names(dt_long))
+  col_nm <- names(dt_long)
+
+  cl_translate <- setNames(c("#F8766D", "#00BFC4"), c(i18n$translate("Male"), i18n$translate("Female")))
+
   # Create ggplot
-  plt <- ggplot(dt_long, aes(x = Year, y = LifeExpectancy, color = Sex)) +
+  plt <- ggplot(
+    dt_long,
+    aes(x = .data[[col_nm[1]]], y = .data[[col_nm[3]]], color = .data[[col_nm[2]]])
+  ) +
     geom_line(size = 2, alpha = 0.7) +
     labs(
       title = plt_title,
-      y = "Life Expectancy (years)",
-      color = "Sex"
+      y = i18n$translate("Life Expectancy (years)"),
+      color = i18n$translate("Sex")
     ) +
-
-    scale_color_manual(values = c("Male" = "#F8766D", "Female" = "#00BFC4")) +
+    scale_color_manual(values = cl_translate) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),

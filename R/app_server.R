@@ -115,17 +115,17 @@ file_parser <- function(file, data_type, i18n = NULL) {
 #' @export
 #'
 app_server <- function(input, output, session) {
-  
+
   i18n <- usei18n_local()
 
   # Language change observer
   observeEvent(c(input$selected_language), {
-    
+
     # Update language if it changed
     if (!is.null(input$selected_language)) {
       update_lang(input$selected_language)
     }
-    
+
   })
   current_tab <- reactiveVal()
 
@@ -430,7 +430,7 @@ app_server <- function(input, output, session) {
 }
 
 #' Create a translator object for internationalization
-#' 
+#'
 #' @return A Translator object initialized with the package's translation file
 #' @importFrom shiny.i18n Translator
 #' @export

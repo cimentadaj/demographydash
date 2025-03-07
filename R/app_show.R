@@ -209,10 +209,10 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
 #' @importFrom shiny.semantic hide_modal
 #' @export
 #'
-show_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
+show_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
   hide("tfr_page")
   show("e0_page")
-  compute_e0(reactive_e0, wpp_ending_year, input, output)
+  compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
 }
 
 show_mig <- function(reactive_mig, wpp_ending_year, input, output) {
@@ -230,10 +230,16 @@ show_mig <- function(reactive_mig, wpp_ending_year, input, output) {
 #' @importFrom shiny renderUI
 #' @export
 #'
-compute_e0 <- function(reactive_e0, wpp_ending_year, input, output) {
+compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
-  create_e0_plot(reactive_e0(), end_year = wpp_ending_year(), country = input$wpp_country)
+  create_e0_plot(
+    reactive_e0(),
+    end_year = wpp_ending_year(),
+    country = input$wpp_country,
+    i18n
+  )
+
   output$show_e0_results_ui <- renderUI(show_e0_results_ui())
 }
 

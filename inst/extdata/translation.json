@@ -761,6 +761,26 @@
       {
         "en": "Males",
         "fr": "Hommes"
+    },
+    {
+        "en": "Sex",
+        "fr": "FR: Sex"
+    },
+    {
+        "en": "Life Expectancy",
+        "fr": "FR: Life Expectancy"
+    },
+    {
+        "en": "Life Expectancy: ",
+        "fr": "FR: Life Expectancy: "
+    },
+    {
+        "en": "Life Expectancy (years)",
+        "fr": "FR: Life Expectancy (years)"
+    },
+    {
+        "en": "Population (000s)",
+        "fr": "FR: Population (000s)"
       },
       {
         "en": "Females",
@@ -993,6 +1013,10 @@
       {
         "en": "Absolute",
         "fr": "Absolu"
+    },
+    {
+        "en": "Population by age and sex: ",
+        "fr": "FR: Population by age and sex: "
       }
     ]
 }
