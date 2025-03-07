@@ -401,64 +401,90 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     )
   })
 
-
   ##### Generate all plots and show in the tabset UI #####
   observe({
+    req(input$select_id)
     print(input$select_id)
-    selected_plot <- switch(
-      input$select_id,
-      "Population Pyramid By Age and Sex" = list(
+
+    pop_pyramid <- i18n$translate(TAB_NAMES[grepl("Population Pyramid By Age and Sex", TAB_NAMES)])
+    pop_age_groups <- i18n$translate(TAB_NAMES[grepl("Population by Broad Age Groups", TAB_NAMES)])
+    pop_time <- i18n$translate(TAB_NAMES[grepl("Population Over Time", TAB_NAMES)])
+    projected_tfr <- i18n$translate(TAB_NAMES[grepl("Projected Total Fertility Rate", TAB_NAMES)])
+    pop_growth_rate <- i18n$translate(TAB_NAMES[grepl("Population Growth Rate by Age", TAB_NAMES)])
+    deaths_births <- i18n$translate(TAB_NAMES[grepl("Deaths and Births", TAB_NAMES)])
+    yadr_oadr <- i18n$translate(TAB_NAMES[grepl("YADR and OADR", TAB_NAMES)])
+    pop_size_aging <- i18n$translate(TAB_NAMES[grepl("Population Size and Aging", TAB_NAMES)])
+    cdr_e0 <- i18n$translate(TAB_NAMES[grepl("CDR and Life Expectancy", TAB_NAMES)])
+    cbr_tfr <- i18n$translate(TAB_NAMES[grepl("CBR and TFR", TAB_NAMES)])
+    e0_time <- i18n$translate(TAB_NAMES[grepl("Life Expectancy Over Time", TAB_NAMES)])
+    projected_mig <- i18n$translate(TAB_NAMES[grepl("Projected Net Migration", TAB_NAMES)])
+
+    # TODO: need to make this more DRY
+    if (input$select_id == pop_pyramid) {
+      selected_plot <- list(
         plt_reactive = pyramid_plot,
         filename = filename_pop_pyramid()
-      ),
-      "Population by Broad Age Groups" = list(
+      )
+    } else if (input$select_id == pop_age_groups) {
+      selected_plot <- list(
         plt_reactive = age_group_plot,
         filename = filename_pop_by_age()
-      ),
-      "Population Over Time" = list(
-        plt_reactive = pop_time_plot,
-        filename = filename_pop_over_time_agegroup()
-      ),
-      "Projected Total Fertility Rate" = list(
+      )
+    } else if (input$select_id == projected_tfr) {
+      selected_plot <- list(
         plt_reactive = tfr_projected_plot,
         filename = paste0("tfr_projection_", cnt())
-      ),
-      "Population Growth Rate by Age" = list(
+      )
+    } else if (input$select_id == pop_time) {
+      selected_plot <- list(
+        plt_reactive = pop_time_plot,
+        filename = filename_pop_over_time_agegroup()
+      )
+    } else if (input$select_id == pop_growth_rate) {
+      selected_plot <- list(
         plt_reactive = annual_growth_plot,
         filename = paste0("pop_growth_rate_", cnt())
-      ),
-      "Deaths and Births" = list(
+      )
+    } else if (input$select_id == deaths_births) {
+      selected_plot <- list(
         plt_reactive = deaths_births_plot,
         filename = filename_deaths_births()
-      ),
-      "YADR and OADR" = list(
+      )
+    } else if (input$select_id == yadr_oadr) {
+      selected_plot <- list(
         plt_reactive = yadr_oadr_plot,
         filename = filename_yadr_oadr()
-      ),
-      "Population Size and Aging" = list(
+      )
+    } else if (input$select_id == pop_size_aging) {
+      selected_plot <- list(
         plt_reactive = pop_size_aging_plot,
         filename = paste0("total_pop_and_aging_pop_", cnt())
-      ),
-      "CDR and Life Expectancy" = list(
+      )
+    } else if (input$select_id == cdr_e0) {
+      selected_plot <- list(
         plt_reactive = e0_by_cdr_plot,
         filename = paste0("death_rate_life_exp_", cnt())
-      ),
-      "CBR and TFR" = list(
+      )
+    } else if (input$select_id == cbr_tfr) {
+      selected_plot <- list(
         plt_reactive = tfr_by_cdr_plot,
         filename = paste0("tfr_cdr_", cnt())
-      ),
-      "Life Expectancy Over Time" = list(
+      )
+    } else if (input$select_id == e0_time) {
+      selected_plot <- list(
         plt_reactive = e0_by_time_plot,
         filename = filename_e0_over_time_sex()
-      ),
-      "Projected Net Migration" = list(
+      )
+    } else if (input$select_id == projected_mig) {
+      selected_plot <- list(
         plt_reactive = mig_by_time_plot,
         filename = paste0("mig_projection_", cnt())
-      ),
-      NULL # Default case
-    )
+      )
+    }
 
-    plots_tabset(input, output, input$select_id, selected_plot)
+    selected_id <- TAB_NAMES[grepl(input$select_id, i18n$translate(TAB_NAMES))]
+
+    plots_tabset(input, output, selected_id, selected_plot)
   })
   ##### Finish plotting in tabs #####
 }

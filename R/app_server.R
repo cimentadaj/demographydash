@@ -143,6 +143,15 @@ app_server <- function(input, output, session) {
     app_sys("app/www")
   )
 
+  output$select_plot_tab <- renderUI({
+    selectInput(
+      "select_id",
+      i18n$translate("Results"),
+      choices = i18n$translate(TAB_NAMES),
+      selected = i18n$translate(TAB_NAMES[1])
+    )
+  })
+
   # Some functions need the years in number. Coerce them from
   # the beginning and  use from these reactive expressions
   wpp_starting_year <- reactive(as.numeric(input$wpp_starting_year))
@@ -154,9 +163,9 @@ app_server <- function(input, output, session) {
         steps = data.frame(
           element = c("#customize_pop", "#show_pop_results_ui", "#forward_tfr_page"),
           intro = c(
-            i18n$t("Click here to upload your own data for the starting year of the chosen country"),
-            i18n$t("This is the current population values for the starting year of the chosen country"),
-            i18n$t("When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.")
+            i18n$translate("Click here to upload your own data for the starting year of the chosen country"),
+            i18n$translate("This is the current population values for the starting year of the chosen country"),
+            i18n$translate("When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.")
           )
         )
       ))
@@ -182,9 +191,9 @@ app_server <- function(input, output, session) {
           paste0("#", file_input_id)
         ),
         intro = c(
-          i18n$t("This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."),
-          i18n$t("If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."),
-          i18n$t("Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.")
+          i18n$translate("This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."),
+          i18n$translate("If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."),
+          i18n$translate("Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.")
         )
       )
 
@@ -200,8 +209,8 @@ app_server <- function(input, output, session) {
         steps = data.frame(
           element = c("#select_id", "#show_forecast_results_ui"),
           intro = c(
-            i18n$t("Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes."),
-            i18n$t("Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results.")
+            i18n$translate("Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes."),
+            i18n$translate("Here you'll find the projection plots and ways to interact with it. On the left sidebar you can filter your projections and download a variety of results, either individual results of a combined package of the results.")
           )
         )
       ))
@@ -234,7 +243,7 @@ app_server <- function(input, output, session) {
     } else {
       shinyalert(
         title = i18n$t("Error"),
-        text = paste(i18n$t("Population file validation failed:"), result$message),
+        text = paste(i18n$translate("Population file validation failed:"), result$message),
         type = "error"
       )
     }
@@ -247,7 +256,7 @@ app_server <- function(input, output, session) {
     } else {
       shinyalert(
         title = i18n$t("Error"),
-        text = paste(i18n$t("TFR file validation failed:"), result$message),
+        text = paste(i18n$translate("TFR file validation failed:"), result$message),
         type = "error"
       )
     }
@@ -260,7 +269,7 @@ app_server <- function(input, output, session) {
     } else {
       shinyalert(
         title = i18n$t("Error"),
-        text = paste(i18n$t("Life expectancy file validation failed:"), result$message),
+        text = paste(i18n$translate("Life expectancy file validation failed:"), result$message),
         type = "error"
       )
     }
@@ -272,8 +281,8 @@ app_server <- function(input, output, session) {
       file_input_mig(input$upload_mig)
     } else {
       shinyalert(
-        title = i18n$t("Error"),
-        text = paste(i18n$t("Migration file validation failed:"), result$message),
+        title = i18n$translate("Error"),
+        text = paste(i18n$translate("Migration file validation failed:"), result$message),
         type = "error"
       )
     }

@@ -9,7 +9,7 @@ show_input_ui <- function(i18n) {
   div(
     multiple_radio(
       input_id = "toggle_region",
-      label = i18n$t("Which geographic aggregation do you want to work with?"),
+      label = i18n$translate("Which geographic aggregation do you want to work with?"),
       choices = c(
         "Country",
         "Region"
@@ -23,8 +23,8 @@ show_input_ui <- function(i18n) {
     br(),
     div(
       class = "two fields",
-      create_field_set("calendar", i18n$t("Starting Year"), "wpp_starting_year", 1965:2099, 2024),
-      create_field_set("calendar", i18n$t("Ending Year"), "wpp_ending_year", 2024:2100, 2100)
+      create_field_set("calendar", i18n$translate("Starting Year"), "wpp_starting_year", 1965:2099, 2024),
+      create_field_set("calendar", i18n$translate("Ending Year"), "wpp_ending_year", 2024:2100, 2100)
     )
   )
 }
@@ -36,12 +36,10 @@ show_input_ui <- function(i18n) {
 #' @export
 #'
 location_selector_ui <- function(input, i18n) {
-  print("location_selector_ui")
-  print(input$toggle_region)
   if (input$toggle_region == "Region") {
     create_field_set(
       "globe",
-      i18n$t("Select a region"),
+      i18n$translate("Select a region"),
       "wpp_country",
       OPPPserver::get_wpp_regions(),
       NULL
@@ -49,7 +47,7 @@ location_selector_ui <- function(input, i18n) {
   } else {
     create_field_set(
       "globe",
-      i18n$t("Select a country"),
+      i18n$translate("Select a country"),
       "wpp_country",
       OPPPserver::get_wpp_countries(),
       NULL
@@ -72,20 +70,34 @@ show_forecast_results_ui <- function(input, i18n) {
   # Empty list to store the UI elements
   ui_elements <- list()
 
+  pop_pyramid <- i18n$translate(TAB_NAMES[grepl("Population Pyramid By Age and Sex", TAB_NAMES)])
+  pop_age_groups <- i18n$translate(TAB_NAMES[grepl("Population by Broad Age Groups", TAB_NAMES)])
+  pop_time <- i18n$translate(TAB_NAMES[grepl("Population Over Time", TAB_NAMES)])
+  deaths_births <- i18n$translate(TAB_NAMES[grepl("Deaths and Births", TAB_NAMES)])
+  yadr_oadr <- i18n$translate(TAB_NAMES[grepl("YADR and OADR", TAB_NAMES)])
+  e0_time <- i18n$translate(TAB_NAMES[grepl("Life Expectancy Over Time", TAB_NAMES)])
+  tabs_trans <- i18n$translate(TAB_NAMES)
+
+  # TODO: make this more DRY
   # Loop through each tab name and use switch to determine the UI element
-  for (tab in TAB_NAMES) {
-    ui_elements[[tab]] <- switch(
-      tab,
+  for (tab in tabs_trans) {
+    english_name <- TAB_NAMES[grepl(tab, i18n$translate(TAB_NAMES))]
       # Pages with some widget on the sidebar
-      "Population Pyramid By Age and Sex" = plotWithDownloadButtonsUI(tab, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", label = i18n$translate("Download All Population Data"))), i18n = i18n),
-      "Population by Broad Age Groups" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_population_by_broad_age_group", i18n$translate("Scale Type"), choices = c(i18n$translate("Percent"), i18n$translate("Absolute")), type = "inline"), i18n = i18n),
-      "Population Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("age_pop_time_ui"), i18n = i18n),
-      "Deaths and Births" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_death_births", i18n$translate("Type of plot"), choices = c(i18n$translate("Birth Counts"), i18n$translate("Birth Rates"), i18n$translate("Death Counts"), i18n$translate("Death Rates")), type = "inline"), i18n = i18n),
-      "YADR and OADR" = plotWithDownloadButtonsUI(tab, multiple_radio("radio_yadr_oadr", i18n$translate("Type of plot"), choices = c("YADR", "OADR"), type = "inline"), i18n = i18n),
-      "Life Expectancy Over Time" = plotWithDownloadButtonsUI(tab, uiOutput("sex_e0_time_ui"), i18n = i18n),
-      # Pages with no widget on the sidebar
-      plotWithDownloadButtonsUI(tab, i18n = i18n) # Default case
-    )
+    if (tab == pop_pyramid) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", label = i18n$translate("Download All Population Data"))), i18n = i18n)
+    } else if (tab == pop_age_groups) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_population_by_broad_age_group", i18n$translate("Scale Type"), choices = c(i18n$translate("Percent"), i18n$translate("Absolute")), type = "inline"), i18n = i18n)
+    } else if (tab == pop_time) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("age_pop_time_ui"), i18n = i18n)
+    } else if (tab == deaths_births) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_death_births", i18n$translate("Type of plot"), choices = c(i18n$translate("Birth Counts"), i18n$translate("Birth Rates"), i18n$translate("Death Counts"), i18n$translate("Death Rates")), type = "inline"), i18n = i18n)
+    } else if (tab == yadr_oadr) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_yadr_oadr", i18n$translate("Type of plot"), choices = c("YADR", "OADR"), type = "inline"), i18n = i18n)
+    } else if (tab == e0_time) {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("sex_e0_time_ui"), i18n = i18n)
+    } else {
+      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, i18n = i18n) # Default case
+    }
   }
 
   # Select the appropriate UI element based on input

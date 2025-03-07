@@ -30,8 +30,8 @@ create_landing_page <- function(i18n) {
       # Hero Section
       hero = div(
         class = "hero-section",
-        h1(i18n$t("Population Projection Tool"), class = "hero-title"),
-        p(i18n$t("Create detailed population projections using United Nations World Population Prospects data or your own custom inputs"),
+        h1(i18n$translate("Population Projection Tool"), class = "hero-title"),
+        p(i18n$translate("Create detailed population projections using United Nations World Population Prospects data or your own custom inputs"),
           class = "hero-subtitle"
         )
       ),
@@ -42,14 +42,14 @@ create_landing_page <- function(i18n) {
         div(
           class = "feature-content",
           div(class = "feature-icon", icon("users")),
-          h2(class = "feature-title", i18n$t("Population Data")),
-          p(i18n$t("Upload or use UN WPP data for:")),
+          h2(class = "feature-title", i18n$translate("Population Data")),
+          p(i18n$translate("Upload or use UN WPP data for:")),
           HTML(paste0("
             <ul>
-              <li>", i18n$t("Base population by age and sex"), "</li>
-              <li>", i18n$t("Total fertility rates"), "</li>
-              <li>", i18n$t("Life expectancy"), "</li>
-              <li>", i18n$t("Migration patterns"), "</li>
+              <li>", i18n$translate("Base population by age and sex"), "</li>
+              <li>", i18n$translate("Total fertility rates"), "</li>
+              <li>", i18n$translate("Life expectancy"), "</li>
+              <li>", i18n$translate("Migration patterns"), "</li>
             </ul>
           "))
         )
@@ -61,14 +61,14 @@ create_landing_page <- function(i18n) {
         div(
           class = "feature-content",
           div(class = "feature-icon", icon("chart bar")),
-          h2(class = "feature-title", i18n$t("Interactive Visualization")),
-          p(i18n$t("Explore your data through:")),
+          h2(class = "feature-title", i18n$translate("Interactive Visualization")),
+          p(i18n$translate("Explore your data through:")),
           HTML(paste0("
             <ul>
-              <li>", i18n$t("Population pyramids"), "</li>
-              <li>", i18n$t("Time series charts"), "</li>
-              <li>", i18n$t("Customizable projections"), "</li>
-              <li>", i18n$t("Downloadable results"), "</li>
+              <li>", i18n$translate("Population pyramids"), "</li>
+              <li>", i18n$translate("Time series charts"), "</li>
+              <li>", i18n$translate("Customizable projections"), "</li>
+              <li>", i18n$translate("Downloadable results"), "</li>
             </ul>
           "))
         )
@@ -80,14 +80,14 @@ create_landing_page <- function(i18n) {
         div(
           class = "feature-content",
           div(class = "feature-icon", icon("exchange")),
-          h2(class = "feature-title", i18n$t("Scenario Comparison")),
-          p(i18n$t("Compare your projections with UN WPP:")),
+          h2(class = "feature-title", i18n$translate("Scenario Comparison")),
+          p(i18n$translate("Compare your projections with UN WPP:")),
           HTML(paste0("
       <ul>
-        <li>", i18n$t("Side-by-side visualization"), "</li>
-        <li>", i18n$t("Compare with UN median variant"), "</li>
-        <li>", i18n$t("Validate your assumptions"), "</li>
-        <li>", i18n$t("Export comparison results"), "</li>
+        <li>", i18n$translate("Side-by-side visualization"), "</li>
+        <li>", i18n$translate("Compare with UN median variant"), "</li>
+        <li>", i18n$translate("Validate your assumptions"), "</li>
+        <li>", i18n$translate("Export comparison results"), "</li>
       </ul>
     "))
         )
@@ -96,7 +96,7 @@ create_landing_page <- function(i18n) {
       # CTA Section
       cta = div(
         class = "cta-section",
-        action_button("start_analysis", i18n$t("Start Your Analysis"),
+        action_button("start_analysis", i18n$translate("Start Your Analysis"),
           class = "ui huge primary button"
         )
       )

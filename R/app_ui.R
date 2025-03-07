@@ -182,12 +182,12 @@ app_ui <- function(request) {
           id = "pop_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_input_page", i18n$t("← Previous"), class = "ui grey button"),
-            action_button("forward_tfr_page", i18n$t("Next →"), class = "ui blue button"),
-            action_button("pop_help", i18n$t("Instructions"), class = "ui blue button"),
+            action_button("back_to_input_page", i18n$translate("← Previous"), class = "ui grey button"),
+            action_button("forward_tfr_page", i18n$translate("Next →"), class = "ui blue button"),
+            action_button("pop_help", i18n$translate("Instructions"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_pop", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_pop", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_pop"),
@@ -201,11 +201,11 @@ app_ui <- function(request) {
           id = "tfr_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_pop_page", i18n$t("← Previous"), class = "ui grey button"),
-            action_button("forward_e0_page", i18n$t("Next →"), class = "ui blue button"),
+            action_button("back_to_pop_page", i18n$translate("← Previous"), class = "ui grey button"),
+            action_button("forward_e0_page", i18n$translate("Next →"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_tfr", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_tfr", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_tfr"),
@@ -222,7 +222,7 @@ app_ui <- function(request) {
             action_button("forward_mig_page", "Next →", class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_e0", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_e0", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_e0"),
@@ -235,11 +235,11 @@ app_ui <- function(request) {
           id = "mig_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_e0_page", i18n$t("← Previous"), class = "ui grey button"),
-            action_button("begin", i18n$t("Run Projection"), class = "ui blue button"),
+            action_button("back_to_e0_page", i18n$translate("← Previous"), class = "ui grey button"),
+            action_button("begin", i18n$translate("Run Projection"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
-              action_button("customize_mig", i18n$t("Customize"), icon = icon("refresh"), class = "ui blue button")
+              action_button("customize_mig", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
             )
           ),
           uiOutput("popup_mig"),
@@ -254,7 +254,7 @@ app_ui <- function(request) {
             style = "display: flex; gap: 20px;", # 20px gap between buttons
             div(
               style = "display: flex; gap: 5px;",
-              action_button("back_to_mig_page", i18n$t("← Previous"), class = "ui grey button"),
+              action_button("back_to_mig_page", i18n$translate("← Previous"), class = "ui grey button"),
               uiOutput("forecast_help_ui")
             ),
             div(
@@ -263,7 +263,7 @@ app_ui <- function(request) {
             )
           ),
           br(),
-          selectInput("select_id", i18n$t("Results"), choices = TAB_NAMES, selected = TAB_NAMES[1]),
+          uiOutput("select_plot_tab"),
           br(),
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
