@@ -219,7 +219,7 @@ create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
 #' @return A list containing ggplot2 and plotly objects.
 #' @export
 #'
-create_mig_plot <- function(dt, end_year, country) {
+create_mig_plot <- function(dt, end_year, country, i18n) {
   Migration <- Year <- mig <- value <- Type <- NULL  # To avoid R CMD check notes
 
   # Ensure the data is in the correct format
@@ -236,14 +236,22 @@ create_mig_plot <- function(dt, end_year, country) {
 
   max_year <- max(dt_long$Year)
   min_year <- min(dt_long$Year)
-  plt_title <- paste0("Net Migration: ", country, ", ", min_year, "-", max_year)
+
+  translated_title <- i18n$translate("Net Migration: ")
+  plt_title <- paste0(translated_title, country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
-  plt <- ggplot(dt_long, aes(x = Year, y = Migration)) +
+  names(dt_long) <- i18n$translate(names(dt_long))
+  col_nm <- names(dt_long)
+
+  plt <- ggplot(
+    dt_long,
+    aes(x = .data[[col_nm[1]]], y = .data[[col_nm[3]]])
+    ) +
     geom_line(size = 2, alpha = 0.7) +
     labs(title = plt_title,
-         x = "Year",
-         y = "Net Migration") +
+         x = i18n$translate("Year"),
+         y = i18n$translate("Net Migration")) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) + # Increase font sizes
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title)

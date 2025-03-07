@@ -151,7 +151,8 @@ handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0
     create_mig_plot(
       reactive_mig(),
       end_year = wpp_ending_year(),
-      country = input$wpp_country
+      country = input$wpp_country,
+      i18n
     )$plotly
   )
 
@@ -605,7 +606,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
   observeEvent(input$forward_mig_page, {
     hide("e0_page")
     show("mig_page")
-    show_mig(reactive_mig, wpp_ending_year, input, output)
+    show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
   })
 
 
@@ -621,7 +622,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
     # before the simulation.
     compute_tfr(reactive_tfr, wpp_ending_year, input, output)
     compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
-    compute_mig(reactive_mig, wpp_ending_year, input, output)
+    compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
 
     begin_forecast(
       reactive_pop,

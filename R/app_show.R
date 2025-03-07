@@ -215,10 +215,10 @@ show_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
   compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
 }
 
-show_mig <- function(reactive_mig, wpp_ending_year, input, output) {
+show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
   hide("e0_page")
   show("mig_page")
-  compute_mig(reactive_mig, wpp_ending_year, input, output)
+  compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
 }
 
 
@@ -244,8 +244,13 @@ compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
 }
 
 
-compute_mig <- function(reactive_mig, wpp_ending_year, input, output) {
-  create_mig_plot(reactive_mig(), end_year = wpp_ending_year(), country = input$wpp_country)
+compute_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
+  create_mig_plot(
+    reactive_mig(),
+    end_year = wpp_ending_year(),
+    country = input$wpp_country,
+    i18n
+  )
   output$show_mig_results_ui <- renderUI(show_mig_results_ui())
 }
 

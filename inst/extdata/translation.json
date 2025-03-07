@@ -767,6 +767,14 @@
         "fr": "FR: Sex"
     },
     {
+        "en": "Net Migration: ",
+        "fr": "FR: Net Migration: "
+    },
+    {
+        "en": "Net Migration",
+        "fr": "FR: Net Migration"
+    },
+    {
         "en": "Life Expectancy",
         "fr": "FR: Life Expectancy"
     },
@@ -788,7 +796,7 @@
       },
       {
         "en": "Migration",
-        "fr": "Migration"
+        "fr": "FR: Migration"
       },
       {
         "en": "Population data for",
