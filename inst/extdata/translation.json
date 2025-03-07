@@ -327,7 +327,7 @@
       },
       {
         "en": "Type",
-        "fr": "Type"
+          "fr": "FR: Type"
       },
       {
         "en": "Age Scale",
@@ -793,6 +793,30 @@
       {
         "en": "Females",
         "fr": "Femmes"
+    },
+    {
+        "en": "Projection",
+        "fr": "FR: Projection"
+    },
+    {
+        "en": "UN Projection",
+        "fr": "FR: UN Projection"
+    },
+    {
+        "en": "95% PI",
+        "fr": "FR: 95% PI"
+    },
+    {
+        "en": "95% UN PI",
+        "fr": "FR: 95% UN PI"
+    },
+    {
+        "en": "95% Lower bound PI",
+        "fr": "FR: 95% Lower bound PI"
+    },
+    {
+        "en": "95% Upper bound PI",
+        "fr": "FR: 95% Upper bound PI"
       },
       {
         "en": "Migration",

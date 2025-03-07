@@ -288,7 +288,7 @@ create_mig_plot <- function(dt, end_year, country, i18n) {
 #' @return A list containing ggplot2 and plotly objects.
 #' @export
 #'
-create_mig_projected_plot <- function(dt, end_year, country) {
+create_mig_projected_plot <- function(dt, end_year, country, i18n) {
   `Net Migration` <- type_value <- Year <- Migration <- Type <- NULL
 
   mig_dt <- melt(
@@ -308,34 +308,67 @@ create_mig_projected_plot <- function(dt, end_year, country) {
 
   max_year <- max(mig_dt$Year)
   min_year <- min(mig_dt$Year)
-  plt_title <- paste0("Net Migration: ", country, ", ", min_year, "-", max_year)
+  translated_title <- i18n$translate("Net Migration: ")
+  plt_title <- paste0(translated_title, country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
 
   columns_to_round <- c("Net Migration", "95% Lower bound PI", "95% Upper bound PI")
   mig_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
-  plt <- ggplot(mig_dt, aes(x = Year, y = `Net Migration`, group = Type, color = Type, fill = Type)) +
-    geom_line(aes(linetype = Type)) +
+
+  mig_dt$Type <- i18n$translate(as.character(mig_dt$Type))
+  names(mig_dt) <- i18n$translate(names(mig_dt))
+
+
+
+  col_vals <- setNames(
+    c("#F8766D", "#00BFC4", "#00BFC4"),
+    i18n$translate(c("Projection", "UN Projection", "95% UN PI"))
+  )
+
+  shape_vals <- setNames(
+    c("dashed", "solid", "solid"),
+    i18n$translate(c("Projection", "UN Projection", "95% UN PI"))
+  )
+
+  col_nm <- names(mig_dt)
+
+  mig_dt <- as.data.frame(mig_dt)
+
+  un_proj_df <- mig_dt[mig_dt[[col_nm[2]]]== i18n$translate("UN Projection"), ]
+
+  plt <- ggplot(
+    mig_dt,
+    aes(
+      x = .data[[col_nm[1]]],
+      y = .data[[col_nm[3]]],
+      group = .data[[col_nm[2]]],
+      color = .data[[col_nm[2]]],
+      fill = .data[[col_nm[2]]]
+    )
+  ) +
+    geom_line(aes(linetype = .data[[col_nm[2]]])) +
     geom_ribbon(
-      data = mig_dt[Type == "UN Projection"],
+      data = un_proj_df,
       aes(
         y = NULL,
-        ymin = .data[["95% Lower bound PI"]],
-        ymax = .data[["95% Upper bound PI"]],
-        color = "95% UN PI",
-        fill = "95% UN PI",
-        linetype = "95% UN PI"
+        ymin = .data[[col_nm[[4]]]],
+        ymax = .data[[col_nm[[5]]]],
+        color = i18n$translate("95% UN PI"),
+        fill = i18n$translate("95% UN PI"),
+        linetype = i18n$translate("95% UN PI")
       ),
       alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+      values = col_vals
     ) +
     scale_fill_manual(
-      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+      values = col_vals
     ) +
     scale_linetype_manual(
-      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
+      values = shape_vals
     ) +
     labs(title = plt_title) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
@@ -344,7 +377,8 @@ create_mig_projected_plot <- function(dt, end_year, country) {
       legend.position = "bottom"
     )
 
-  plt_visible <- plt +
+  plt_visible <-
+    plt +
     theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
     labs(title = plt_title_adapted$title) +
     theme(

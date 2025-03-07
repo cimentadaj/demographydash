@@ -141,7 +141,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_pop_pyramid_plot(
       simulation_results()$population_by_age_and_sex,
       country = input$wpp_country,
-      input_year = input$pop_age_sex_years
+      input_year = input$pop_age_sex_years,
+      i18n
     )
   })
 
@@ -333,7 +334,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_mig_projected_plot(
       simulation_results()$mig_by_time,
       wpp_ending_year(),
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
