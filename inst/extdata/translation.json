@@ -327,7 +327,7 @@
       },
       {
         "en": "Type",
-          "fr": "FR: Type"
+        "fr": "Type"
       },
       {
         "en": "Age Scale",
@@ -764,31 +764,31 @@
     },
     {
         "en": "Sex",
-        "fr": "FR: Sex"
+        "fr": "Sexe"
     },
     {
         "en": "Net Migration: ",
-        "fr": "FR: Net Migration: "
+        "fr": "Migration nette : "
     },
     {
         "en": "Net Migration",
-        "fr": "FR: Net Migration"
+        "fr": "Migration nette"
     },
     {
         "en": "Life Expectancy",
-        "fr": "FR: Life Expectancy"
+        "fr": "Espérance de vie"
     },
     {
         "en": "Life Expectancy: ",
-        "fr": "FR: Life Expectancy: "
+        "fr": "Espérance de vie : "
     },
     {
         "en": "Life Expectancy (years)",
-        "fr": "FR: Life Expectancy (years)"
+        "fr": "Espérance de vie (années)"
     },
     {
         "en": "Population (000s)",
-        "fr": "FR: Population (000s)"
+        "fr": "Population (milliers)"
       },
       {
         "en": "Females",
@@ -796,31 +796,31 @@
     },
     {
         "en": "Projection",
-        "fr": "FR: Projection"
+        "fr": "Projection"
     },
     {
         "en": "UN Projection",
-        "fr": "FR: UN Projection"
+        "fr": "Projection ONU"
     },
     {
         "en": "95% PI",
-        "fr": "FR: 95% PI"
+        "fr": "IC 95%"
     },
     {
         "en": "95% UN PI",
-        "fr": "FR: 95% UN PI"
+        "fr": "IC 95% ONU"
     },
     {
         "en": "95% Lower bound PI",
-        "fr": "FR: 95% Lower bound PI"
+        "fr": "Borne inférieure IC 95%"
     },
     {
         "en": "95% Upper bound PI",
-        "fr": "FR: 95% Upper bound PI"
+        "fr": "Borne supérieure IC 95%"
       },
       {
         "en": "Migration",
-        "fr": "FR: Migration"
+        "fr": "Migration"
       },
       {
         "en": "Population data for",
@@ -1048,7 +1048,7 @@
     },
     {
         "en": "Population by age and sex: ",
-        "fr": "FR: Population by age and sex: "
+        "fr": "Population par âge et sexe : "
       }
     ]
 }
