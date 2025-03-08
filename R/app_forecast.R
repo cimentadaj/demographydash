@@ -325,7 +325,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_e0_projected_plot(
       simulation_results()$e0_by_time,
       chosen_val,
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 

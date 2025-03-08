@@ -412,7 +412,7 @@ create_mig_projected_plot <- function(dt, end_year, country, i18n) {
 #' @return A ggplot2 object.
 #' @export
 #'
-create_e0_projected_plot <- function(dt, input_sex, country) {
+create_e0_projected_plot <- function(dt, input_sex, country, i18n) {
   `Life Expectancy` <- sex <- type_value <- Year <- LifeExpectancy <- Type <- NULL
 
   # Update Sex labels
@@ -433,12 +433,13 @@ create_e0_projected_plot <- function(dt, input_sex, country) {
 
   e0_dt <- e0_dt[e0_dt$sex == input_sex, ]
 
+  # Translate type values
   e0_dt[type_value == "e0", type_value := "Projection"]
   e0_dt[type_value == "un_e0_median", type_value := "UN Projection"]
 
-
   e0_dt <- e0_dt[, c("year", "sex", "type_value", "value", "un_e0_95low", "un_e0_95high")]
 
+  # Translate column names
   names(e0_dt) <- c(
     "Year",
     "Sex",
@@ -449,7 +450,6 @@ create_e0_projected_plot <- function(dt, input_sex, country) {
   )
 
   columns_to_round <- c("Life Expectancy", "95% Lower bound PI", "95% Upper bound PI")
-
   e0_dt[, (columns_to_round) := lapply(.SD, round, 3), .SDcols = columns_to_round]
 
   num_cols <- names(e0_dt)[sapply(e0_dt, is.numeric)]
@@ -462,40 +462,70 @@ create_e0_projected_plot <- function(dt, input_sex, country) {
 
   max_year <- max(e0_dt$Year)
   min_year <- min(e0_dt$Year)
-  plt_title <- paste0("Life Expectancy '", input_sex, "': ", country, ", ", min_year, "-", max_year)
+
+  # Translate title
+  translated_title <- i18n$translate("Life Expectancy: ")
+  plt_title <- paste0(translated_title, country, ", ", min_year, "-", max_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  # Translate column values and names for tooltips
+  e0_dt$Type <- i18n$translate(as.character(e0_dt$Type))
+  e0_dt$Sex <- i18n$translate(as.character(e0_dt$Sex))
+  names(e0_dt) <- i18n$translate(names(e0_dt))
+  col_nm <- names(e0_dt)
+
+  # Create color and line type scales with translations
+  col_vals <- setNames(
+    c("#F8766D", "#00BFC4", "#00BFC4"),
+    i18n$translate(c("Projection", "UN Projection", "95% UN PI"))
+  )
+
+  shape_vals <- setNames(
+    c("dashed", "solid", "solid"),
+    i18n$translate(c("Projection", "UN Projection", "95% UN PI"))
+  )
 
   plt <-
     e0_dt %>%
-    ggplot(aes(Year, `Life Expectancy`, color = Type, fill = Type, group = Type)) +
-    geom_line(aes(linetype = Type)) +
+    ggplot(
+      aes(
+      .data[[col_nm[1]]], 
+      .data[[col_nm[4]]], 
+      color = .data[[col_nm[3]]], 
+      fill = .data[[col_nm[3]]], 
+      group = .data[[col_nm[3]]])
+    ) +
+    geom_line(aes(linetype = .data[[col_nm[3]]])) +
     geom_ribbon(
-      data = e0_dt[Type == "UN Projection"],
+      data = e0_dt[Type == i18n$translate("UN Projection")],
       aes(
         y = NULL,
-        ymin = .data[["95% Lower bound PI"]],
-        ymax = .data[["95% Upper bound PI"]],
-        color = "95% UN PI",
-        fill = "95% UN PI",
-        linetype = "95% UN PI"
+        ymin = .data[[col_nm[5]]],
+        ymax = .data[[col_nm[6]]],
+        color = i18n$translate("95% UN PI"),
+        fill = i18n$translate("95% UN PI"),
+        linetype = i18n$translate("95% UN PI")
       ),
       alpha = 0.2
     ) +
     scale_color_manual(
-      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+      values = col_vals
     ) +
     scale_fill_manual(
-      values = c("Projection" = "#F8766D", "UN Projection" = "#00BFC4", "95% UN PI" = "#00BFC4")
+      values = col_vals
     ) +
     scale_linetype_manual(
-      values = c("Projection" = "dashed", "UN Projection" = "solid", "95% UN PI" = "solid")
+      values = shape_vals
     ) +
     scale_y_continuous(
       limits = c(min_y, max_y),
       expand = expansion(mult = 0),
       labels = label_number(big.mark = "")
     ) +
-    labs(title = plt_title, y = "Life Expectancy (years)") +
+    labs(
+      title = plt_title,
+      y = i18n$translate("Life Expectancy (years)")
+    ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
@@ -508,7 +538,8 @@ create_e0_projected_plot <- function(dt, input_sex, country) {
     theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
     labs(title = plt_title_adapted$title) +
     theme(
-      plot.title = element_text(size = plt_title_adapted$font_size)
+      plot.title = element_text(size = plt_title_adapted$font_size),
+      legend.position = "bottom"
     )
 
   plt_visible <-
