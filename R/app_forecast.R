@@ -152,15 +152,16 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Percent", "Absolute")
     chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$radio_population_by_broad_age_group)]
-    # If no match found (e.g., during initialization), use the input directly
-    if (is.na(chosen_val) || is.null(chosen_val)) {
+    # If no match found or empty result (during language change), use the input directly
+    if (length(chosen_val) == 0) {
       chosen_val <- input$radio_population_by_broad_age_group
     }
 
     create_age_group_plot(
       simulation_results()$population_by_broad_age_group,
       chosen_val,
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -174,7 +175,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_pop_time_plot(
       simulation_results()$population_by_time,
       input$age_pop_time,
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -182,7 +184,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_tfr_projected_plot(
       simulation_results()$tfr_by_time,
       wpp_ending_year(),
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -190,7 +193,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     create_annual_growth_plot(
       simulation_results()$annual_growth_rate,
       wpp_ending_year(),
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -200,8 +204,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")
     chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$radio_death_births)]
-    # If no match found (e.g., during initialization), use the input directly
-    if (is.na(chosen_val) || is.null(chosen_val)) {
+    # If no match found or empty result (during language change), use the input directly
+    if (length(chosen_val) == 0) {
       chosen_val <- input$radio_death_births
     }
 
@@ -215,7 +219,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
       type_value[1],
       type_value[2],
       wpp_ending_year(),
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -227,7 +232,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
       simulation_results()$yadr,
       type_value,
       wpp_ending_year(),
-      input$wpp_country
+      input$wpp_country,
+      i18n
     )
   })
 
@@ -253,7 +259,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
         "percent65" = "% of population 65+",
         "title" = plt_title
       ),
-      percent_x = TRUE
+      percent_x = TRUE,
+      i18n = i18n
     )
   })
 
@@ -277,7 +284,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
         "cdr" = "Crude Death Rate",
         "e0" = "Life Expectancy",
         "title" = plt_title
-      )
+      ),
+      i18n = i18n
     )
   })
 
@@ -301,7 +309,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
         "cbr" = "Crude Birth Rate",
         "tfr" = "Total Fertility Rate",
         "title" = plt_title
-      )
+      ),
+      i18n = i18n
     )
   })
 
@@ -313,12 +322,11 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
     req(input$sex_e0_time)
 
-
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Total", "Male", "Female")
     chosen_val <- ops_vals[which(i18n$translate(ops_vals) == input$sex_e0_time)]
-    # If no match found (e.g., during initialization), use the input directly
-    if (is.na(chosen_val) || is.null(chosen_val)) {
+    # If no match found or empty result (during language change), use the input directly
+    if (length(chosen_val) == 0) {
       chosen_val <- input$sex_e0_time
     }
 
@@ -405,86 +413,86 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   ##### Generate all plots and show in the tabset UI #####
   observe({
     req(input$select_id)
-    print(input$select_id)
 
-    pop_pyramid <- i18n$translate(TAB_NAMES[grepl("Population Pyramid By Age and Sex", TAB_NAMES)])
-    pop_age_groups <- i18n$translate(TAB_NAMES[grepl("Population by Broad Age Groups", TAB_NAMES)])
-    pop_time <- i18n$translate(TAB_NAMES[grepl("Population Over Time", TAB_NAMES)])
-    projected_tfr <- i18n$translate(TAB_NAMES[grepl("Projected Total Fertility Rate", TAB_NAMES)])
-    pop_growth_rate <- i18n$translate(TAB_NAMES[grepl("Population Growth Rate by Age", TAB_NAMES)])
-    deaths_births <- i18n$translate(TAB_NAMES[grepl("Deaths and Births", TAB_NAMES)])
-    yadr_oadr <- i18n$translate(TAB_NAMES[grepl("YADR and OADR", TAB_NAMES)])
-    pop_size_aging <- i18n$translate(TAB_NAMES[grepl("Population Size and Aging", TAB_NAMES)])
-    cdr_e0 <- i18n$translate(TAB_NAMES[grepl("CDR and Life Expectancy", TAB_NAMES)])
-    cbr_tfr <- i18n$translate(TAB_NAMES[grepl("CBR and TFR", TAB_NAMES)])
-    e0_time <- i18n$translate(TAB_NAMES[grepl("Life Expectancy Over Time", TAB_NAMES)])
-    projected_mig <- i18n$translate(TAB_NAMES[grepl("Projected Net Migration", TAB_NAMES)])
-
-    # TODO: need to make this more DRY
-    if (input$select_id == pop_pyramid) {
+    # Get the current tab index by matching input$select_id against current translations
+    current_index <- NULL
+    for (i in seq_along(TAB_NAMES)) {
+      if (input$select_id == i18n$translate(TAB_NAMES[i])) {
+        current_index <- i
+        break
+      }
+    }
+    
+    # If we couldn't find a match, default to first tab
+    if (is.null(current_index)) {
+      current_index <- 1
+    }
+    
+    # Use the index to select the appropriate plot
+    if (current_index == 1) {  # Population Pyramid
       selected_plot <- list(
         plt_reactive = pyramid_plot,
         filename = filename_pop_pyramid()
       )
-    } else if (input$select_id == pop_age_groups) {
+    } else if (current_index == 2) {  # Population by Broad Age Groups
       selected_plot <- list(
         plt_reactive = age_group_plot,
         filename = filename_pop_by_age()
       )
-    } else if (input$select_id == projected_tfr) {
-      selected_plot <- list(
-        plt_reactive = tfr_projected_plot,
-        filename = paste0("tfr_projection_", cnt())
-      )
-    } else if (input$select_id == pop_time) {
+    } else if (current_index == 3) {  # Population Over Time
       selected_plot <- list(
         plt_reactive = pop_time_plot,
         filename = filename_pop_over_time_agegroup()
       )
-    } else if (input$select_id == pop_growth_rate) {
+    } else if (current_index == 4) {  # Projected Total Fertility Rate
+      selected_plot <- list(
+        plt_reactive = tfr_projected_plot,
+        filename = paste0("tfr_projection_", cnt())
+      )
+    } else if (current_index == 5) {  # Population Growth Rate by Age
       selected_plot <- list(
         plt_reactive = annual_growth_plot,
         filename = paste0("pop_growth_rate_", cnt())
       )
-    } else if (input$select_id == deaths_births) {
+    } else if (current_index == 6) {  # Deaths and Births
       selected_plot <- list(
         plt_reactive = deaths_births_plot,
         filename = filename_deaths_births()
       )
-    } else if (input$select_id == yadr_oadr) {
+    } else if (current_index == 7) {  # YADR and OADR
       selected_plot <- list(
         plt_reactive = yadr_oadr_plot,
         filename = filename_yadr_oadr()
       )
-    } else if (input$select_id == pop_size_aging) {
+    } else if (current_index == 8) {  # Population Size and Aging
       selected_plot <- list(
         plt_reactive = pop_size_aging_plot,
         filename = paste0("total_pop_and_aging_pop_", cnt())
       )
-    } else if (input$select_id == cdr_e0) {
+    } else if (current_index == 9) {  # CDR and Life Expectancy
       selected_plot <- list(
         plt_reactive = e0_by_cdr_plot,
         filename = paste0("death_rate_life_exp_", cnt())
       )
-    } else if (input$select_id == cbr_tfr) {
+    } else if (current_index == 10) {  # CBR and TFR
       selected_plot <- list(
         plt_reactive = tfr_by_cdr_plot,
         filename = paste0("tfr_cdr_", cnt())
       )
-    } else if (input$select_id == e0_time) {
+    } else if (current_index == 11) {  # Life Expectancy Over Time
       selected_plot <- list(
         plt_reactive = e0_by_time_plot,
         filename = filename_e0_over_time_sex()
       )
-    } else if (input$select_id == projected_mig) {
+    } else if (current_index == 12) {  # Projected Net Migration
       selected_plot <- list(
         plt_reactive = mig_by_time_plot,
         filename = paste0("mig_projection_", cnt())
       )
     }
 
-    selected_id <- TAB_NAMES[grepl(input$select_id, i18n$translate(TAB_NAMES))]
-
+    # Use the English name for the plot ID
+    selected_id <- TAB_NAMES[current_index]
     plots_tabset(input, output, selected_id, selected_plot)
   })
   ##### Finish plotting in tabs #####

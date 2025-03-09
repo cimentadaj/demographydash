@@ -863,6 +863,10 @@
         "fr": "Taux de croissance de la population par âge"
       },
       {
+        "en": "Population Growth Rate",
+        "fr": "Taux de croissance de la population"
+      },
+      {
         "en": "Deaths and Births",
         "fr": "Décès et naissances"
       },
@@ -1019,6 +1023,46 @@
         "fr": "Pourcentage"
       },
       {
+        "en": "(Percent)",
+        "fr": "(Pourcentage)"
+      },
+      {
+        "en": "Population (Percent)",
+        "fr": "Population (Pourcentage)"
+      },
+      {
+        "en": "Total Fertility Rate: ",
+        "fr": "Indice synthétique de fécondité: "
+      },
+      {
+        "en": "Total Fertility Rate",
+        "fr": "Indice synthétique de fécondité"
+      },
+      {
+        "en": "Persons age <20 per 100 persons age 20-64",
+        "fr": "Personnes âgées <20 par 100 personnes âgées 20-64"
+      },
+      {
+        "en": "Persons age 65+ per 100 persons age 20-64",
+        "fr": "Personnes âgées 65+ par 100 personnes âgées 20-64"
+      },
+      {
+        "en": "Young-age dependency ratio (Age <20 / Age 20-64)",
+        "fr": "Rapport de dépendance des jeunes (Âge <20 / Âge 20-64)"
+      },
+      {
+        "en": "Old-age dependency ratio (Age 65+ / Age 20-64)", 
+        "fr": "Rapport de dépendance des personnes âgées (Âge 65+ / Âge 20-64)"
+      },
+      {
+        "en": "Births per woman",
+        "fr": "Naissances par femme"
+      },
+      {
+        "en": "Population growth rates for broad age groups: ",
+        "fr": "Taux de croissance de la population par grands groupes d'âge: "
+      },
+      {
         "en": "Age groups",
         "fr": "Groupes d'âge"
       },
@@ -1049,6 +1093,78 @@
     {
         "en": "Population by age and sex: ",
         "fr": "Population par âge et sexe : "
+      },
+      {
+        "en": "(000s)",
+        "fr": "(milliers)"
+      },
+      {
+        "en": "Crude birth rate and total fertility rate:",
+        "fr": "Taux brut de natalité et indice synthétique de fécondité:"
+      },
+      {
+        "en": "Crude death rate and life expectancy at birth:",
+        "fr": "Taux brut de mortalité et espérance de vie à la naissance:"
+      },
+      {
+        "en": "% of population 65+",
+        "fr": "% de la population âgée de 65+"
+      },
+      {
+        "en": "Population per 1000 persons",
+        "fr": "Population pour 1000 habitants"
+      },
+      {
+        "en": "Population size and percent of population 65+:",
+        "fr": "Taille de la population et pourcentage de la population âgée de 65+"
+      },
+      {
+        "en": "year",
+        "fr": "année"
+      },
+      {
+        "en": "Year:",
+        "fr": "Année:"
+      },
+      {
+        "en": "Crude Birth Rate",
+        "fr": "Taux brut de natalité"
+      },
+      {
+        "en": "Crude Death Rate",
+        "fr": "Taux brut de mortalité"
+      },
+      {
+        "en": "Crude Birth Rate: ",
+        "fr": "Taux brut de natalité : "
+      },
+      {
+        "en": "Crude Death Rate: ",
+        "fr": "Taux brut de mortalité : "
+      },
+      {
+        "en": "Annual number of births: ",
+        "fr": "Nombre annuel de naissances : "
+      },
+      {
+        "en": "Annual number of deaths: ",
+        "fr": "Nombre annuel de décès : "
+      },
+      {
+        "en": "Number of births (thousands)",
+        "fr": "Nombre de naissances (milliers)"
+      },
+      {
+        "en": "Number of deaths (thousands)",
+        "fr": "Nombre de décès (milliers)"
+      },
+      {
+        "en": "Births per 1,000 population",
+        "fr": "Naissances pour 1 000 habitants"
+      },
+      {
+        "en": "Deaths per 1,000 population",
+        "fr": "Décès pour 1 000 habitants"
       }
     ]
 }

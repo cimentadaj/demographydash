@@ -7,17 +7,7 @@
 #'
 show_input_ui <- function(i18n) {
   div(
-    multiple_radio(
-      input_id = "toggle_region",
-      label = i18n$translate("Which geographic aggregation do you want to work with?"),
-      choices = c(
-        "Country",
-        "Region"
-      ),
-      selected = "Country",
-      position = "grouped",
-      type = "checkbox"
-    ),
+    uiOutput("toggle_region_ui"),
     br(),
     uiOutput("location_selector"),
     br(),
@@ -36,7 +26,7 @@ show_input_ui <- function(i18n) {
 #' @export
 #'
 location_selector_ui <- function(input, i18n) {
-  if (input$toggle_region == "Region") {
+  if (length(input$toggle_region != 0) && input$toggle_region == i18n$translate("Region")) {
     create_field_set(
       "globe",
       i18n$translate("Select a region"),
@@ -70,30 +60,40 @@ show_forecast_results_ui <- function(input, i18n) {
   # Empty list to store the UI elements
   ui_elements <- list()
 
-  pop_pyramid <- i18n$translate(TAB_NAMES[grepl("Population Pyramid By Age and Sex", TAB_NAMES)])
-  pop_age_groups <- i18n$translate(TAB_NAMES[grepl("Population by Broad Age Groups", TAB_NAMES)])
-  pop_time <- i18n$translate(TAB_NAMES[grepl("Population Over Time", TAB_NAMES)])
-  deaths_births <- i18n$translate(TAB_NAMES[grepl("Deaths and Births", TAB_NAMES)])
-  yadr_oadr <- i18n$translate(TAB_NAMES[grepl("YADR and OADR", TAB_NAMES)])
-  e0_time <- i18n$translate(TAB_NAMES[grepl("Life Expectancy Over Time", TAB_NAMES)])
+  # Get current translations
   tabs_trans <- i18n$translate(TAB_NAMES)
+  
+  # Find which tab is currently selected
+  current_index <- NULL
+  for (i in seq_along(TAB_NAMES)) {
+    if (input$select_id == i18n$translate(TAB_NAMES[i])) {
+      current_index <- i
+      break
+    }
+  }
+  
+  # If we couldn't find a match, default to first tab
+  if (is.null(current_index)) {
+    current_index <- 1
+  }
 
-  # TODO: make this more DRY
   # Loop through each tab name and use switch to determine the UI element
-  for (tab in tabs_trans) {
-    english_name <- TAB_NAMES[grepl(tab, i18n$translate(TAB_NAMES))]
-      # Pages with some widget on the sidebar
-    if (tab == pop_pyramid) {
+  for (i in seq_along(tabs_trans)) {
+    tab <- tabs_trans[i]
+    english_name <- TAB_NAMES[i]  # Get English name directly by index
+
+    # Pages with some widget on the sidebar
+    if (i == 1) {  # Population Pyramid
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", label = i18n$translate("Download All Population Data"))), i18n = i18n)
-    } else if (tab == pop_age_groups) {
+    } else if (i == 2) {  # Population by Broad Age Groups
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_population_by_broad_age_group", i18n$translate("Scale Type"), choices = c(i18n$translate("Percent"), i18n$translate("Absolute")), type = "inline"), i18n = i18n)
-    } else if (tab == pop_time) {
+    } else if (i == 3) {  # Population Over Time
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("age_pop_time_ui"), i18n = i18n)
-    } else if (tab == deaths_births) {
+    } else if (i == 6) {  # Deaths and Births
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_death_births", i18n$translate("Type of plot"), choices = c(i18n$translate("Birth Counts"), i18n$translate("Birth Rates"), i18n$translate("Death Counts"), i18n$translate("Death Rates")), type = "inline"), i18n = i18n)
-    } else if (tab == yadr_oadr) {
+    } else if (i == 7) {  # YADR and OADR
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_yadr_oadr", i18n$translate("Type of plot"), choices = c("YADR", "OADR"), type = "inline"), i18n = i18n)
-    } else if (tab == e0_time) {
+    } else if (i == 11) {  # Life Expectancy Over Time
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("sex_e0_time_ui"), i18n = i18n)
     } else {
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, i18n = i18n) # Default case
@@ -101,7 +101,8 @@ show_forecast_results_ui <- function(input, i18n) {
   }
 
   # Select the appropriate UI element based on input
-  selected_page <- ui_elements[[input$select_id]]
+  selected_tab <- tabs_trans[current_index]
+  selected_page <- ui_elements[[selected_tab]]
   selected_page
 }
 
@@ -189,11 +190,11 @@ show_mig_results_ui <- function() {
 #' @importFrom shiny.semantic hide_modal
 #' @export
 #'
-show_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
+show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
   hide_modal("modal_passtfr")
   hide("pop_page")
   show("tfr_page")
-  compute_tfr(reactive_tfr, wpp_ending_year, input, output)
+  compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
 }
 
 #' Compute the TFR page
@@ -204,10 +205,10 @@ show_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
 #' @importFrom shiny renderUI
 #' @export
 #'
-compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output) {
+compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
-  create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country)
+  create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country, i18n)
   output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
 }
 

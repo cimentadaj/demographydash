@@ -110,6 +110,7 @@ file_parser <- function(file, data_type, i18n = NULL) {
 #' @importFrom utils read.csv
 #' @importFrom untheme detect_font_size
 #' @importFrom shiny.i18n update_lang
+#' @importFrom shiny.semantic multiple_radio
 #' @importFrom OPPPserver get_wpp_pop get_wpp_tfr get_wpp_e0 get_wpp_mig
 #' @importFrom rintrojs introjs
 #' @export
@@ -118,15 +119,68 @@ app_server <- function(input, output, session) {
 
   i18n <- usei18n_local()
 
+  # Render the toggle_region UI with translated options
+  output$toggle_region_ui <- renderUI({
+    multiple_radio(
+      input_id = "toggle_region",
+      label = i18n$translate("Which geographic aggregation do you want to work with?"),
+      choices = i18n$translate(c("Country", "Region")),
+      selected = i18n$translate("Country"),
+      position = "grouped",
+      type = "radio"
+    )
+  })
+
+  # At the top with other reactives
+  selected_tab_index <- reactiveVal(1)  # Start with first tab
+
+  # Add a reactive expression to track the current tab
+  current_tab_name <- reactive({
+    # Return the current tab name in the current language
+    i18n$translate(TAB_NAMES[selected_tab_index()])
+  })
+
   # Language change observer
   observeEvent(c(input$selected_language), {
-
-    # Update language if it changed
     if (!is.null(input$selected_language)) {
+      # Before changing language, store which tab we're on
+      if (!is.null(input$select_id)) {
+        # Find which tab is currently selected (in old language)
+        old_lang <- i18n$get_translation_language()
+        for (i in seq_along(TAB_NAMES)) {
+          if (input$select_id == i18n$translate(TAB_NAMES[i])) {
+            selected_tab_index(i)
+            break
+          }
+        }
+      }
+      
+      # Update language
       update_lang(input$selected_language)
+      i18n$set_translation_language(input$selected_language)
+      
+      # Force UI update with new language
+      output$select_plot_tab <- renderUI({
+        selectInput(
+          "select_id",
+          i18n$translate("Results"),
+          choices = i18n$translate(TAB_NAMES),
+          selected = current_tab_name()
+        )
+      })
     }
-
   })
+
+  # Initial UI render
+  output$select_plot_tab <- renderUI({
+    selectInput(
+      "select_id",
+      i18n$translate("Results"),
+      choices = i18n$translate(TAB_NAMES),
+      selected = current_tab_name()
+    )
+  })
+
   current_tab <- reactiveVal()
 
   observe({
@@ -143,14 +197,7 @@ app_server <- function(input, output, session) {
     app_sys("app/www")
   )
 
-  output$select_plot_tab <- renderUI({
-    selectInput(
-      "select_id",
-      i18n$translate("Results"),
-      choices = i18n$translate(TAB_NAMES),
-      selected = i18n$translate(TAB_NAMES[1])
-    )
-  })
+
 
   # Some functions need the years in number. Coerce them from
   # the beginning and  use from these reactive expressions

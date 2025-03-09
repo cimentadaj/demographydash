@@ -218,8 +218,8 @@ app_ui <- function(request) {
           id = "e0_page",
           div(
             style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_tfr_page", "← Previous", class = "ui grey button"),
-            action_button("forward_mig_page", "Next →", class = "ui blue button"),
+            action_button("back_to_tfr_page", i18n$translate("← Previous"), class = "ui grey button"),
+            action_button("forward_mig_page", i18n$translate("Next →"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
               action_button("customize_e0", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")

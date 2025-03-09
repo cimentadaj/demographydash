@@ -134,7 +134,8 @@ handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0
     create_tfr_plot(
       reactive_tfr(),
       end_year = wpp_ending_year(),
-      country = input$wpp_country
+      country = input$wpp_country,
+      i18n
     )$plotly
   )
 
@@ -586,14 +587,14 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
     if (show_tfr_modal()) {
       show_modal("modal_passtfr")
     } else {
-      show_tfr(reactive_tfr, wpp_ending_year, input, output)
+      show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
     }
 
     show_tfr_modal(FALSE)
   })
 
   observeEvent(input$change_source_btn, {
-    show_tfr(reactive_tfr, wpp_ending_year, input, output)
+    show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
   })
 
   observeEvent(input$forward_e0_page, {
@@ -620,7 +621,7 @@ handle_navigation <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_
     # jumping the actual TFR (jumping the traditional TFR page
     # which calculates the TFR), we need to compute the TFR
     # before the simulation.
-    compute_tfr(reactive_tfr, wpp_ending_year, input, output)
+    compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
     compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
     compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
 
