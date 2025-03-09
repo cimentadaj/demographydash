@@ -386,7 +386,7 @@ create_mig_projected_plot <- function(dt, end_year, country, i18n) {
     )
 
   plt_visible <-
-    ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>%
+    ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>%
     layout(legend = update_plotly_legend_opts(PLOTLY_LEGEND_OPTS))
 
   list(
@@ -546,7 +546,7 @@ create_e0_projected_plot <- function(dt, input_sex, country, i18n) {
     )
 
   plt_visible <-
-    ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>%
+    ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>%
     layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
@@ -681,7 +681,14 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
       value.name = "value"
     )
 
+  pop_dt$age <- i18n$translate(as.character(pop_dt$age))
   pop_dt <- pop_dt[pop_dt$age == input_age, ]
+  
+  # Check if pop_dt is empty after filtering
+  if (nrow(pop_dt) == 0) {
+    return(NULL)  # Return NULL if no data matches the selected age group
+  }
+  
   pop_dt[type_value == "pop", type_value := "Projection"]
   pop_dt[type_value == "un_pop_median", type_value := "UN Projection"]
 
@@ -732,7 +739,15 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
 
   plt <-
     pop_dt %>%
-    ggplot(aes(.data[[col_names[1]]], .data[[col_names[4]]], color = .data[[col_names[3]]], fill = .data[[col_names[3]]], group = .data[[col_names[3]]])) +
+    ggplot(
+      aes(
+        .data[[col_names[1]]], 
+        .data[[col_names[4]]], 
+        color = .data[[col_names[3]]], 
+        fill = .data[[col_names[3]]], 
+        group = .data[[col_names[3]]]
+      )
+    ) +
     geom_line(aes(linetype = .data[[col_names[3]]])) +
     geom_ribbon(
       data = tmp_dt,
@@ -780,7 +795,7 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
       plot.title = element_text(size = plt_title_adapted$font_size)
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -906,8 +921,7 @@ create_tfr_projected_plot <- function(dt, end_year, country, i18n) {
       legend.position = "bottom"
     )
 
-
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "group", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -1300,7 +1314,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -1448,7 +1462,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country, i18n
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
 
   list(
     gg = plt,
@@ -1583,7 +1597,7 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 
   # This is the visible plot so we vary the font sizes depending on screen resolution
   plt_visible <-
-    plt +
+    plt + 
     theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
     labs(title = plt_title_adapted$title) +
     theme(

@@ -92,6 +92,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   ##### Reactive Widgets calculatd based on the data #####
   age_pop_time <- reactive({
     ages <- unique(simulation_results()$population_by_time$age)
+    return(ages)  # Explicitly return the ages
   })
 
 
@@ -99,8 +100,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     selectInput(
       inputId = "age_pop_time",
       label = i18n$t("Select age group"),
-      choices = age_pop_time(),
-      selected = age_pop_time()[1]
+      choices = i18n$translate(age_pop_time()),
+      selected = i18n$translate(age_pop_time()[1])
     )
   })
 
@@ -172,12 +173,20 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
     req(input$age_pop_time)
 
-    create_pop_time_plot(
+    # Get the data for the selected age group
+    result <- create_pop_time_plot(
       simulation_results()$population_by_time,
       input$age_pop_time,
       input$wpp_country,
       i18n
     )
+    
+    # Return NULL if create_pop_time_plot returned NULL (no matching data)
+    if (is.null(result)) {
+      return(NULL)
+    }
+    
+    return(result)
   })
 
   tfr_projected_plot <- reactive({
