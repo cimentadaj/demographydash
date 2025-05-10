@@ -4,14 +4,16 @@
 \alias{create_pop_time_plot}
 \title{Create Pop Age Group Time Plot}
 \usage{
-create_pop_time_plot(dt, input_age, country)
+create_pop_time_plot(dt, input_age, country, i18n)
 }
 \arguments{
-\item{dt}{Data table with population data.}
+\item{dt}{Data table with population data}
 
-\item{input_age}{The age group to subset}
+\item{input_age}{The age group to plot}
 
-\item{country}{A string with the current country name for the title.}
+\item{country}{A string with the current country name}
+
+\item{i18n}{The internationalization object for translations}
 }
 \value{
 A ggplot2 object.

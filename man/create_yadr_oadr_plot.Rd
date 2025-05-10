@@ -4,7 +4,7 @@
 \alias{create_yadr_oadr_plot}
 \title{Plot YADR/OADR data with median and confidence intervals}
 \usage{
-create_yadr_oadr_plot(oadr, yadr, data_type, end_year, country)
+create_yadr_oadr_plot(oadr, yadr, data_type, end_year, country, i18n)
 }
 \arguments{
 \item{oadr}{A data.table of OADR data.}

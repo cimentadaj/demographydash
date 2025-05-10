@@ -4,7 +4,7 @@
 \alias{show_e0}
 \title{Show and compute the e0 page}
 \usage{
-show_e0(reactive_e0, wpp_ending_year, input, output)
+show_e0(reactive_e0, wpp_ending_year, input, output, i18n)
 }
 \arguments{
 \item{reactive_e0}{A reactive function returning the e0 data frame}

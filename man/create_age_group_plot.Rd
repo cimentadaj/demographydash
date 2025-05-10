@@ -4,7 +4,7 @@
 \alias{create_age_group_plot}
 \title{Create Age Group Plot}
 \usage{
-create_age_group_plot(dt, input_scale, country)
+create_age_group_plot(dt, input_scale, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with population data.}
@@ -12,6 +12,8 @@ create_age_group_plot(dt, input_scale, country)
 \item{input_scale}{The type of scale to be applied.}
 
 \item{country}{A string with the current country name for the title.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot2 object.

@@ -4,7 +4,7 @@
 \alias{show_input_ui}
 \title{Generate the UI for the input page.}
 \usage{
-show_input_ui()
+show_input_ui(i18n)
 }
 \value{
 A div containing the input page UI elements.

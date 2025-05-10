@@ -10,7 +10,8 @@ create_deaths_births_plot(
   data_type,
   value_type,
   end_year,
-  country
+  country,
+  i18n
 )
 }
 \arguments{

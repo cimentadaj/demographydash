@@ -11,7 +11,8 @@ create_modal_ui(
   file_input_id,
   download_button_id,
   hide_button_id,
-  additional_header = NULL
+  additional_header = NULL,
+  i18n = NULL
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ create_modal_ui(
 
 \item{additional_header}{(Optional) An additional UI element to be included in the header.
 Default is NULL.}
+
+\item{i18n}{The internationalization object.}
 }
 \value{
 A modal UI element.

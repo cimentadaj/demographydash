@@ -4,7 +4,7 @@
 \alias{create_tfr_projected_plot}
 \title{Create forecasted TFR plot}
 \usage{
-create_tfr_projected_plot(dt, end_year, country)
+create_tfr_projected_plot(dt, end_year, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with population data.}

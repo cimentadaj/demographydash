@@ -13,7 +13,8 @@ handle_navigation(
   wpp_ending_year,
   current_tab,
   input,
-  output
+  output,
+  i18n = NULL
 )
 }
 \arguments{
@@ -29,7 +30,11 @@ handle_navigation(
 
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
+\item{current_tab}{A reactive value for the current tab.}
+
 \item{input, output}{Internal parameters for `{shiny}`.}
+
+\item{i18n}{The internationalization object.}
 }
 \description{
 This function manages the navigation between different pages of the application.

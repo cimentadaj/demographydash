@@ -4,7 +4,7 @@
 \alias{create_annual_growth_plot}
 \title{Create Annual Growth Rate Time Plot by Age}
 \usage{
-create_annual_growth_plot(dt, end_year, country)
+create_annual_growth_plot(dt, end_year, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with annual growth data.}

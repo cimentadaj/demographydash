@@ -4,7 +4,7 @@
 \alias{create_tfr_plot}
 \title{Create Total Fertility Rate Plot}
 \usage{
-create_tfr_plot(dt, end_year, country)
+create_tfr_plot(dt, end_year, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with fertility rate data.}

@@ -4,7 +4,7 @@
 \alias{handle_misc}
 \title{Handle all miscellaneous code that doesn't fit in other handle_* steps}
 \usage{
-handle_misc(wpp_starting_year, wpp_ending_year, input, output)
+handle_misc(wpp_starting_year, wpp_ending_year, input, output, i18n = NULL)
 }
 \arguments{
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
@@ -12,6 +12,8 @@ handle_misc(wpp_starting_year, wpp_ending_year, input, output)
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
 \item{input, output}{Internal parameter for `{shiny}`.}
+
+\item{i18n}{The internationalization object.}
 }
 \description{
 Handle all miscellaneous code that doesn't fit in other handle_* steps

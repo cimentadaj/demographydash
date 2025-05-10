@@ -4,7 +4,7 @@
 \alias{handle_validity_checks}
 \title{Handle all validity checks from the app}
 \usage{
-handle_validity_checks(wpp_starting_year, wpp_ending_year, output)
+handle_validity_checks(wpp_starting_year, wpp_ending_year, output, i18n = NULL)
 }
 \arguments{
 \item{wpp_starting_year}{A reactive expression returning the starting year.}
@@ -12,6 +12,8 @@ handle_validity_checks(wpp_starting_year, wpp_ending_year, output)
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
 \item{output}{Internal parameter for `{shiny}`.}
+
+\item{i18n}{The internationalization object.}
 }
 \description{
 This function defines all validity checks on inputs to make

@@ -4,7 +4,7 @@
 \alias{create_un_projection_plot}
 \title{Create an Interactive Plot Based on Aging and Size Data}
 \usage{
-create_un_projection_plot(dt, end_year, name_mappings, percent_x = FALSE)
+create_un_projection_plot(dt, end_year, name_mappings, percent_x = FALSE, i18n)
 }
 \arguments{
 \item{dt}{A data frame with a 'year' column and other numeric columns where

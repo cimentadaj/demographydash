@@ -13,7 +13,8 @@ begin_forecast(
   wpp_ending_year,
   input,
   output,
-  simulation_results
+  simulation_results,
+  i18n
 )
 }
 \arguments{

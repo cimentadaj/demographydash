@@ -4,7 +4,7 @@
 \alias{create_mig_plot}
 \title{Create Migration Plot}
 \usage{
-create_mig_plot(dt, end_year, country)
+create_mig_plot(dt, end_year, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with migration data.}

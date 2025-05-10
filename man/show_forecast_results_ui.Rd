@@ -4,7 +4,7 @@
 \alias{show_forecast_results_ui}
 \title{Generate the UI for the page containing the results of the forecast.}
 \usage{
-show_forecast_results_ui(input)
+show_forecast_results_ui(input, i18n)
 }
 \arguments{
 \item{input}{Internal parameter for `{shiny}`}

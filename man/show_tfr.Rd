@@ -4,7 +4,7 @@
 \alias{show_tfr}
 \title{Show and compute the TFR page}
 \usage{
-show_tfr(reactive_tfr, wpp_ending_year, input, output)
+show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
 }
 \arguments{
 \item{reactive_tfr}{A reactive function returning the TFR data frame}

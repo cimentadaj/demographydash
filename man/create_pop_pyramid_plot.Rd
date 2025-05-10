@@ -4,7 +4,7 @@
 \alias{create_pop_pyramid_plot}
 \title{Create Population Pyramid Plot}
 \usage{
-create_pop_pyramid_plot(dt, country = NULL, input_year = NULL)
+create_pop_pyramid_plot(dt, country = NULL, input_year = NULL, i18n = NULL)
 }
 \arguments{
 \item{dt}{Data table with population data.}

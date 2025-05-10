@@ -4,7 +4,7 @@
 \alias{create_e0_plot}
 \title{Create e0 Plot}
 \usage{
-create_e0_plot(dt, end_year, country)
+create_e0_plot(dt, end_year, country, i18n = NULL)
 }
 \arguments{
 \item{dt}{Data table with life expectancy data.}

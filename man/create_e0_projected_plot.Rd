@@ -4,7 +4,7 @@
 \alias{create_e0_projected_plot}
 \title{Create Projected e0 Plot}
 \usage{
-create_e0_projected_plot(dt, input_sex, country)
+create_e0_projected_plot(dt, input_sex, country, i18n)
 }
 \arguments{
 \item{dt}{Data table with projected life expectancy data.}

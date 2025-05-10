@@ -4,7 +4,7 @@
 \alias{prepare_pop_agegroups_table}
 \title{Prepare Population Age Groups Table}
 \usage{
-prepare_pop_agegroups_table(wpp_dt)
+prepare_pop_agegroups_table(wpp_dt, i18n)
 }
 \arguments{
 \item{wpp_dt}{Data table with population data.}
