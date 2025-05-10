@@ -268,139 +268,73 @@ app_server <- function(input, output, session) {
   # dependency issue
   library(OPPPserver)
 
-  # Step 1: Create a reactiveVal to manage each file input state
-  file_input_pop <- reactiveVal(NULL)
-  file_input_tfr <- reactiveVal(NULL)
-  file_input_e0 <- reactiveVal(NULL)
-  file_input_mig <- reactiveVal(NULL)
+  # ReactiveVals to store data committed from modals
+  committed_pop_rv <- reactiveVal(NULL)
+  committed_tfr_rv <- reactiveVal(NULL)
+  committed_e0_rv  <- reactiveVal(NULL)
+  committed_mig_rv <- reactiveVal(NULL)
 
-  # Step 2: Observe changes to wpp_countries and reset each file input
+  # Observe changes to wpp_countries and reset committed data
   observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year), {
-    file_input_pop(NULL)
-    file_input_tfr(NULL)
-    file_input_e0(NULL)
-    file_input_mig(NULL)
+    committed_pop_rv(NULL)
+    committed_tfr_rv(NULL)
+    committed_e0_rv(NULL)
+    committed_mig_rv(NULL)
+    # Reset data_source if still relevant to distinguish default from committed
+    data_source$tfr <- "downloaded" # or "default"
+    data_source$e0  <- "downloaded" # or "default"
+    data_source$mig <- "downloaded" # or "default"
   })
 
-  # Modified observers using the new parser
-  observeEvent(input$upload_pop, {
-    result <- file_parser(input$upload_pop, "pop", i18n)
-    if (result$success) {
-      file_input_pop(input$upload_pop)
-    } else {
-      shinyalert(
-        title = i18n$t("Error"),
-        text = paste(i18n$translate("Population file validation failed:"), result$message),
-        type = "error"
-      )
-    }
-  })
-
-  observeEvent(input$upload_tfr, {
-    result <- file_parser(input$upload_tfr, "tfr", i18n)
-    if (result$success) {
-      file_input_tfr(input$upload_tfr)
-    } else {
-      shinyalert(
-        title = i18n$t("Error"),
-        text = paste(i18n$translate("TFR file validation failed:"), result$message),
-        type = "error"
-      )
-    }
-  })
-
-  observeEvent(input$upload_e0, {
-    result <- file_parser(input$upload_e0, "e0", i18n)
-    if (result$success) {
-      file_input_e0(input$upload_e0)
-    } else {
-      shinyalert(
-        title = i18n$t("Error"),
-        text = paste(i18n$translate("Life expectancy file validation failed:"), result$message),
-        type = "error"
-      )
-    }
-  })
-
-  observeEvent(input$upload_mig, {
-    result <- file_parser(input$upload_mig, "mig", i18n)
-    if (result$success) {
-      file_input_mig(input$upload_mig)
-    } else {
-      shinyalert(
-        title = i18n$translate("Error"),
-        text = paste(i18n$translate("Migration file validation failed:"), result$message),
-        type = "error"
-      )
-    }
-  })
-
-  # Step 4: Define the get_file_input function for each type of data
-  get_file_input_pop <- reactive({
-    file_input_pop()
-  })
-
-  get_file_input_tfr <- reactive({
-    file_input_tfr()
-  })
-
-  get_file_input_e0 <- reactive({
-    file_input_e0()
-  })
-
-  get_file_input_mig <- reactive({
-    file_input_mig()
-  })
-
-  # Step 5: Define the reactive functions using the specific get_file_input function
   reactive_pop <- reactive({
-    if (!is.null(get_file_input_pop())) {
-      res <- data.table(readr::read_csv(get_file_input_pop()$datapath))
-      names(res) <- c("age", "popF", "popM")
-    } else {
-      res <- get_wpp_pop(input$wpp_country, wpp_starting_year())
-    }
+    user_data <- committed_pop_rv()
+    if (!is.null(user_data)) {
 
-    res
+      names(user_data) <- c("age", "popF", "popM")
+      return(user_data)
+    } else {
+      # Fallback to default WPP data
+      return(get_wpp_pop(input$wpp_country, wpp_starting_year()))
+    }
   })
 
   reactive_tfr <- reactive({
-    if (!is.null(get_file_input_tfr())) {
-      res <- data.table(readr::read_csv(get_file_input_tfr()$datapath))
-      names(res) <- c("year", "tfr")
-      data_source$tfr <- "uploaded"
+    user_data <- committed_tfr_rv()
+    if (!is.null(user_data)) {
+      names(user_data) <- c("year", "tfr")
+      data_source$tfr <- "custom" # Indicate data is from modal commit
+      return(user_data)
     } else {
       res <- get_wpp_tfr(input$wpp_country)
-      data_source$tfr <- "downloaded"
+      data_source$tfr <- "downloaded" # Default WPP data
+      return(res)
     }
-
-    res
   })
 
   reactive_e0 <- reactive({
-    if (!is.null(get_file_input_e0())) {
-      res <- data.table(readr::read_csv(get_file_input_e0()$datapath))
-      names(res) <- c("year", "e0M", "e0F")
-      data_source$e0 <- "uploaded"
+    user_data <- committed_e0_rv()
+    if (!is.null(user_data)) {
+      names(user_data) <- c("year", "e0M", "e0F")
+      data_source$e0 <- "custom" # Indicate data is from modal commit
+      return(user_data)
     } else {
       res <- get_wpp_e0(input$wpp_country)
-      data_source$e0 <- "downloaded"
+      data_source$e0 <- "downloaded" # Default WPP data
+      return(res)
     }
-
-    res
   })
 
   reactive_mig <- reactive({
-    if (!is.null(get_file_input_mig())) {
-      res <- data.table(readr::read_csv(get_file_input_mig()$datapath))
-      names(res) <- c("year", "mig")
-      data_source$mig <- "uploaded"
+    user_data <- committed_mig_rv()
+    if (!is.null(user_data)) {
+      names(user_data) <- c("year", "mig")
+      data_source$mig <- "custom" # Indicate data is from modal commit
+      return(user_data)
     } else {
       res <- get_wpp_mig(input$wpp_country)
-      data_source$mig <- "downloaded"
+      data_source$mig <- "downloaded" # Default WPP data
+      return(res)
     }
-
-    res
   })
 
   # This is a very weird thing. If I use this in the title of the TFR customize
@@ -442,10 +376,14 @@ app_server <- function(input, output, session) {
 
   # Handle all customize actions
   handle_customize_data(
-    reactive_pop,
-    reactive_tfr,
-    reactive_e0,
-    reactive_mig,
+    current_pop_reactive = reactive_pop,
+    current_tfr_reactive = reactive_tfr,
+    current_e0_reactive = reactive_e0,
+    current_mig_reactive = reactive_mig,
+    pop_to_commit_rv = committed_pop_rv,
+    tfr_to_commit_rv = committed_tfr_rv,
+    e0_to_commit_rv = committed_e0_rv,
+    mig_to_commit_rv = committed_mig_rv,
     tfr_starting_year,
     wpp_starting_year,
     wpp_ending_year,

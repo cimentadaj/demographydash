@@ -201,21 +201,16 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
       div(
         class = "footer-container",
         div(
-          class = "file-input-container",
-          div(
-            style = "display: flex; align-items: center; gap: 5px;",
-            shiny.semantic::file_input(file_input_id, label = NULL, placeholder = if (!is.null(i18n)) i18n$t("Upload CSV file") else "Upload CSV file", width = "100%"),
-          )
-        ),
-        div(
           class = "button-container",
           div(
             style = "display: flex; gap: 5px",
-            shiny::downloadButton(download_button_id, if (!is.null(i18n)) i18n$t("Download") else "Download", class = "ui blue button")
+            shiny::downloadButton(download_button_id, if (!is.null(i18n)) i18n$t("Download") else "Download", class = "ui blue button"),
+            actionButton(paste0(modal_id, "_ok_btn"), if (!is.null(i18n)) i18n$t("Apply") else "Apply", class = "ui positive button")
           )
         ),
       ),
-      div(i18n$t("Uploaded data must match exactly the format, column names and ordering shown in the table above"), style = "color: #8B0000; font-weight: bold; font-size: 12px;")
+      br(),
+      div(i18n$t("Edit the table or paste your own data form an Excel sheet. Click on the 'Apply' button to save your changes."), style = "color: #8B0000; font-weight: bold; font-size: 12px;")
     ),
     class = "small"
   )
@@ -247,10 +242,14 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #'
 #' This function sets up the UI elements to display and customize population and total fertility rate (TFR) data. It renders data tables for population and TFR data and sets up modals for data customization.
 #'
-#' @param reactive_pop A reactive expression that returns the population data to be displayed.
-#' @param reactive_tfr A reactive expression that returns the TFR data to be displayed.
-#' @param reactive_e0 A reactive expression that returns the e0 data to be displayed.
-#' @param reactive_mig A reactive expression that returns the migration data to be displayed.
+#' @param current_pop_reactive A reactive expression that returns the population data to be displayed.
+#' @param current_tfr_reactive A reactive expression that returns the TFR data to be displayed.
+#' @param current_e0_reactive A reactive expression that returns the e0 data to be displayed.
+#' @param current_mig_reactive A reactive expression that returns the migration data to be displayed.
+#' @param pop_to_commit_rv A reactive value to commit the population data.
+#' @param tfr_to_commit_rv A reactive value to commit the TFR data.
+#' @param e0_to_commit_rv A reactive value to commit the e0 data.
+#' @param mig_to_commit_rv A reactive value to commit the migration data.
 #' @param tfr_starting_year A reactive expression returning the TFR starting year.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
@@ -265,7 +264,11 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @return None
 #' @export
 #'
-handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL) {
+handle_customize_data <- function(
+    current_pop_reactive, current_tfr_reactive, current_e0_reactive, current_mig_reactive,
+    pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
+    tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL
+) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
   observeEvent(input$customize_pop, {
@@ -289,7 +292,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   })
 
   output$tmp_pop_dt <- renderRHandsontable({
-    res <- reactive_pop()
+    res <- current_pop_reactive()
     names(res) <- c(
       i18n$t("Age"), 
       i18n$t("Female (in thousands)"), 
@@ -304,7 +307,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   })
 
   output$tmp_tfr_dt <- renderRHandsontable({
-    res <- reactive_tfr()
+    res <- current_tfr_reactive()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("TFR")
@@ -318,7 +321,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   })
 
   output$tmp_e0_dt <- renderRHandsontable({
-    res <- reactive_e0()
+    res <- current_e0_reactive()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Males"), 
@@ -333,7 +336,7 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
   })
 
   output$tmp_mig_dt <- renderRHandsontable({
-    res <- reactive_mig()
+    res <- current_mig_reactive()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Migration")
@@ -398,35 +401,33 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
     )
   })
 
-
-  data_uploaded_pop <- reactiveVal(NULL)
-  data_uploaded_tfr <- reactiveVal(NULL)
-  data_uploaded_e0 <- reactiveVal(NULL)
-  data_uploaded_mig <- reactiveVal(NULL)
-
-
-  observeEvent(input$upload_pop, {
-    req(input$upload_pop)
-    data_uploaded_pop(TRUE)
-    reactive_pop()
+  # ADD observeEvent blocks for the new "Ok" buttons
+  observeEvent(input$modal_population_ok_btn, {
+    req(input$tmp_pop_dt)
+    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_pop_dt)
+    pop_to_commit_rv(current_data_from_table)
+    shiny.semantic::hide_modal("modal_population")
   })
 
-  observeEvent(input$upload_tfr, {
-    req(input$upload_tfr)
-    data_uploaded_tfr(TRUE)
-    reactive_tfr()
+  observeEvent(input$modal_tfr_ok_btn, {
+    req(input$tmp_tfr_dt)
+    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_tfr_dt)
+    tfr_to_commit_rv(current_data_from_table)
+    shiny.semantic::hide_modal("modal_tfr")
   })
 
-  observeEvent(input$upload_e0, {
-    req(input$upload_e0)
-    data_uploaded_e0(TRUE)
-    reactive_e0()
+  observeEvent(input$modal_e0_ok_btn, {
+    req(input$tmp_e0_dt)
+    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_e0_dt)
+    e0_to_commit_rv(current_data_from_table)
+    shiny.semantic::hide_modal("modal_e0")
   })
 
-  observeEvent(input$upload_mig, {
-    req(input$upload_mig)
-    data_uploaded_mig(TRUE)
-    reactive_mig()
+  observeEvent(input$modal_mig_ok_btn, {
+    req(input$tmp_mig_dt)
+    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_mig_dt)
+    mig_to_commit_rv(current_data_from_table)
+    shiny.semantic::hide_modal("modal_mig")
   })
 
   cnt_years <-
@@ -451,22 +452,22 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
 
   output$download_pop <- shiny::downloadHandler(
     filename = function() paste0("population_", cnt_years(), ".csv"),
-    content = function(file) write.csv(reactive_pop(), file, row.names = FALSE)
+    content = function(file) write.csv(current_pop_reactive(), file, row.names = FALSE)
   )
 
   output$download_tfr <- shiny::downloadHandler(
     filename = function() paste0("tfr_", tfr_years(), ".csv"),
-    content = function(file) write.csv(reactive_tfr(), file, row.names = FALSE)
+    content = function(file) write.csv(current_tfr_reactive(), file, row.names = FALSE)
   )
 
   output$download_e0 <- shiny::downloadHandler(
     filename = function() paste0("e0_", tfr_years(), ".csv"),
-    content = function(file) write.csv(reactive_e0(), file, row.names = FALSE)
+    content = function(file) write.csv(current_e0_reactive(), file, row.names = FALSE)
   )
 
   output$download_mig <- shiny::downloadHandler(
     filename = function() paste0("mig_", tfr_years(), ".csv"),
-    content = function(file) write.csv(reactive_mig(), file, row.names = FALSE)
+    content = function(file) write.csv(current_mig_reactive(), file, row.names = FALSE)
   )
 }
 

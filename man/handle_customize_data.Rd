@@ -5,10 +5,14 @@
 \title{Handles Customization of Data in the App}
 \usage{
 handle_customize_data(
-  reactive_pop,
-  reactive_tfr,
-  reactive_e0,
-  reactive_mig,
+  current_pop_reactive,
+  current_tfr_reactive,
+  current_e0_reactive,
+  current_mig_reactive,
+  pop_to_commit_rv,
+  tfr_to_commit_rv,
+  e0_to_commit_rv,
+  mig_to_commit_rv,
   tfr_starting_year,
   wpp_starting_year,
   wpp_ending_year,
@@ -19,13 +23,21 @@ handle_customize_data(
 )
 }
 \arguments{
-\item{reactive_pop}{A reactive expression that returns the population data to be displayed.}
+\item{current_pop_reactive}{A reactive expression that returns the population data to be displayed.}
 
-\item{reactive_tfr}{A reactive expression that returns the TFR data to be displayed.}
+\item{current_tfr_reactive}{A reactive expression that returns the TFR data to be displayed.}
 
-\item{reactive_e0}{A reactive expression that returns the e0 data to be displayed.}
+\item{current_e0_reactive}{A reactive expression that returns the e0 data to be displayed.}
 
-\item{reactive_mig}{A reactive expression that returns the migration data to be displayed.}
+\item{current_mig_reactive}{A reactive expression that returns the migration data to be displayed.}
+
+\item{pop_to_commit_rv}{A reactive value to commit the population data.}
+
+\item{tfr_to_commit_rv}{A reactive value to commit the TFR data.}
+
+\item{e0_to_commit_rv}{A reactive value to commit the e0 data.}
+
+\item{mig_to_commit_rv}{A reactive value to commit the migration data.}
 
 \item{tfr_starting_year}{A reactive expression returning the TFR starting year.}
 
