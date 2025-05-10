@@ -115,7 +115,7 @@ create_landing_page <- function(i18n) {
 #' @param input,output Internal parameters for `{shiny}.
 #' @param i18n The internationalization object.
 #'
-#' @importFrom DT renderDataTable
+#' @importFrom DT renderDT
 #' @importFrom plotly ggplotly renderPlotly
 #' @export
 #'
@@ -181,7 +181,7 @@ handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0
 #'
 #' @return A modal UI element.
 #'
-#' @importFrom DT DTOutput
+#' @importFrom rhandsontable rHandsontableOutput
 #' @importFrom shiny.semantic fileInput modal
 #' @export
 #'
@@ -196,7 +196,7 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
       ),
       additional_header,
     ),
-    DTOutput(output_id),
+    rHandsontableOutput(output_id),
     footer = div(
       div(
         class = "footer-container",
@@ -260,7 +260,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #'
 #' @importFrom shiny renderUI div br
 #' @importFrom shiny.semantic fileInput action_button modal
-#' @importFrom DT datatable renderDT DTOutput
+#' @importFrom rhandsontable renderRHandsontable rhandsontable rHandsontableOutput
 #'
 #' @return None
 #' @export
@@ -288,61 +288,61 @@ handle_customize_data <- function(reactive_pop, reactive_tfr, reactive_e0, react
     current_tab("modal_mig")
   })
 
-  dt_options <- list(
-    paging = FALSE,
-    searching = FALSE,
-    lengthChange = FALSE,
-    scrollY = "400px", # Enable vertical scrolling, adjust "400px" as needed
-    dom = "lfrtp"
-  )
-
-  output$tmp_pop_dt <- renderDT({
+  output$tmp_pop_dt <- renderRHandsontable({
     res <- reactive_pop()
     names(res) <- c(
       i18n$t("Age"), 
       i18n$t("Female (in thousands)"), 
       i18n$t("Male (in thousands)")
     )
-    datatable(
+    rhandsontable(
       res,
-      options = dt_options
+      useTypes = TRUE,
+      stretchH = "all",
+      height = 400
     )
   })
 
-  output$tmp_tfr_dt <- renderDT({
+  output$tmp_tfr_dt <- renderRHandsontable({
     res <- reactive_tfr()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("TFR")
     )
-    datatable(
+    rhandsontable(
       res,
-      options = dt_options
+      useTypes = TRUE,
+      stretchH = "all",
+      height = 400
     )
   })
 
-  output$tmp_e0_dt <- renderDT({
+  output$tmp_e0_dt <- renderRHandsontable({
     res <- reactive_e0()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Males"), 
       i18n$t("Females")
     )
-    datatable(
+    rhandsontable(
       res,
-      options = dt_options
+      useTypes = TRUE,
+      stretchH = "all",
+      height = 400
     )
   })
 
-  output$tmp_mig_dt <- renderDT({
+  output$tmp_mig_dt <- renderRHandsontable({
     res <- reactive_mig()
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Migration")
     )
-    datatable(
+    rhandsontable(
       res,
-      options = dt_options
+      useTypes = TRUE,
+      stretchH = "all",
+      height = 400
     )
   })
 
