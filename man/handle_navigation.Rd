@@ -5,6 +5,7 @@
 \title{Handle Navigation Between Steps}
 \usage{
 handle_navigation(
+  simulation_results,
   reactive_pop,
   reactive_tfr,
   reactive_e0,
@@ -18,6 +19,8 @@ handle_navigation(
 )
 }
 \arguments{
+\item{simulation_results}{A reactive expression returning the simulation results.}
+
 \item{reactive_pop}{A reactive expression that returns the population data to be displayed.}
 
 \item{reactive_tfr}{A reactive expression that returns the TFR data to be displayed.}

@@ -258,7 +258,8 @@ app_ui <- function(request) {
               uiOutput("forecast_help_ui")
             ),
             div(
-              style = "margin-left: auto;",
+              style = "margin-left: auto; display: flex; gap: 10px; align-items: center;",
+              action_button("download_report", i18n$translate("Download Report"), class = "ui blue button"),
               uiOutput("main_analysis_hover")
             )
           ),

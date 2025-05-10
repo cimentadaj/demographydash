@@ -73,7 +73,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     )
   })
 
-
   output$forecast_help_ui <- renderUI({
     action_button("forecast_help", i18n$t("Instructions"), class = "ui blue button")
   })
@@ -505,6 +504,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     plots_tabset(input, output, selected_id, selected_plot)
   })
   ##### Finish plotting in tabs #####
+
+  return(simulation_results())
 }
 
 

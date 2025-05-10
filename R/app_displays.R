@@ -813,7 +813,7 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous scale_color_manual
 #' @importFrom data.table melt
-#' @importFrom plotly ggplotly layout
+#' @importFrom plotly ggplotly
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -1611,4 +1611,199 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
     gg = plt,
     plotly = config(plt_visible, displayModeBar = FALSE)
   )
+}
+
+#' Create All Report Plots
+#'
+#' This function generates non-reactive versions of all plots that appear in the forecast page.
+#' It takes the necessary inputs and creates each plot, then returns them as a named list.
+#'
+#' @param simulation_results List containing all forecast results data
+#' @param country String containing the country name
+#' @param start_year Numeric value for the projection start year
+#' @param end_year Numeric value for the projection end year
+#' @param pop_year Numeric value for the population pyramid year to display
+#' @param age_group String indicating the age group for population over time plot
+#' @param sex String indicating the sex for life expectancy plot ("Total", "Male", or "Female")
+#' @param pop_display_type String for population display type ("Percent" or "Absolute")
+#' @param death_birth_type String for death/birth display ("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")
+#' @param dependency_type String for dependency ratio type ("yadr" or "oadr")
+#' @param i18n The internationalization object
+#'
+#' @return A named list containing all generated plots
+#' @export
+#'
+create_all_report_plots <- function(
+    simulation_results,
+    country,
+    start_year,
+    end_year,
+    pop_year = start_year + 1,
+    age_group = NULL,
+    sex = "Total",
+    pop_display_type = "Absolute",
+    death_birth_type = "Birth Counts",
+    dependency_type = "oadr",
+    i18n = NULL
+) {
+  # Initialize an empty list to store all plots
+  plot_list <- list()
+  
+
+  # 1. Population Pyramid
+  plot_list$pyramid_plot <- create_pop_pyramid_plot(
+    simulation_results$population_by_age_and_sex,
+    country = country,
+    input_year = pop_year,
+    i18n = i18n
+  )
+  
+  # 2. Population by Broad Age Groups
+  plot_list$age_group_plot <- create_age_group_plot(
+    simulation_results$population_by_broad_age_group,
+    pop_display_type,
+    country,
+    i18n
+  )
+  
+  # 3. Population Over Time by Age Group
+  if (!is.null(age_group)) {
+    plot_list$pop_time_plot <- create_pop_time_plot(
+      simulation_results$population_by_time,
+      age_group,
+      country,
+      i18n
+    )
+  }
+  
+  # 4. Projected Total Fertility Rate
+  plot_list$tfr_projected_plot <- create_tfr_projected_plot(
+    simulation_results$tfr_by_time,
+    end_year,
+    country,
+    i18n
+  )
+  
+  # 5. Annual Growth Plot
+  plot_list$annual_growth_plot <- create_annual_growth_plot(
+    simulation_results$annual_growth_rate,
+    end_year,
+    country,
+    i18n
+  )
+  
+  # 6. Deaths and Births Plot
+  # Parse death_birth_type to get type and counts/rates
+  type_value <- tolower(strsplit(death_birth_type, " ")[[1]])
+  plot_list$deaths_births_plot <- create_deaths_births_plot(
+    simulation_results$births_counts_rates,
+    simulation_results$deaths_counts_rates,
+    type_value[1],
+    type_value[2],
+    end_year,
+    country,
+    i18n
+  )
+  
+  # 7. YADR and OADR Plot
+  plot_list$yadr_oadr_plot <- create_yadr_oadr_plot(
+    simulation_results$oadr,
+    simulation_results$yadr,
+    tolower(dependency_type),
+    end_year,
+    country,
+    i18n
+  )
+  
+  # 8. Population Size and Aging Plot
+  dt <- simulation_results$pop_aging_and_pop_size
+  max_year <- max(dt$year)
+  min_year <- min(dt$year)
+  plt_title <- paste0(
+    "Population size and percent of population 65+",
+    ": ",
+    country,
+    ", ",
+    min_year,
+    "-",
+    max_year
+  )
+  
+  plot_list$pop_size_aging_plot <- create_un_projection_plot(
+    dt,
+    end_year,
+    c(
+      "pop" = "Population",
+      "percent65" = "% of population 65+",
+      "title" = plt_title
+    ),
+    percent_x = TRUE,
+    i18n = i18n
+  )
+  
+  # 9. CDR and Life Expectancy Plot
+  dt <- simulation_results$cdr_by_e0
+  max_year <- max(dt$year)
+  min_year <- min(dt$year)
+  plt_title <- paste0(
+    "Crude death rate and life expectancy at birth: ",
+    country,
+    ", ",
+    min_year,
+    "-",
+    max_year
+  )
+  
+  plot_list$e0_by_cdr_plot <- create_un_projection_plot(
+    dt,
+    end_year,
+    c(
+      "cdr" = "Crude Death Rate",
+      "e0" = "Life Expectancy",
+      "title" = plt_title
+    ),
+    i18n = i18n
+  )
+  
+  # 10. CBR and TFR Plot
+  dt <- simulation_results$cbr_by_tfr
+  max_year <- max(dt$year)
+  min_year <- min(dt$year)
+  plt_title <- paste0(
+    "Crude birth rate and total fertility rate: ",
+    country,
+    ", ",
+    min_year,
+    "-",
+    max_year
+  )
+  
+  plot_list$tfr_by_cdr_plot <- create_un_projection_plot(
+    dt,
+    end_year,
+    c(
+      "cbr" = "Crude Birth Rate",
+      "tfr" = "Total Fertility Rate",
+      "title" = plt_title
+    ),
+    i18n = i18n
+  )
+  
+  # 11. Life Expectancy Over Time Plot
+  plot_list$e0_by_time_plot <- create_e0_projected_plot(
+    simulation_results$e0_by_time,
+    sex,
+    country,
+    i18n
+  )
+  
+  # 12. Projected Net Migration Plot
+  plot_list$mig_by_time_plot <- create_mig_projected_plot(
+    simulation_results$mig_by_time,
+    end_year,
+    country,
+    i18n
+  )
+  
+  return(plot_list)
 }

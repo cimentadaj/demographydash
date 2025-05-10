@@ -134,6 +134,9 @@ app_server <- function(input, output, session) {
   # At the top with other reactives
   selected_tab_index <- reactiveVal(1)  # Start with first tab
 
+  # Define a reactiveVal to store simulation results
+  simulation_results <- reactiveVal()
+
   # Add a reactive expression to track the current tab
   current_tab_name <- reactive({
     # Return the current tab name in the current language
@@ -196,8 +199,6 @@ app_server <- function(input, output, session) {
     "www",
     app_sys("app/www")
   )
-
-
 
   # Some functions need the years in number. Coerce them from
   # the beginning and  use from these reactive expressions
@@ -362,6 +363,7 @@ app_server <- function(input, output, session) {
 
   # Handle navigation between steps
   handle_navigation(
+    simulation_results,
     reactive_pop,
     reactive_tfr,
     reactive_e0,
@@ -401,9 +403,7 @@ app_server <- function(input, output, session) {
   observeEvent(input$begin, {
     hide("mig_page")
     show("forecast_page")
-
-    # Define a reactiveVal to store simulation results
-    simulation_results <- reactiveVal()
+    current_tab("forecast_page") # Assuming current_tab is defined in server
 
     # Begin forecast. This can take a up to a minute of calculation
     begin_forecast(
@@ -419,8 +419,19 @@ app_server <- function(input, output, session) {
       i18n = i18n
     )
 
-
   })
+
+  observeEvent(input$download_report, {
+    handle_report_download(
+      simulation_results = simulation_results,
+      wpp_starting_year =  wpp_starting_year,
+      wpp_ending_year = wpp_ending_year,
+      input = input,
+      output = output,
+      i18n = i18n
+    )
+  })
+
 }
 
 #' Create a translator object for internationalization
@@ -437,137 +448,3 @@ usei18n_local <- function() {
   i18n$set_translation_language("en")
   i18n
 }
-
-
-
-
-## library(rintrojs)
-## library(shiny)
-## library(shiny.semantic)
-
-## # Define UI for application that draws a histogram
-## ui <- semanticPage(
-##   introjsUI(),
-
-##   # Application title
-##   introBox(
-##     titlePanel("Old Faithful Geyser Data"),
-##     data.step = 1,
-##     data.intro = "This is the title panel"
-##   ),
-
-##   # Sidebar with a slider input for number of bins
-##   sidebarLayout(
-##     sidebarPanel(
-##       introBox(
-##         introBox(
-##           shiny.semantic::slider_input(
-##             "bins",
-##             value = 30,
-##             min = 1,
-##             max = 50,
-##           ),
-##           data.step = 3,
-##           data.intro = "This is a slider"
-##         ),
-##         introBox(
-##           actionButton("help", "Press for instructions"),
-##           data.step = 4,
-##           data.intro = "This is a button"
-##         ),
-##         data.step = 2,
-##         data.intro = "This is the sidebar. Look how intro elements can nest"
-##       )
-##     ),
-
-##     # Show a plot of the generated distribution
-##     mainPanel(
-##       introBox(
-##         plotOutput("distPlot"),
-##         data.step = 5,
-##         data.intro = "This is the main plot"
-##       )
-##     )
-##   )
-## )
-
-## # Define server logic required to draw a histogram
-## server <- function(input, output, session) {
-##   output$distPlot <- renderPlot({
-##     # generate bins based on input$bins from ui.R
-##     x <- faithful[, 2]
-##     bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-
-##     # draw the histogram with the specified number of bins
-##     hist(x,
-##       breaks = bins,
-##       col = "darkgray",
-##       border = "white"
-##     )
-##   })
-
-##   # start introjs when button is pressed with custom options and events
-##   observeEvent(
-##     input$help,
-##     introjs(
-##       session,
-##       options = list(
-##         "nextLabel" = "Onwards and Upwards",
-##         "prevLabel" = "Did you forget something?",
-##         "skipLabel" = "Don't be a quitter"
-##       )
-##     )
-##   )
-## }
-
-## # Run the application
-## shinyApp(ui = ui, server = server)
-
-## create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, download_button_id, hide_button_id, additional_header = NULL) {
-##   modal(
-##     id = modal_id,
-##     header = div(
-##       div(
-##         style = "display: flex; justify-content: space-between;",
-##         header_title,
-##         action_button("customize_help", "Instructions", class = "ui red button")
-##       ),
-##       additional_header,
-##     ),
-##     introBox(
-##       DTOutput(output_id),
-##       data.step = 4,
-##       data.intro = "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."
-##     ),
-##     footer = div(
-##       div(
-##         class = "footer-container",
-##         div(
-##           class = "file-input-container",
-##           div(
-##             style = "display: flex; align-items: center; gap: 5px;",
-##             introBox(
-##               shiny.semantic::fileInput(file_input_id, label = NULL, placeholder = "Upload CSV file", width = "100%"),
-##               data.step = 5,
-##               data.intro = "Finally, when your data is ready, click here to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values."
-##             )
-##           )
-##         ),
-##         div(
-##           class = "button-container",
-##           div(
-##             style = "display: flex; gap: 5px",
-##             introBox(
-##               shiny::downloadButton(download_button_id, "Download", class = "ui blue button"),
-##               data.step = {,
-##               data.intro = "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."
-##             )
-##           )
-##         ),
-##       ),
-##       div("Uploaded data must match exactly the format, column names and ordering shown in the table above", style = "color: #8B0000; font-weight: bold; font-size: 12px;")
-##     ),
-##     class = "small"
-##   )
-## }
