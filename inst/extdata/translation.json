@@ -695,8 +695,8 @@
         "fr": "Si vous souhaitez télécharger vos propres données, une bonne stratégie consiste à télécharger les données actuelles et à les adapter à vos besoins. De cette façon, vous pouvez conserver le format attendu et n'ajouter que vos propres valeurs."
       },
       {
-        "en": "Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.",
-        "fr": "Enfin, lorsque vos données sont prêtes, cliquez sur le bouton 'Parcourir' pour télécharger votre fichier CSV. Nous attendons un fichier CSV formaté exactement comme le tableau ci-dessus. Une fois téléchargé, le tableau devrait se mettre à jour avec vos nouvelles valeurs."
+        "en": "Finally, when your data is ready, click on the 'Browse...' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.",
+        "fr": "Enfin, lorsque vos données sont prêtes, cliquez sur le bouton 'Parcourir...' pour télécharger votre fichier CSV. Nous attendons un fichier CSV formaté exactement comme le tableau ci-dessus. Une fois téléchargé, le tableau devrait se mettre à jour avec vos nouvelles valeurs."
       },
       {
         "en": "Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes.",
@@ -1173,6 +1173,130 @@
       {
         "en": "Deaths per 1,000 population",
         "fr": "Décès pour 1 000 habitants"
+      },
+      {
+        "en": "text",
+        "fr": "text"
+      },
+      {
+        "en": "Executive Summary",
+        "fr": "Résumé exécutif"
+      },
+      {
+        "en": "Projection Visualizations",
+        "fr": "Visualisations de la projection"
+      },
+      {
+        "en": "Pyramid Plot",
+        "fr": "Pyramide des âges"
+      },
+      {
+        "en": "Age Group Plot",
+        "fr": "Graphique par groupe d'âge"
+      },
+      {
+        "en": "Pop Time Plot",
+        "fr": "Graphique de la population par année"
+      },
+      {
+        "en": "Tfr Projected Plot",
+        "fr": "Graphique de l'indice synthétique de fécondité projeté"
+      },
+      {
+        "en": "Annual Growth Plot",
+        "fr": "Graphique de la croissance annuelle"
+      },
+      {
+        "en": "Deaths Births Plot",
+        "fr": "Graphique des décès et naissances"
+      },
+      {
+        "en": "Yadr Oadr Plot",
+        "fr": "Graphique du ratio de dépendance des jeunes et des personnes âgées"
+      },
+      {
+        "en": "Pop Size Aging Plot",
+        "fr": "Graphique de la taille de la population et de l'âge"
+      },
+      {
+        "en": "E0 by Cdr Plot",
+        "fr": "Graphique de l'espérance de vie à la naissance par taux de mortalité"
+      },
+      {
+        "en": "Tfr by Cdr Plot",
+        "fr": "Graphique de l'indice synthétique de fécondité par taux de mortalité"
+      },
+      {
+        "en": "E0 by Time Plot",
+        "fr": "Graphique de l'espérance de vie à la naissance par année"
+      },
+      {
+        "en": "Mig by Time Plot",
+        "fr": "Graphique de la migration par année"
+      },
+      {
+        "en": "Report downloaded successfully!",
+        "fr": "Le rapport a été téléchargé avec succès!"
+      },
+      {
+        "en": "Generating report... Please wait.",
+        "fr": "Génération du rapport... Veuillez patienter."
+      },
+      {
+        "en": "Demographic Projection Report: ",
+        "fr": "Rapport de projection démographique: "
+      },
+      {
+        "en": "This report presents a demographic projection for",
+        "fr": "Ce rapport présente une projection démographique pour"
+      },
+      {
+        "en": "including various visualizations of key indicators.",
+        "fr": "incluant diverses visualisations des indicateurs clés."
+      },
+      {
+        "en": "No plots available to display.",
+        "fr": "Aucun graphique disponible à afficher."
+      },
+      {
+        "en": "Pop Age Group Absolute",
+        "fr": "Population par Groupe d'Âge (Absolu)"
+      },
+      {
+        "en": "Pop Age Group Percent",
+        "fr": "Population par Groupe d'Âge (Pourcentage)"
+      },
+      {
+        "en": "Oadr Ratio",
+        "fr": "Ratio de Dépendance des Personnes Âgées"
+      },
+      {
+        "en": "Yadr Ratio",
+        "fr": "Ratio de Dépendance des Jeunes"
+      },
+      {
+        "en": "Cdr E0 Scatter",
+        "fr": "Dispersion: Taux Brut de Mortalité et Espérance de Vie"
+      },
+      {
+        "en": "Cbr Tfr Scatter",
+        "fr": "Dispersion: Taux Brut de Natalité et Indice Synthétique de Fécondité"
+      },
+      {
+        "en": "E0 Time Total",
+        "fr": "Espérance de Vie (Total) par Année"
+      },
+      {
+        "en": "E0 Time Male",
+        "fr": "Espérance de Vie (Hommes) par Année"
+      },
+      {
+        "en": "E0 Time Female",
+        "fr": "Espérance de Vie (Femmes) par Année"
+      },
+      {
+        "en": "Mig Projected Time",
+        "fr": "Migration Nette Projetée par Année"
       }
     ]
 }

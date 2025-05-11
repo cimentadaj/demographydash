@@ -11,10 +11,6 @@ create_all_report_plots(
   end_year,
   pop_year = start_year + 1,
   age_group = NULL,
-  sex = "Total",
-  pop_display_type = "Absolute",
-  death_birth_type = "Birth Counts",
-  dependency_type = "oadr",
   i18n = NULL
 )
 }
@@ -31,6 +27,8 @@ create_all_report_plots(
 
 \item{age_group}{String indicating the age group for population over time plot}
 
+\item{i18n}{The internationalization object}
+
 \item{sex}{String indicating the sex for life expectancy plot ("Total", "Male", or "Female")}
 
 \item{pop_display_type}{String for population display type ("Percent" or "Absolute")}
@@ -38,8 +36,6 @@ create_all_report_plots(
 \item{death_birth_type}{String for death/birth display ("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")}
 
 \item{dependency_type}{String for dependency ratio type ("yadr" or "oadr")}
-
-\item{i18n}{The internationalization object}
 }
 \value{
 A named list containing all generated plots

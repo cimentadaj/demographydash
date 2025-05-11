@@ -743,29 +743,73 @@ handle_misc <- function(wpp_starting_year, wpp_ending_year, input, output, i18n 
 #' @export
 #'
 handle_report_download <- function(simulation_results, wpp_starting_year, wpp_ending_year, input, output, i18n = NULL) {
-  # Get the forecast results and ensure they exist
-  req(simulation_results())
-  results <- simulation_results()
-  
-  # Try to determine available age groups and selected values
-  # Get available age groups
-  age_groups <- unique(results$population_by_time$age)
-  selected_age <- if(!is.null(input$age_pop_time)) input$age_pop_time else age_groups[1]
+  observeEvent(input$download_report, {
+    showNotification(i18n$t("Generating report... Please wait."), type = "message", duration = NULL, id = "report-gen-notification")
+    
+    req(simulation_results()) # Ensure simulation results are available
+    results <- simulation_results()
+    
+    if (is.null(results)) {
+      removeNotification("report-gen-notification")
+      showNotification(i18n$t("Please run the projection first to generate a report."), type = "error", duration = 7)
+      return()
+    }
+    
+    # Determine current selections for plot generation
+    current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else (wpp_starting_year() + 1)
+    current_age_group <- if (!is.null(input$age_pop_time) && length(unique(results$population_by_time$age)) > 0) input$age_pop_time else unique(results$population_by_time$age)[1]
+    current_sex <- if (!is.null(input$sex_e0_time)) input$sex_e0_time else "Total"
+    current_pop_display <- if (!is.null(input$radio_population_by_broad_age_group)) input$radio_population_by_broad_age_group else "Absolute"
+    current_death_birth <- if (!is.null(input$radio_death_births)) input$radio_death_births else "Birth Counts"
+    current_dependency <- if (!is.null(input$radio_yadr_oadr)) input$radio_yadr_oadr else "oadr"
 
-  # Create all plots using the non-reactive function
-  plots <- create_all_report_plots(
-    simulation_results = results,
-    country = input$wpp_country,
-    start_year = wpp_starting_year(),
-    end_year = wpp_ending_year(),
-    pop_year = if(!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else wpp_starting_year() + 1,
-    age_group = selected_age,
-    sex = if(!is.null(input$sex_e0_time)) input$sex_e0_time else "Total",
-    pop_display_type = if(!is.null(input$radio_population_by_broad_age_group)) input$radio_population_by_broad_age_group else "Absolute",
-    death_birth_type = if(!is.null(input$radio_death_births)) input$radio_death_births else "Birth Counts",
-    dependency_type = if(!is.null(input$radio_yadr_oadr)) input$radio_yadr_oadr else "oadr",
-    i18n = i18n
-  )
+    # Generate all plots non-reactively
+    plots <- tryCatch({
+      create_all_report_plots(
+        simulation_results = results,
+        country = input$wpp_country,
+        start_year = wpp_starting_year(),
+        end_year = wpp_ending_year(),
+        pop_year = current_pop_year,
+        age_group = current_age_group,
+        sex = current_sex,
+        pop_display_type = current_pop_display,
+        death_birth_type = current_death_birth,
+        dependency_type = current_dependency,
+        i18n = i18n
+      )
+    }, error = function(e) {
+      removeNotification("report-gen-notification")
+      showNotification(paste(i18n$t("Error generating plots for report:"), e$message), type = "error", duration = 10)
+      return(NULL)
+    })
 
-  browser()
+    if (is.null(plots)) return()
+
+    # Generate the PDF report
+    pdf_file_path <- tryCatch({
+      generate_demography_report(
+        plot_list = plots,
+        country = input$wpp_country,
+        start_year = wpp_starting_year(),
+        end_year = wpp_ending_year(),
+        i18n = i18n
+      )
+    }, error = function(e) {
+      removeNotification("report-gen-notification")
+      showNotification(paste(i18n$t("Error creating PDF report:"), e$message), type = "error", duration = 10)
+      return(NULL)
+    })
+
+    removeNotification("report-gen-notification")
+    if (!is.null(pdf_file_path) && file.exists(pdf_file_path)) {
+      showNotification(i18n$t("Report generated successfully!"), type = "message", duration = 5)
+      utils::browseURL(pdf_file_path) # Open the PDF in browser
+      print(paste("Report saved to:", pdf_file_path)) # Also print path to console
+    } else {
+      if(!is.null(pdf_file_path)) { # only show if pdf_file_path was set but file does not exist
+          showNotification(i18n$t("Report generation failed. PDF file not found."), type = "error", duration = 7)
+      }
+    }
+  })
 }

@@ -363,17 +363,17 @@ app_server <- function(input, output, session) {
 
   # Handle navigation between steps
   handle_navigation(
-    simulation_results,
-    reactive_pop,
-    reactive_tfr,
-    reactive_e0,
-    reactive_mig,
-    wpp_starting_year,
-    wpp_ending_year,
-    current_tab,
-    input,
-    output,
-    i18n
+    simulation_results = simulation_results,
+    reactive_pop = reactive_pop,
+    reactive_tfr = reactive_tfr,
+    reactive_e0 = reactive_e0,
+    reactive_mig = reactive_mig,
+    wpp_starting_year = wpp_starting_year,
+    wpp_ending_year = wpp_ending_year,
+    current_tab = current_tab,
+    input = input,
+    output = output,
+    i18n = i18n
   )
 
   # Handle all customize actions
@@ -421,16 +421,83 @@ app_server <- function(input, output, session) {
 
   })
 
-  observeEvent(input$download_report, {
-    handle_report_download(
-      simulation_results = simulation_results,
-      wpp_starting_year =  wpp_starting_year,
-      wpp_ending_year = wpp_ending_year,
-      input = input,
-      output = output,
-      i18n = i18n
-    )
-  })
+  # Download handler for the report
+  output$download_report <- downloadHandler(
+    filename = function() {
+      paste0(
+        "demographic_projection_report_",
+        gsub(" ", "_", input$wpp_country),
+        "_",
+        wpp_starting_year(),
+        "-",
+        wpp_ending_year(),
+        ".pdf"
+      )
+    },
+    content = function(file) {
+      showNotification(i18n$t("Generating report... Please wait."), type = "message", duration = NULL, id = "report-gen-notification")
+
+      req(simulation_results()) # Ensure simulation results are available
+      results <- simulation_results()
+
+      if (is.null(results)) {
+        removeNotification("report-gen-notification")
+        showNotification(i18n$t("Please run the projection first to generate a report."), type = "error", duration = 7)
+        return(NULL) # Stop execution if results are not available
+      }
+
+      # Determine current selections for plot generation
+      current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else (wpp_starting_year() + 1)
+      current_age_group <- if (!is.null(input$age_pop_time) && length(unique(results$population_by_time$age)) > 0) input$age_pop_time else unique(results$population_by_time$age)[1]
+
+      # Generate all plots non-reactively
+      plots <- tryCatch({
+        create_all_report_plots(
+          simulation_results = results,
+          country = input$wpp_country,
+          start_year = wpp_starting_year(),
+          end_year = wpp_ending_year(),
+          pop_year = current_pop_year,
+          age_group = current_age_group,
+          i18n = i18n
+        )
+      }, error = function(e) {
+        removeNotification("report-gen-notification")
+        showNotification(paste(i18n$t("Error generating plots for report:"), e$message), type = "error", duration = 10)
+        return(NULL)
+      })
+
+      if (is.null(plots)) {
+        removeNotification("report-gen-notification") # Ensure notification is removed if plot generation fails
+        return(NULL)
+      }
+
+      # Generate the PDF report
+      pdf_file_path <- tryCatch({
+        generate_demography_report(
+          plot_list = plots,
+          country = input$wpp_country,
+          start_year = wpp_starting_year(),
+          end_year = wpp_ending_year(),
+          i18n = i18n
+        )
+      }, error = function(e) {
+        removeNotification("report-gen-notification")
+        showNotification(paste(i18n$t("Error creating PDF report:"), e$message), type = "error", duration = 10)
+        return(NULL)
+      })
+
+      removeNotification("report-gen-notification")
+      if (!is.null(pdf_file_path) && file.exists(pdf_file_path)) {
+        file.copy(pdf_file_path, file, overwrite = TRUE)
+        showNotification(i18n$t("Report downloaded successfully!"), type = "message", duration = 5)
+        # utils::browseURL(pdf_file_path) # No longer needed, browser handles download
+      } else {
+        # If pdf_file_path is NULL (error during generation) or file doesn't exist
+        showNotification(i18n$t("Report generation failed. PDF could not be created or found."), type = "error", duration = 7)
+      }
+    }
+  )
 
 }
 
