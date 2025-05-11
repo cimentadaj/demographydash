@@ -1297,6 +1297,10 @@
       {
         "en": "Mig Projected Time",
         "fr": "Migration Nette Projetée par Année"
+      },
+      {
+        "en": "Download Report",
+        "fr": "Télécharger le rapport"
       }
     ]
 }
