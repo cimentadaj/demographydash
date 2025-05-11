@@ -55,7 +55,7 @@ echo
 echo "--- Installing R package using devtools ---"
 # Using options to potentially speed up install and make it quieter.
 # Ensure R and devtools are correctly set up for \$SSH_USER on the server.
-R -e "options(Ncpus = \$(nproc)); pak::pak('terra'); pak::pak()"
+R -e "options(Ncpus = \$(nproc)); pak::pak()"
 echo
 
 echo "--- Restarting Shiny server (${SHINY_SERVICE_NAME}) via systemctl ---"
