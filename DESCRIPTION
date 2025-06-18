@@ -17,6 +17,7 @@ Imports:
     magrittr,
     OPPPserver (>= 0.0.6.9006),
     plotly,
+    rhandsontable,
     rintrojs,
     rlang,
     scales,
