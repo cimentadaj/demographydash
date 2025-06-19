@@ -28,14 +28,6 @@ create_all_report_plots(
 \item{age_group}{String indicating the age group for population over time plot}
 
 \item{i18n}{The internationalization object}
-
-\item{sex}{String indicating the sex for life expectancy plot ("Total", "Male", or "Female")}
-
-\item{pop_display_type}{String for population display type ("Percent" or "Absolute")}
-
-\item{death_birth_type}{String for death/birth display ("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")}
-
-\item{dependency_type}{String for dependency ratio type ("yadr" or "oadr")}
 }
 \value{
 A named list containing all generated plots

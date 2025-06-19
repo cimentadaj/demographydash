@@ -29,7 +29,7 @@ handle_before_analysis_plots(
 
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
-\item{input, output}{Internal parameters for `{shiny}.}
+\item{input, output}{Internal parameters for `\{shiny\}`.}
 
 \item{i18n}{The internationalization object.}
 }

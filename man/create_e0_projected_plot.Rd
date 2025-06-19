@@ -12,6 +12,8 @@ create_e0_projected_plot(dt, input_sex, country, i18n)
 \item{input_sex}{the sex to filter on the e0 projected as a string.}
 
 \item{country}{The country for which the data is plotted}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot2 object.

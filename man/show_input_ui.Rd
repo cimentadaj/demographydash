@@ -6,6 +6,9 @@
 \usage{
 show_input_ui(i18n)
 }
+\arguments{
+\item{i18n}{The internationalization object for translations.}
+}
 \value{
 A div containing the input page UI elements.
 }

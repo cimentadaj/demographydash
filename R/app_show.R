@@ -1,5 +1,6 @@
 #' Generate the UI for the input page.
 #'
+#' @param i18n The internationalization object for translations.
 #' @return A div containing the input page UI elements.
 #' @importFrom untheme create_field_set
 #' @importFrom shiny.semantic toggle
@@ -22,6 +23,7 @@ show_input_ui <- function(i18n) {
 #' Generate the location selector UI based on the toggle state
 #'
 #' @param input The input object from the Shiny server function
+#' @param i18n The internationalization object for translations.
 #' @return A UI element for selecting a country or region
 #' @export
 #'
@@ -47,7 +49,8 @@ location_selector_ui <- function(input, i18n) {
 
 #' Generate the UI for the page containing the results of the forecast.
 #'
-#' @param input Internal parameter for `{shiny}`
+#' @param input Internal parameter for `\{shiny\}`
+#' @param i18n The internationalization object for translations.
 #' @return A tabset UI component for the application
 #' @importFrom shiny.semantic tabset multiple_radio
 #' @importFrom shiny downloadButton
@@ -184,7 +187,8 @@ show_mig_results_ui <- function() {
 #'
 #' @param reactive_tfr A reactive function returning the TFR data frame
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom shinyjs hide show
 #' @importFrom shiny.semantic hide_modal
@@ -201,7 +205,8 @@ show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
 #'
 #' @param reactive_tfr A reactive function returning the TFR data frame
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
+#' @param i18n The internationalization object for translations.
 #' @importFrom shiny renderUI
 #' @export
 #'
@@ -216,7 +221,8 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
 #'
 #' @param reactive_e0 A reactive function returning the e0 data frame
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom shinyjs hide show
 #' @importFrom shiny.semantic hide_modal
@@ -239,7 +245,8 @@ show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
 #'
 #' @param reactive_e0 A reactive function returning the e0 data frame
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
+#' @param i18n The internationalization object for translations.
 #' @importFrom shiny renderUI
 #' @export
 #'

@@ -26,6 +26,8 @@ create_deaths_births_plot(
 \item{end_year}{An integer specifying the upper year limit for the data to be plotted.}
 
 \item{country}{The country for which the data is plotted}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot object.

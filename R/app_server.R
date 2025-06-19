@@ -103,9 +103,9 @@ file_parser <- function(file, data_type, i18n = NULL) {
 #' This function defines the server logic for the Shiny application,
 #' managing data processing, UI rendering, and routing.
 #'
-#' @param input,output,session Internal parameters for `{shiny}`.
+#' @param input,output,session Internal parameters for `\{shiny\}`.
 #'
-#' @importFrom shiny reactive reactiveVal observeEvent renderUI observe
+#' @importFrom shiny reactive reactiveVal observeEvent renderUI observe downloadHandler
 #' @importFrom shinyjs hide show
 #' @importFrom utils read.csv
 #' @importFrom untheme detect_font_size

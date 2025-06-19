@@ -11,3 +11,6 @@
 ^\.dockerignore$
 ^\.env$
 ^R/_disable_autoload.R$
+^claude/*$
+^\.claude$
+^deploy.sh$

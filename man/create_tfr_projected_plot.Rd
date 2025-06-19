@@ -12,6 +12,8 @@ create_tfr_projected_plot(dt, end_year, country, i18n)
 \item{end_year}{the date in YYYY-MM-DD where the projection should end.}
 
 \item{country}{A string with the current country name for the title.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot2 object.

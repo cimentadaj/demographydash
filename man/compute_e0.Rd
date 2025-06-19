@@ -11,7 +11,9 @@ compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
 
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
-\item{input, output}{Internal parameters for `{shiny}`.}
+\item{input, output}{Internal parameters for `\{shiny\}`.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \description{
 Compute the e0 page

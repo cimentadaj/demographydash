@@ -30,9 +30,11 @@ begin_forecast(
 
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
-\item{input, output}{Internal parameter for `{shiny}`.}
+\item{input, output}{Internal parameter for `\{shiny\}`.}
 
 \item{simulation_results}{A reactive value to store simulation results.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \description{
 This function manages the simulation process and updates the UI accordingly.

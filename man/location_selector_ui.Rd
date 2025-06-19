@@ -8,6 +8,8 @@ location_selector_ui(input, i18n)
 }
 \arguments{
 \item{input}{The input object from the Shiny server function}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A UI element for selecting a country or region

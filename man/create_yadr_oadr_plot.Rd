@@ -16,6 +16,8 @@ create_yadr_oadr_plot(oadr, yadr, data_type, end_year, country, i18n)
 \item{end_year}{An integer specifying the upper year limit for the data to be plotted.}
 
 \item{country}{The country for which the data is plotted}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot object.

@@ -11,7 +11,7 @@ handle_validity_checks(wpp_starting_year, wpp_ending_year, output, i18n = NULL)
 
 \item{wpp_ending_year}{A reactive expression returning the ending year.}
 
-\item{output}{Internal parameter for `{shiny}`.}
+\item{output}{Internal parameter for `\{shiny\}`.}
 
 \item{i18n}{The internationalization object.}
 }

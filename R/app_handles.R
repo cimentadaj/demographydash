@@ -3,6 +3,7 @@
 #' @description
 #' Creates a modern, informative landing page that introduces users to the app's functionality
 #'
+#' @param i18n The internationalization object for translations.
 #' @importFrom shiny div h1 h2 p HTML
 #' @importFrom shiny.semantic grid grid_template segment
 #' @importFrom shiny.semantic icon
@@ -112,7 +113,7 @@ create_landing_page <- function(i18n) {
 #' @param reactive_mig A reactive expression returning the mig data.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}.
+#' @param input,output Internal parameters for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom DT renderDT
@@ -254,7 +255,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param current_tab A reactive value for the current tab.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom shiny renderUI div br
@@ -483,7 +484,7 @@ handle_customize_data <- function(
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param current_tab A reactive value for the current tab.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom shinyjs hide show
@@ -671,7 +672,7 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
 #'
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param output Internal parameter for `{shiny}`.
+#' @param output Internal parameter for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom shiny HTML wellPanel renderUI
@@ -695,7 +696,7 @@ handle_validity_checks <- function(wpp_starting_year, wpp_ending_year, output, i
 #'
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameter for `{shiny}`.
+#' @param input,output Internal parameter for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom shiny renderUI
@@ -736,7 +737,7 @@ handle_misc <- function(wpp_starting_year, wpp_ending_year, input, output, i18n 
 #' @param simulation_results A reactive expression returning the simulation results.
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameters for `{shiny}`.
+#' @param input,output Internal parameters for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
 #' @importFrom shiny showNotification removeNotification req observeEvent
@@ -772,10 +773,6 @@ handle_report_download <- function(simulation_results, wpp_starting_year, wpp_en
         end_year = wpp_ending_year(),
         pop_year = current_pop_year,
         age_group = current_age_group,
-        sex = current_sex,
-        pop_display_type = current_pop_display,
-        death_birth_type = current_death_birth,
-        dependency_type = current_dependency,
         i18n = i18n
       )
     }, error = function(e) {

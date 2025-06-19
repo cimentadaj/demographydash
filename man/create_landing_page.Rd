@@ -6,6 +6,9 @@
 \usage{
 create_landing_page(i18n)
 }
+\arguments{
+\item{i18n}{The internationalization object for translations.}
+}
 \description{
 Creates a modern, informative landing page that introduces users to the app's functionality
 }

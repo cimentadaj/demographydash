@@ -12,6 +12,8 @@ create_pop_pyramid_plot(dt, country = NULL, input_year = NULL, i18n = NULL)
 \item{country}{The country for which the data is plotted}
 
 \item{input_year}{The input year to filter the data on, default is NULL.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A ggplot2 object.

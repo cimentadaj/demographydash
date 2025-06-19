@@ -1,3 +1,6 @@
+# Global variables to avoid R CMD check warnings
+utils::globalVariables(c("Life Expectancy", "..col_ordering"))
+
 color_labels <- function() {
   # Define the labels and corresponding colors
   labels_colors <- scales::hue_pal()(6)
@@ -15,6 +18,7 @@ color_labels <- function() {
 #' @param dt Data table with population data.
 #' @param country The country for which the data is plotted
 #' @param input_year The input year to filter the data on, default is NULL.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_bar coord_flip labs theme_minimal theme scale_x_continuous scale_x_discrete scale_y_continuous element_blank element_text
 #' @importFrom data.table melt
@@ -122,10 +126,12 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
 #' @param dt Data table with life expectancy data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #' @param country The country for which the data is plotted
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #' @importFrom data.table as.data.table
+#' @importFrom stats setNames
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -211,6 +217,7 @@ create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
 #' @param dt Data table with migration data.
 #' @param end_year The date in YYYY-MM-DD where the projection should end.
 #' @param country The country for which the data is plotted.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal
 #' @importFrom plotly ggplotly
@@ -280,10 +287,12 @@ create_mig_plot <- function(dt, end_year, country, i18n) {
 #' @param dt Data table with projected migration data.
 #' @param end_year The date in YYYY-MM-DD where the projection should end.
 #' @param country The country for which the data is plotted.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual scale_fill_manual scale_linetype_manual
 #' @importFrom plotly ggplotly layout
 #' @importFrom data.table as.data.table
+#' @importFrom stats setNames
 #'
 #' @return A list containing ggplot2 and plotly objects.
 #' @export
@@ -403,10 +412,12 @@ create_mig_projected_plot <- function(dt, end_year, country, i18n) {
 #' @param dt Data table with projected life expectancy data.
 #' @param input_sex the sex to filter on the e0 projected as a string.
 #' @param country The country for which the data is plotted
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
 #' @importFrom data.table fcase
+#' @importFrom stats setNames
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -667,6 +678,7 @@ create_age_group_plot <- function(dt, input_scale, country, i18n) {
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual geom_rect expansion scale_fill_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly layout
+#' @importFrom stats setNames
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -810,10 +822,12 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
 #' @param dt Data table with population data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #' @param country A string with the current country name for the title.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_y_continuous scale_color_manual
 #' @importFrom data.table melt
 #' @importFrom plotly ggplotly
+#' @importFrom stats setNames
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -936,6 +950,7 @@ create_tfr_projected_plot <- function(dt, end_year, country, i18n) {
 #' @param dt Data table with annual growth data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #' @param country A string with the current country name for the title.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 ggplot aes_string geom_line theme_minimal theme geom_ribbon scale_color_manual
 #' @importFrom data.table melt
@@ -1013,6 +1028,7 @@ create_annual_growth_plot <- function(dt, end_year, country, i18n) {
 #' @param dt Data table with fertility rate data.
 #' @param end_year the date in YYYY-MM-DD where the projection should end.
 #' @param country The country for which the data is plotted
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom ggplot2 aes ggplot geom_line labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
@@ -1074,6 +1090,7 @@ create_tfr_plot <- function(dt, end_year, country, i18n) {
 #' This function takes a data table to prepare a population age groups table.
 #'
 #' @param wpp_dt Data table with population data.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom DT datatable
 #'
@@ -1153,11 +1170,13 @@ prepare_pop_agegroups_table <- function(wpp_dt, i18n) {
 #' @param value_type A character string indicating the type of value to plot ("count" or "rate").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
 #' @param country The country for which the data is plotted
+#' @param i18n The internationalization object for translations.
 #'
 #' @return A ggplot object.
 #' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual scale_linetype_manual geom_blank .data
 #' @importFrom plotly ggplotly
 #' @importFrom data.table setnames .SD :=
+#' @importFrom stats setNames
 #'
 #' @export
 #'
@@ -1332,10 +1351,12 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
 #' @param data_type A character string indicating the type of data to plot ("yadr" or "oadr").
 #' @param end_year An integer specifying the upper year limit for the data to be plotted.
 #' @param country The country for which the data is plotted
+#' @param i18n The internationalization object for translations.
 #'
 #' @return A ggplot object.
 #' @importFrom ggplot2 ggplot geom_line geom_ribbon labs theme_minimal scale_color_manual
 #' @importFrom plotly ggplotly
+#' @importFrom stats setNames
 #'
 #' @export
 #'
@@ -1484,12 +1505,14 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country, i18n
 #' @param end_year A numeric value specifying the last year to include in the plot.
 #' @param name_mappings A named vector where each name corresponds to a column in `dt` that should be renamed, and the value is the new name to be used in the plot. It should also contain a 'title' element for the plot's main title.
 #' @param percent_x A boolean to whether include a percent label on the X axis
+#' @param i18n The internationalization object for translations.
 #'
 #' @return A list containing a ggplot object and an interactive plotly object.
 #'
 #' @importFrom ggplot2 aes_string ggplot geom_point labs theme_minimal scale_shape_manual
 #' @importFrom plotly ggplotly
 #' @importFrom data.table data.table setnames
+#' @importFrom stats setNames
 #' @export
 #'
 create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = FALSE, i18n) {
@@ -1624,10 +1647,6 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
 #' @param end_year Numeric value for the projection end year
 #' @param pop_year Numeric value for the population pyramid year to display
 #' @param age_group String indicating the age group for population over time plot
-#' @param sex String indicating the sex for life expectancy plot ("Total", "Male", or "Female")
-#' @param pop_display_type String for population display type ("Percent" or "Absolute")
-#' @param death_birth_type String for death/birth display ("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")
-#' @param dependency_type String for dependency ratio type ("yadr" or "oadr")
 #' @param i18n The internationalization object
 #'
 #' @return A named list containing all generated plots

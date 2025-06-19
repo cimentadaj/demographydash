@@ -17,6 +17,8 @@ not assume specific names, making it applicable for various data types.}
 \item{name_mappings}{A named vector where each name corresponds to a column in `dt` that should be renamed, and the value is the new name to be used in the plot. It should also contain a 'title' element for the plot's main title.}
 
 \item{percent_x}{A boolean to whether include a percent label on the X axis}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A list containing a ggplot object and an interactive plotly object.

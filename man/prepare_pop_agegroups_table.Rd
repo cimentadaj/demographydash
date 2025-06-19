@@ -8,6 +8,8 @@ prepare_pop_agegroups_table(wpp_dt, i18n)
 }
 \arguments{
 \item{wpp_dt}{Data table with population data.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A shiny.semantic DataTable object.

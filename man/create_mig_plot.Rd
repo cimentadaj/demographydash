@@ -12,6 +12,8 @@ create_mig_plot(dt, end_year, country, i18n)
 \item{end_year}{The date in YYYY-MM-DD where the projection should end.}
 
 \item{country}{The country for which the data is plotted.}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A list containing ggplot2 and plotly objects.

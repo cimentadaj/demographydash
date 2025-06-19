@@ -7,7 +7,9 @@
 show_forecast_results_ui(input, i18n)
 }
 \arguments{
-\item{input}{Internal parameter for `{shiny}`}
+\item{input}{Internal parameter for `\{shiny\}`}
+
+\item{i18n}{The internationalization object for translations.}
 }
 \value{
 A tabset UI component for the application

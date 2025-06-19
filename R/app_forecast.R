@@ -8,8 +8,9 @@
 #' @param reactive_mig migration data
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
-#' @param input,output Internal parameter for `{shiny}`.
+#' @param input,output Internal parameter for `\{shiny\}`.
 #' @param simulation_results A reactive value to store simulation results.
+#' @param i18n The internationalization object for translations.
 #'
 #' @importFrom shiny reactive renderUI req
 #' @importFrom shiny.semantic selectInput
