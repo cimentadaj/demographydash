@@ -87,17 +87,64 @@ show_forecast_results_ui <- function(input, i18n) {
 
     # Pages with some widget on the sidebar
     if (i == 1) {  # Population Pyramid
-      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, list(uiOutput("pop_age_sex_years_ui"), br(), downloadButton("all_pop_data", label = i18n$translate("Download All Population Data"))), i18n = i18n)
+      ids <- untheme::generate_ids(english_name)
+      ui_elements[[tab]] <- untheme::sidebar_layout_responsive(
+        sidebar = shiny::div(
+          uiOutput("pop_age_sex_years_ui"),
+          br(),
+          downloadButton("all_pop_data", label = i18n$translate("Download All Population Data")),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          shiny::div(
+            style = "display: block;",
+            shiny::downloadButton(ids$download_plot_id, label = i18n$translate("Download Plot")),
+            shiny::br(),
+            shiny::downloadButton(ids$download_data_id, label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = shiny::div(
+          shinycssloaders::withSpinner(plotly::plotlyOutput(ids$plot_id, height = "600px", width = "auto"))
+        )
+      )
     } else if (i == 2) {  # Population by Broad Age Groups
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_population_by_broad_age_group", i18n$translate("Scale Type"), choices = c(i18n$translate("Percent"), i18n$translate("Absolute")), type = "inline"), i18n = i18n)
     } else if (i == 3) {  # Population Over Time
-      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("age_pop_time_ui"), i18n = i18n)
+      ids <- untheme::generate_ids(english_name)
+      ui_elements[[tab]] <- untheme::sidebar_layout_responsive(
+        sidebar = shiny::div(
+          uiOutput("age_pop_time_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          shiny::div(
+            style = "display: block;",
+            shiny::downloadButton(ids$download_plot_id, label = i18n$translate("Download Plot")),
+            shiny::br(),
+            shiny::downloadButton(ids$download_data_id, label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = shiny::div(
+          shinycssloaders::withSpinner(plotly::plotlyOutput(ids$plot_id, height = "600px", width = "auto"))
+        )
+      )
     } else if (i == 6) {  # Deaths and Births
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_death_births", i18n$translate("Type of plot"), choices = c(i18n$translate("Birth Counts"), i18n$translate("Birth Rates"), i18n$translate("Death Counts"), i18n$translate("Death Rates")), type = "inline"), i18n = i18n)
     } else if (i == 7) {  # YADR and OADR
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, multiple_radio("radio_yadr_oadr", i18n$translate("Type of plot"), choices = c("YADR", "OADR"), type = "inline"), i18n = i18n)
     } else if (i == 11) {  # Life Expectancy Over Time
-      ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, uiOutput("sex_e0_time_ui"), i18n = i18n)
+      ids <- untheme::generate_ids(english_name)
+      ui_elements[[tab]] <- untheme::sidebar_layout_responsive(
+        sidebar = shiny::div(
+          uiOutput("sex_e0_time_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          shiny::div(
+            style = "display: block;",
+            shiny::downloadButton(ids$download_plot_id, label = i18n$translate("Download Plot")),
+            shiny::br(),
+            shiny::downloadButton(ids$download_data_id, label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = shiny::div(
+          shinycssloaders::withSpinner(plotly::plotlyOutput(ids$plot_id, height = "600px", width = "auto"))
+        )
+      )
     } else {
       ui_elements[[tab]] <- plotWithDownloadButtonsUI(english_name, i18n = i18n) # Default case
     }
