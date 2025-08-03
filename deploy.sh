@@ -55,7 +55,10 @@ echo
 echo "--- Installing R package using devtools ---"
 # Using options to potentially speed up install and make it quieter.
 # Ensure R and devtools are correctly set up for \$SSH_USER on the server.
-R -e "options(Ncpus = \$(nproc)); pak::pak()"
+sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+sudo apt-get update
+sudo apt-get install libgdal-dev libgeos-dev libproj-dev libtbb-dev libnetcdf-dev
+R -e "options(Ncpus = \$(nproc)); remotes::install_github('rspatial/terra'); pak::pak()"
 echo
 
 echo "--- Restarting Shiny server (${SHINY_SERVICE_NAME}) via systemctl ---"
