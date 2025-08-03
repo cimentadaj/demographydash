@@ -44,21 +44,23 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
           "Custom Data"
         )
       ),
-      # Data Configuration Accordion for UN Data
-      conditionalPanel(
-        condition = paste0("input.", modal_id, "_source == null || input.", modal_id, "_source == 'UN Data'"),
+      # Unified Data Configuration Accordion
+      div(
+        id = paste0(modal_id, "_data_config_accordion"),
+        class = "ui styled accordion",
+        style = "margin-top: 15px; width: 100%;",
         div(
-          class = "ui styled accordion",
-          style = "margin-top: 15px; width: 100%;",
-          div(
-            class = "title",
-            style = "background-color: #f8f8f9; padding: 12px;",
-            icon("caret right"),
-            tags$span(style = "font-weight: 600; margin-left: 8px;", "Data Configuration")
-          ),
-          div(
-            class = "content",
-            style = "padding: 15px;",
+          class = "title",
+          style = "background-color: #f8f8f9; padding: 12px;",
+          icon("caret right"),
+          tags$span(style = "font-weight: 600; margin-left: 8px;", "Data Configuration")
+        ),
+        div(
+          class = "content",
+          style = "padding: 15px;",
+          # Dynamic content based on data source
+          conditionalPanel(
+            condition = paste0("input.", modal_id, "_source == null || input.", modal_id, "_source == 'UN Data'"),
             div(
               class = "ui form",
               div(
@@ -74,24 +76,9 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
                 )
               )
             )
-          )
-        )
-      ),
-      # Data Configuration Accordion for Custom Data
-      conditionalPanel(
-        condition = paste0("input.", modal_id, "_source == 'Custom Data'"),
-        div(
-          class = "ui styled accordion",
-          style = "margin-top: 15px; width: 100%;",
-          div(
-            class = "title",
-            style = "background-color: #f8f8f9; padding: 12px;",
-            icon("caret right"),
-            tags$span(style = "font-weight: 600; margin-left: 8px;", "Data Configuration")
           ),
-          div(
-            class = "content",
-            style = "padding: 15px;",
+          conditionalPanel(
+            condition = paste0("input.", modal_id, "_source == 'Custom Data'"),
             div(
               style = "display: grid; grid-template-columns: 1fr 1fr; gap: 20px;",
               # Left column - Data Structure
@@ -212,7 +199,7 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
                     div(
                       style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #fef9e7; border-radius: 4px; margin-top: 15px;",
                       icon("info circle"),
-                      "OAG will be automatically extended/reduced to 100+"
+                      "OAG will be automatically extended to 100+"
                     )
                   ),
                   # Show message when no extrapolation needed
@@ -236,9 +223,9 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
                 )
               )
             )
-          )
-        )
-      )
+          )  # End of conditionalPanel for Custom Data
+        )  # End of accordion content
+      )  # End of unified accordion
     ),
     # World-class UI/UX notice about data format
     div(
@@ -392,6 +379,25 @@ generate_age_labels <- function(age_type, oag) {
   return(ages)
 }
 
+# Format numeric ages from WPP to label format for 5-year groups
+format_5year_age_labels <- function(ages) {
+  # Convert numeric ages (0, 5, 10...) to labels ("0-4", "5-9"...)
+  labels <- character(length(ages))
+  
+  for (i in seq_along(ages)) {
+    age <- ages[i]
+    if (i == length(ages)) {
+      # Last age is OAG
+      labels[i] <- paste0(age, "+")
+    } else {
+      # Regular 5-year group
+      labels[i] <- paste0(age, "-", age + 4)
+    }
+  }
+  
+  return(labels)
+}
+
 # Shiny UI
 ui <- semanticPage(
   useShinyjs(),
@@ -506,38 +512,73 @@ server <- function(input, output, session) {
     }
   })
   
-  # Initialize accordion behavior and popups
+  # Add reactive value to track accordion state
+  accordion_state <- reactiveVal(list(data_config = FALSE))
+  
+  # Track accordion state changes
+  observeEvent(input$accordion_data_config_open, {
+    current <- accordion_state()
+    current$data_config <- input$accordion_data_config_open
+    accordion_state(current)
+  })
+  
+  # Initialize accordion when modal opens
+  observeEvent(input$customize_pop, {
+    shinyjs::delay(200, {  # Wait for modal to render
+      # Get saved state
+      state <- accordion_state()
+      open_state <- if(state$data_config) "0" else ""
+      
+      shinyjs::runjs(paste0("
+        // Initialize the single accordion
+        $('#modal_population_data_config_accordion').accordion({
+          exclusive: false,
+          animateChildren: false,
+          duration: 200,
+          active: ", if(state$data_config) "0" else "false", ",
+          onOpen: function() {
+            // Update state and refresh modal
+            Shiny.setInputValue('accordion_data_config_open', true);
+            $('#modal_population').modal('refresh');
+          },
+          onClose: function() {
+            // Update state and refresh modal
+            Shiny.setInputValue('accordion_data_config_open', false);
+            $('#modal_population').modal('refresh');
+          }
+        });
+        
+        // Initialize popups for info icons
+        $('.info.circle.icon').popup({
+          hoverable: true,
+          position: 'top center',
+          delay: {
+            show: 300,
+            hide: 0
+          }
+        });
+      "))
+    })
+  })
+  
+  # Re-initialize popups when switching between data sources
   observeEvent(input$modal_population_source, {
     print(paste("LOG: Data source changed to:", input$modal_population_source))
-    # Initialize accordion for both UN Data and Custom Data
-    shinyjs::delay(100, {
-        shinyjs::runjs("
-          $('.ui.accordion').accordion({
-            exclusive: false,
-            animateChildren: false,
-            duration: 200,
-            onOpen: function() {
-              // Refresh modal to fix scrolling when accordion opens
-              $('#modal_population').modal('refresh');
-            },
-            onClose: function() {
-              // Refresh modal when accordion closes too
-              $('#modal_population').modal('refresh');
-            }
-          });
-          
-          // Initialize popups for info icons
-          $('.info.circle.icon').popup({
-            hoverable: true,
-            position: 'top center',
-            delay: {
-              show: 300,
-              hide: 0
-            }
-          });
-        ")
+    # Re-initialize popups after content change
+    shinyjs::delay(50, {
+      shinyjs::runjs("
+        // Re-initialize popups for new content
+        $('.info.circle.icon').popup({
+          hoverable: true,
+          position: 'top center',
+          delay: {
+            show: 300,
+            hide: 0
+          }
+        });
+      ")
     })
-  }, ignoreNULL = FALSE)  # Important: don't ignore NULL so it runs on initial load
+  })
   
   
   # Render the rhandsontable
@@ -566,6 +607,8 @@ server <- function(input, output, session) {
           # Fetch and cache the 5-year grouped data
           data_5yr <- get_wpp_pop(COUNTRY, year = ref_year, n = 5)
           data_5yr$age <- round(data_5yr$age)  # Clean up decimal ages
+          # Format ages to match custom data pattern
+          data_5yr$age <- format_5year_age_labels(data_5yr$age)
           un_data_5yr(data_5yr)
         }
         res <- un_data_5yr()
@@ -707,8 +750,33 @@ server <- function(input, output, session) {
         
       } else {
         print("LOG: Processing UN Data mode")
-        # For UN Data, just standardize column names
-        names(data) <- c("age", "popF", "popM")
+        # For UN Data, check if transformation is needed
+        un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
+        
+        if (un_age_type == "5-Year Groups") {
+          print("LOG: UN Data with 5-year groups - needs transformation")
+          # Get reference year
+          ref_date <- input$modal_population_ref_date
+          ref_year <- if (!is.null(ref_date)) {
+            if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
+            else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
+            else 2024
+          } else 2024
+          
+          # Transform 5-year to single ages using same pipeline
+          names(data) <- c("age", "popF", "popM")
+          data <- transform_population_data(
+            data,
+            age_type = "5-Year Groups",
+            oag_current = 100,  # WPP data always has OAG 100+
+            oag_target = 100,
+            interp_method = "beers(ord)",  # Default method
+            ref_year = ref_year
+          )
+        } else {
+          # Single ages - just standardize column names
+          names(data) <- c("age", "popF", "popM")
+        }
       }
       
       print("LOG: Updating reactive value")
