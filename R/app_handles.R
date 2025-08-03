@@ -304,53 +304,52 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
           conditionalPanel(
             condition = paste0("input.", modal_id, "_source == 'Custom Data'"),
             div(
-              style = "display: grid; grid-template-columns: 1fr 1fr; gap: 20px;",
+              class = "custom-modal-two-col",
+              style = "display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; width: 100%;",
               # Left column - Data Structure
               div(
+                class = "ui form",
+                h5(class = "ui header", style = "margin-top: 0;", if (!is.null(i18n)) i18n$t("Data Structure") else "Data Structure"),
                 div(
-                  class = "ui form",
-                  h5(class = "ui header", style = "margin-top: 0;", if (!is.null(i18n)) i18n$t("Data Structure") else "Data Structure"),
+                  style = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px;",
                   div(
-                    style = "display: grid; grid-template-columns: 1fr 1fr; gap: 10px;",
-                    div(
-                      class = "field",
-                      style = "margin-bottom: 0;",
-                      tags$label(style = "font-size: 0.9em;", if (!is.null(i18n)) i18n$t("Age Type") else "Age Type"),
-                      selectInput(
-                        paste0(modal_id, "_age_type"),
-                        NULL,
-                        choices = c("Single Ages", "5-Year Groups"),
-                        selected = "Single Ages",
-                        width = "100%"
+                    class = "field",
+                    style = "margin-bottom: 0;",
+                    tags$label(style = "font-size: 0.9em;", if (!is.null(i18n)) i18n$t("Age Type") else "Age Type"),
+                    selectInput(
+                      paste0(modal_id, "_age_type"),
+                      NULL,
+                      choices = c("Single Ages", "5-Year Groups"),
+                      selected = "Single Ages",
+                      width = "100%"
+                    )
+                  ),
+                  div(
+                    class = "field",
+                    style = "margin-bottom: 0;",
+                    tags$label(
+                      style = "font-size: 0.9em;", 
+                      if (!is.null(i18n)) i18n$t("Open Age Group") else "Open Age Group",
+                      tags$i(
+                        class = "info circle icon",
+                        style = "margin-left: 5px; color: #999; cursor: help;",
+                        `data-content` = if (!is.null(i18n)) i18n$t("The oldest age group that will aggregate all ages above it (e.g., 85+ means all people 85 and older)") else "The oldest age group that will aggregate all ages above it (e.g., 85+ means all people 85 and older)",
+                        `data-variation` = "tiny"
+                      ),
+                      tags$span(
+                        id = paste0(modal_id, "_oag_status"),
+                        style = "margin-left: 10px; font-size: 0.8em; color: #e74c3c; display: none;",
+                        "\u226535"
                       )
                     ),
-                    div(
-                      class = "field",
-                      style = "margin-bottom: 0;",
-                      tags$label(
-                        style = "font-size: 0.9em;", 
-                        if (!is.null(i18n)) i18n$t("Open Age Group") else "Open Age Group",
-                        tags$i(
-                          class = "info circle icon",
-                          style = "margin-left: 5px; color: #999; cursor: help;",
-                          `data-content` = if (!is.null(i18n)) i18n$t("The oldest age group that will aggregate all ages above it (e.g., 85+ means all people 85 and older)") else "The oldest age group that will aggregate all ages above it (e.g., 85+ means all people 85 and older)",
-                          `data-variation` = "tiny"
-                        ),
-                        tags$span(
-                          id = paste0(modal_id, "_oag_status"),
-                          style = "margin-left: 10px; font-size: 0.8em; color: #e74c3c; display: none;",
-                          "\u226535"
-                        )
-                      ),
-                      numericInput(
-                        paste0(modal_id, "_oag"),
-                        NULL,
-                        value = 100,
-                        min = 35,
-                        max = 120,
-                        step = 5,
-                        width = "100%"
-                      )
+                    numericInput(
+                      paste0(modal_id, "_oag"),
+                      NULL,
+                      value = 100,
+                      min = 35,
+                      max = 120,
+                      step = 5,
+                      width = "100%"
                     )
                   )
                 ),
@@ -381,68 +380,66 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
               ),
               # Right column - Processing Methods
               div(
-                div(
-                  class = "ui form",
-                  h5(class = "ui header", style = "margin-top: 0;", if (!is.null(i18n)) i18n$t("Processing Methods") else "Processing Methods"),
-                  # Show interpolation options only for 5-Year Groups
-                  conditionalPanel(
-                    condition = paste0("input.", modal_id, "_age_type == '5-Year Groups'"),
-                    div(
-                      class = "field",
-                      style = "margin-bottom: 10px;",
-                      tags$label(
-                        style = "font-size: 0.9em;", 
-                        if (!is.null(i18n)) i18n$t("Interpolation") else "Interpolation",
-                        tags$i(
-                          class = "info circle icon",
-                          style = "margin-left: 5px; color: #999; cursor: help;",
-                          `data-content` = if (!is.null(i18n)) i18n$t("Method to convert 5-year age groups into single ages. Beers Ordinary is recommended for demographic data") else "Method to convert 5-year age groups into single ages. Beers Ordinary is recommended for demographic data",
-                          `data-variation` = "tiny"
-                        )
-                      ),
-                      selectInput(
-                        paste0(modal_id, "_interp_method"),
-                        NULL,
-                        choices = c(
-                          "Sprague" = "sprague",
-                          "Beers Ordinary" = "beers(ord)",
-                          "Beers Modified" = "beers(mod)",
-                          "Grabill" = "grabill",
-                          "Monotonic Spline" = "mono",
-                          "Uniform" = "uniform",
-                          "PCLM" = "pclm"
-                        ),
-                        selected = "beers(ord)",
-                        width = "100%"
+                class = "ui form",
+                h5(class = "ui header", style = "margin-top: 0;", if (!is.null(i18n)) i18n$t("Processing Methods") else "Processing Methods"),
+                # Show interpolation options only for 5-Year Groups
+                conditionalPanel(
+                  condition = paste0("input.", modal_id, "_age_type == '5-Year Groups'"),
+                  div(
+                    class = "field",
+                    style = "margin-bottom: 10px;",
+                    tags$label(
+                      style = "font-size: 0.9em;", 
+                      if (!is.null(i18n)) i18n$t("Interpolation") else "Interpolation",
+                      tags$i(
+                        class = "info circle icon",
+                        style = "margin-left: 5px; color: #999; cursor: help;",
+                        `data-content` = if (!is.null(i18n)) i18n$t("Method to convert 5-year age groups into single ages. Beers Ordinary is recommended for demographic data") else "Method to convert 5-year age groups into single ages. Beers Ordinary is recommended for demographic data",
+                        `data-variation` = "tiny"
                       )
+                    ),
+                    selectInput(
+                      paste0(modal_id, "_interp_method"),
+                      NULL,
+                      choices = c(
+                        "Sprague" = "sprague",
+                        "Beers Ordinary" = "beers(ord)",
+                        "Beers Modified" = "beers(mod)",
+                        "Grabill" = "grabill",
+                        "Monotonic Spline" = "mono",
+                        "Uniform" = "uniform",
+                        "PCLM" = "pclm"
+                      ),
+                      selected = "beers(ord)",
+                      width = "100%"
                     )
-                  ),
-                  # Show note when extrapolation will be applied
-                  conditionalPanel(
-                    condition = paste0("(input.", modal_id, "_age_type == 'Single Ages' && input.", modal_id, "_oag != 100) || (input.", modal_id, "_age_type == '5-Year Groups' && input.", modal_id, "_oag != 100)"),
-                    div(
-                      style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #fef9e7; border-radius: 4px; margin-top: 15px;",
-                      icon("info circle"),
-                      if (!is.null(i18n)) i18n$t("OAG will be automatically extended to 100+") else "OAG will be automatically extended to 100+"
-                    )
-                  ),
-                  # Show message when no extrapolation needed
-                  conditionalPanel(
-                    condition = paste0("input.", modal_id, "_age_type == '5-Year Groups' && input.", modal_id, "_oag == 100"),
-                    div(
-                      style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #f8f8f9; border-radius: 4px; margin-top: 15px;",
-                      icon("info circle"),
-                      if (!is.null(i18n)) i18n$t("No extrapolation needed for OAG 100+") else "No extrapolation needed for OAG 100+"
-                    )
-                  ),
-                  # Show message when no processing needed at all
-                  conditionalPanel(
-                    condition = paste0("input.", modal_id, "_age_type == 'Single Ages' && input.", modal_id, "_oag == 100"),
-                    div(
-                      style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #f8f8f9; border-radius: 4px;",
-                      icon("info circle"),
-                      if (!is.null(i18n)) i18n$t("No processing required for single ages with OAG 100+") else "No processing required for single ages with OAG 100+"
-                    )
+                  )
+                ),
+                # Show note when extrapolation will be applied
+                conditionalPanel(
+                  condition = paste0("(input.", modal_id, "_age_type == 'Single Ages' && input.", modal_id, "_oag != 100) || (input.", modal_id, "_age_type == '5-Year Groups' && input.", modal_id, "_oag != 100)"),
+                  div(
+                    style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #fef9e7; border-radius: 4px; margin-top: 15px;",
+                    icon("info circle"),
+                    if (!is.null(i18n)) i18n$t("OAG will be automatically extended to 100+") else "OAG will be automatically extended to 100+"
+                  )
+                ),
+                # Show message when no extrapolation needed
+                conditionalPanel(
+                  condition = paste0("input.", modal_id, "_age_type == '5-Year Groups' && input.", modal_id, "_oag == 100"),
+                  div(
+                    style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #f8f8f9; border-radius: 4px; margin-top: 15px;",
+                    icon("info circle"),
+                    if (!is.null(i18n)) i18n$t("No extrapolation needed for OAG 100+") else "No extrapolation needed for OAG 100+"
+                  )
+                ),
+                # Show message when no processing needed at all
+                conditionalPanel(
+                  condition = paste0("input.", modal_id, "_age_type == 'Single Ages' && input.", modal_id, "_oag == 100"),
+                  div(
+                    style = "color: #666; font-size: 0.9em; padding: 10px; background-color: #f8f8f9; border-radius: 4px;",
+                    icon("info circle"),
+                    if (!is.null(i18n)) i18n$t("No processing required for single ages with OAG 100+") else "No processing required for single ages with OAG 100+"
                   )
                 )
               )

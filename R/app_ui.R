@@ -154,6 +154,18 @@ app_ui <- function(request) {
         box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
         background-color: #1678c2;
       }
+      
+      /* Override untheme .content width constraint for modals */
+      .ui.modal > .content {
+        max-width: 100% !important;
+        min-width: 100% !important;
+      }
+      
+      /* Also override for accordion content within modals */
+      .ui.modal .ui.accordion .content {
+        max-width: 100% !important;
+        min-width: 100% !important;
+      }
       "))
     ),
     tags$script(JS_CODE_SCREEN_SIZE),
