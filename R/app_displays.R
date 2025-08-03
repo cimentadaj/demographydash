@@ -71,6 +71,12 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
   tmp_dt <- tmp_dt[c("Age", "Population (000s)", "Sex")]
 
   tmp_dt$Sex <- i18n$translate(as.character(tmp_dt$Sex))
+  
+  # Set factor levels to ensure Males appears first in legend
+  males_label <- i18n$translate("Males")
+  females_label <- i18n$translate("Females")
+  tmp_dt$Sex <- factor(tmp_dt$Sex, levels = c(males_label, females_label))
+  
   names(tmp_dt) <- i18n$translate(names(tmp_dt))
 
   cols_nm <- names(tmp_dt)
