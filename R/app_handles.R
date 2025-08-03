@@ -463,9 +463,9 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
           div(
             style = "color: #6b7280; font-size: 14px; line-height: 1.5;",
             if (!is.null(i18n)) {
-              i18n$t("Enter values without commas or decimal points \u2022 For 1 million people, enter 1000 \u2022 For 500,000 people, enter 500")
+              i18n$t("Values in thousands \u2022 Decimals allowed: 450.2251 = 450,225 people \u2022 Commas OK: 3,551.917 = 3.55 million people")
             } else {
-              "Enter values without commas or decimal points \u2022 For 1 million people, enter 1000 \u2022 For 500,000 people, enter 500"
+              "Values in thousands \u2022 Decimals allowed: 450.2251 = 450,225 people \u2022 Commas OK: 3,551.917 = 3.55 million people"
             }
           )
         )
@@ -956,7 +956,12 @@ handle_customize_data <- function(
 
   output$download_pop <- shiny::downloadHandler(
     filename = function() paste0("population_", cnt_years(), ".csv"),
-    content = function(file) write.csv(current_pop_reactive(), file, row.names = FALSE)
+    content = function(file) {
+      # Download exactly what's visible in the table
+      req(input$tmp_pop_dt)
+      data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
+      write.csv(data, file, row.names = FALSE)
+    }
   )
 
   output$download_tfr <- shiny::downloadHandler(

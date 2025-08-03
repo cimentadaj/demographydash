@@ -239,9 +239,9 @@ app_server <- function(input, output, session) {
           paste0("#", file_input_id)
         ),
         intro = c(
-          i18n$translate("This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example."),
-          i18n$translate("If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values."),
-          i18n$translate("Finally, when your data is ready, click on the 'Browse' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.")
+          i18n$translate("This is the starting year data for this indicator. If you paste new data, it should have exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are expressed in thousands, for example."),
+          i18n$translate("To use your own data, download the current data to see the correct format. You can then copy your data from Excel or another source and paste it directly into the table."),
+          i18n$translate("Edit the table directly or paste your data from Excel. The data should be formatted exactly as shown above. Click 'Apply' when done to save your changes.")
         )
       )
 

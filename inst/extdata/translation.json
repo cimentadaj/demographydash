@@ -683,20 +683,20 @@
         "fr": "Voici les valeurs de population actuelles pour l'année de départ du pays choisi"
       },
       {
-        "en": "When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.",
-        "fr": "Quand vous êtes prêt, cliquez ici pour passer aux étapes suivantes. Si vous souhaitez télécharger vos propres données pour d'autres indicateurs, l'interface sera similaire à celle-ci."
+        "en": "When ready, click here to go to the next steps. If you want to use your own data for other indicators, the interface will be similar to this one.",
+        "fr": "Quand vous êtes prêt, cliquez ici pour passer aux étapes suivantes. Si vous souhaitez utiliser vos propres données pour d'autres indicateurs, l'interface sera similaire à celle-ci."
       },
       {
-        "en": "This is the starting year data for this indicator. If you upload new data, it should exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are in expressed in thousands, for example.",
-        "fr": "Voici les données de l'année de départ pour cet indicateur. Si vous téléchargez de nouvelles données, elles doivent avoir exactement ce format : même nombre de colonnes, même ordre de colonnes et, surtout, la même métrique. Certains de ces indicateurs sont exprimés en milliers, par exemple."
+        "en": "This is the starting year data for this indicator. If you paste new data, it should have exactly this format: same number of columns, same order of columns and importantly, the same metric. Some of these indicators are expressed in thousands, for example.",
+        "fr": "Voici les données de l'année de départ pour cet indicateur. Si vous collez de nouvelles données, elles doivent avoir exactement ce format : même nombre de colonnes, même ordre de colonnes et, surtout, la même métrique. Certains de ces indicateurs sont exprimés en milliers, par exemple."
       },
       {
-        "en": "If you want to upload your own data, a good strategy is to download the current data and adapt it to your needs. That way you can keep the expected format and only add your own values.",
-        "fr": "Si vous souhaitez télécharger vos propres données, une bonne stratégie consiste à télécharger les données actuelles et à les adapter à vos besoins. De cette façon, vous pouvez conserver le format attendu et n'ajouter que vos propres valeurs."
+        "en": "To use your own data, download the current data to see the correct format. You can then copy your data from Excel or another source and paste it directly into the table.",
+        "fr": "Pour utiliser vos propres données, téléchargez les données actuelles pour voir le format correct. Vous pouvez ensuite copier vos données depuis Excel ou une autre source et les coller directement dans le tableau."
       },
       {
-        "en": "Finally, when your data is ready, click on the 'Browse...' button to upload your CSV file. We expect a CSV file formatted exactly as the table above. Once uploaded, the table should update with your new values.",
-        "fr": "Enfin, lorsque vos données sont prêtes, cliquez sur le bouton 'Parcourir...' pour télécharger votre fichier CSV. Nous attendons un fichier CSV formaté exactement comme le tableau ci-dessus. Une fois téléchargé, le tableau devrait se mettre à jour avec vos nouvelles valeurs."
+        "en": "Edit the table directly or paste your data from Excel. The data should be formatted exactly as shown above. Click 'Apply' when done to save your changes.",
+        "fr": "Modifiez le tableau directement ou collez vos données depuis Excel. Les données doivent être formatées exactement comme indiqué ci-dessus. Cliquez sur 'Appliquer' lorsque vous avez terminé pour enregistrer vos modifications."
       },
       {
         "en": "Use this dropdown menu to explore different aspects of your population projection. You can view various demographic indicators like population pyramids, age structures, dependency ratios, and other key metrics that help understand the projected demographic changes.",
