@@ -1,5 +1,11 @@
 # TestTest.R - Standalone test for enhanced modal functionality
 # Phase 0: Base Setup - Replicate existing functionality
+#
+# MIGRATION NOTES:
+# 1. Replace COUNTRY with input$wpp_country throughout
+# 2. Replace initial_un_data <- generate_sample_data() with reactive_pop()
+# 3. Copy all functions except the UI and server (only modal-related code)
+# 4. The enhanced create_modal_ui replaces the original in app_handles.R
 
 # Load required libraries
 library(shiny)
@@ -13,6 +19,7 @@ library(tibble)  # For tibble conversions
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # Configuration constants
+# In production, this will be replaced with input$wpp_country
 COUNTRY <- "Spain"
 
 # Copy of existing create_modal_ui function - EXACT copy from original
@@ -332,6 +339,7 @@ validate_population_data <- function(data) {
 }
 
 # Phase 4: OAG Adjustment Helper
+# In production, country parameter will receive input$wpp_country
 adjust_oag <- function(data, oag_current, oag_target = 100, country = COUNTRY, ref_year = NULL) {
   # Convert OAG marker (e.g., "80+") to numeric before processing
   last_age_idx <- nrow(data)
@@ -398,6 +406,41 @@ format_5year_age_labels <- function(ages) {
   return(labels)
 }
 
+# Initialize population modal accordion - reusable function for migration
+initialize_population_modal_accordion <- function(modal_id, initial_state = FALSE) {
+  js_code <- paste0("
+    // Initialize the single accordion
+    $('#", modal_id, "_data_config_accordion').accordion({
+      exclusive: false,
+      animateChildren: false,
+      duration: 200,
+      active: ", if(initial_state) "0" else "false", ",
+      onOpen: function() {
+        // Update state and refresh modal
+        Shiny.setInputValue('accordion_data_config_open', true);
+        $('#", modal_id, "').modal('refresh');
+      },
+      onClose: function() {
+        // Update state and refresh modal
+        Shiny.setInputValue('accordion_data_config_open', false);
+        $('#", modal_id, "').modal('refresh');
+      }
+    });
+    
+    // Initialize popups for info icons
+    $('.info.circle.icon').popup({
+      hoverable: true,
+      position: 'top center',
+      delay: {
+        show: 300,
+        hide: 0
+      }
+    });
+  ")
+  
+  return(js_code)
+}
+
 # Shiny UI
 ui <- semanticPage(
   useShinyjs(),
@@ -453,8 +496,8 @@ server <- function(input, output, session) {
   )
   
   # Reactive values
-  # In production, this will be the data already loaded in memory
-  initial_un_data <- generate_sample_data()  # This simulates the pre-loaded single age data
+  # In production, replace with: reactive_pop()
+  initial_un_data <- generate_sample_data()  # Placeholder for reactive_pop()
   
   current_pop_data <- reactiveVal(initial_un_data)
   un_data <- reactiveVal(initial_un_data)  # Store UN data separately
@@ -529,35 +572,9 @@ server <- function(input, output, session) {
       state <- accordion_state()
       open_state <- if(state$data_config) "0" else ""
       
-      shinyjs::runjs(paste0("
-        // Initialize the single accordion
-        $('#modal_population_data_config_accordion').accordion({
-          exclusive: false,
-          animateChildren: false,
-          duration: 200,
-          active: ", if(state$data_config) "0" else "false", ",
-          onOpen: function() {
-            // Update state and refresh modal
-            Shiny.setInputValue('accordion_data_config_open', true);
-            $('#modal_population').modal('refresh');
-          },
-          onClose: function() {
-            // Update state and refresh modal
-            Shiny.setInputValue('accordion_data_config_open', false);
-            $('#modal_population').modal('refresh');
-          }
-        });
-        
-        // Initialize popups for info icons
-        $('.info.circle.icon').popup({
-          hoverable: true,
-          position: 'top center',
-          delay: {
-            show: 300,
-            hide: 0
-          }
-        });
-      "))
+      # Use the extracted function for accordion initialization
+      js_code <- initialize_population_modal_accordion("modal_population", state$data_config)
+      shinyjs::runjs(js_code)
     })
   })
   
