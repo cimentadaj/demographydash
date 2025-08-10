@@ -663,11 +663,13 @@ handle_customize_data <- function(
         res <- un_data_5yr()
       }
       
-      names(res) <- c(
-        i18n$t("Age"), 
-        i18n$t("Female (in thousands)"), 
-        i18n$t("Male (in thousands)")
-      )
+      # Rename columns based on their actual names, not position
+      col_names <- names(res)
+      if ("age" %in% col_names) names(res)[names(res) == "age"] <- i18n$t("Age")
+      if ("popM" %in% col_names) names(res)[names(res) == "popM"] <- i18n$t("Male (in thousands)")
+      if ("popF" %in% col_names) names(res)[names(res) == "popF"] <- i18n$t("Female (in thousands)")
+      # Ensure correct column order - Males first
+      res <- res[, c(i18n$t("Age"), i18n$t("Male (in thousands)"), i18n$t("Female (in thousands)"))]
     } else {
       # Custom data mode
       age_type <- input$modal_population_age_type
@@ -697,24 +699,26 @@ handle_customize_data <- function(
           nrow(saved_custom) == length(generate_age_labels(age_type, oag))) {
         # Use saved custom data
         res <- saved_custom
-        names(res) <- c(
-          i18n$t("Age"), 
-          i18n$t("Female (in thousands)"), 
-          i18n$t("Male (in thousands)")
-        )
+        # Rename columns based on their actual names, not position
+        col_names <- names(res)
+        if ("age" %in% col_names) names(res)[names(res) == "age"] <- i18n$t("Age")
+        if ("popM" %in% col_names) names(res)[names(res) == "popM"] <- i18n$t("Male (in thousands)")
+        if ("popF" %in% col_names) names(res)[names(res) == "popF"] <- i18n$t("Female (in thousands)")
+        # Ensure correct column order - Males first
+        res <- res[, c(i18n$t("Age"), i18n$t("Male (in thousands)"), i18n$t("Female (in thousands)"))]
       } else {
         # Generate empty template
         age_labels <- generate_age_labels(age_type, oag)
         res <- data.frame(
           Age = age_labels,
-          Female = NA_real_,
           Male = NA_real_,
+          Female = NA_real_,
           stringsAsFactors = FALSE
         )
         names(res) <- c(
           i18n$t("Age"), 
-          i18n$t("Female (in thousands)"), 
-          i18n$t("Male (in thousands)")
+          i18n$t("Male (in thousands)"),
+          i18n$t("Female (in thousands)")
         )
       }
     }
@@ -864,7 +868,19 @@ handle_customize_data <- function(
         
         # Save the raw custom data (before transformation) for later use
         raw_data <- data
-        names(raw_data) <- c("age", "popF", "popM")
+        # Map column names properly - data comes from table with translated headers
+        col_mapping <- list()
+        col_mapping[[i18n$t("Age")]] <- "age"
+        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
+        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
+        
+        for (old_name in names(col_mapping)) {
+          if (old_name %in% names(raw_data)) {
+            names(raw_data)[names(raw_data) == old_name] <- col_mapping[[old_name]]
+          }
+        }
+        # Ensure we have the right columns in standard order (age, popF, popM for backend)
+        raw_data <- raw_data[, c("age", "popF", "popM")]
         custom_data(raw_data)
         
       } else {
@@ -881,8 +897,19 @@ handle_customize_data <- function(
       
       # Apply transformation if needed
       if (needs_transformation) {
-        # Standardize column names for transformation
-        names(data) <- c("age", "popF", "popM")
+        # Standardize column names for transformation - map properly by name
+        col_mapping <- list()
+        col_mapping[[i18n$t("Age")]] <- "age"
+        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
+        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
+        
+        for (old_name in names(col_mapping)) {
+          if (old_name %in% names(data)) {
+            names(data)[names(data) == old_name] <- col_mapping[[old_name]]
+          }
+        }
+        # Ensure we have the right columns in standard order (age, popF, popM for backend)
+        data <- data[, c("age", "popF", "popM")]
         
         # Apply transformation pipeline
         data <- transform_population_data(
@@ -895,8 +922,19 @@ handle_customize_data <- function(
           ref_year = ref_year
         )
       } else {
-        # Single age UN data - just standardize column names
-        names(data) <- c("age", "popF", "popM")
+        # Single age UN data - standardize column names properly
+        col_mapping <- list()
+        col_mapping[[i18n$t("Age")]] <- "age"
+        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
+        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
+        
+        for (old_name in names(col_mapping)) {
+          if (old_name %in% names(data)) {
+            names(data)[names(data) == old_name] <- col_mapping[[old_name]]
+          }
+        }
+        # Ensure we have the right columns in standard order (age, popF, popM for backend)
+        data <- data[, c("age", "popF", "popM")]
       }
       
       # Update reactive value (this is the final data used by the app)

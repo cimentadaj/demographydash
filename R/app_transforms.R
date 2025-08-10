@@ -64,9 +64,18 @@ transform_population_data <- function(data, age_type, oag_current, oag_target = 
 #' @export
 #'
 validate_population_data <- function(data) {
-  # Standardize column names
+  # Standardize column names by mapping them properly
   if (all(c("Age", "Female", "Male") %in% names(data))) {
-    names(data) <- c("age", "popF", "popM")
+    # Map columns by name, not by position
+    col_mapping <- c("Age" = "age", "Female" = "popF", "Male" = "popM")
+    for (old_name in names(col_mapping)) {
+      names(data)[names(data) == old_name] <- col_mapping[old_name]
+    }
+  } else if (all(c("age", "popF", "popM") %in% names(data))) {
+    # Already has the correct column names
+  } else {
+    # Try to identify columns by content or throw an error
+    stop("Data must have columns: Age/age, Female/popF, Male/popM")
   }
   
   # Don't convert age to numeric - preserve labels for 5-year groups
@@ -78,7 +87,8 @@ validate_population_data <- function(data) {
   if (anyNA(data$popF) || anyNA(data$popM)) stop("Population data contains missing values")
   if (any(data$popF < 0) || any(data$popM < 0)) stop("Population cannot be negative")
   
-  data
+  # Ensure we return only the required columns in the correct order
+  data[, c("age", "popF", "popM")]
 }
 
 #' Adjust Open Age Group
