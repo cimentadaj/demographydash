@@ -35,13 +35,7 @@ transform_population_data <- function(data, age_type, oag_current, oag_target = 
     age_starts <- as.numeric(gsub("^([0-9]+).*", "\\1", data$age))
     data$age <- age_starts
     # graduate_pop will graduate all non-age columns
-    print('----------')
-    print(interp_method)
-    print("ref_year")
-    print(ref_year)
-    print(head(data))
     data <- graduate_pop(data, method = interp_method, country = country, year = ref_year)
-    print(head(data))
   }
   
   # Step 3: Adjust OAG if needed

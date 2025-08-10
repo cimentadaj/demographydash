@@ -398,6 +398,7 @@ app_server <- function(input, output, session) {
     current_tab,
     input,
     output,
+    session,
     i18n
   )
 

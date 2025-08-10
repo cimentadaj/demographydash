@@ -531,10 +531,10 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 #' @param wpp_starting_year A reactive expression returning the starting year.
 #' @param wpp_ending_year A reactive expression returning the ending year.
 #' @param current_tab A reactive value for the current tab.
-#' @param input,output Internal parameters for `\{shiny\}`.
+#' @param input,output,session Internal parameters for `\{shiny\}`.
 #' @param i18n The internationalization object.
 #'
-#' @importFrom shiny renderUI div br showNotification
+#' @importFrom shiny renderUI div br showNotification updateSelectInput updateNumericInput
 #' @importFrom shiny.semantic fileInput action_button modal
 #' @importFrom rhandsontable renderRHandsontable rhandsontable rHandsontableOutput hot_col
 #' @importFrom OPPPserver get_wpp_pop
@@ -545,13 +545,14 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 handle_customize_data <- function(
     current_pop_reactive, current_tfr_reactive, current_e0_reactive, current_mig_reactive,
     pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
-    pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL
+    pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, session, i18n = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
     current_tab("modal_pop")
+    previous_modal_tab(last_active_modal_tab())  # Set to last active tab instead of always UN Data
   })
 
   observeEvent(input$customize_tfr, {
@@ -569,26 +570,59 @@ handle_customize_data <- function(
     current_tab("modal_mig")
   })
 
-  # Add reactive values for enhanced population modal
-  un_data_5yr <- reactiveVal(NULL)  # Cache for 5-year grouped UN data
-  custom_data <- reactiveVal(NULL)  # Store custom data separately
-  accordion_state <- reactiveVal(list(data_config = FALSE))  # Track accordion state
+  # Add reactive values for enhanced population modal with separate tab states
+  # UN Data tab caches
+  un_data_single_cache <- reactiveVal(NULL)  # Cache for single age UN data
+  un_data_5yr_cache <- reactiveVal(NULL)     # Cache for 5-year grouped UN data
   
-  # Clear 5-year cache when reference date changes
+  # Custom Data tab state - completely independent
+  custom_data_entries <- reactiveVal(NULL)   # User's actual entered values
+  custom_data_age_type <- reactiveVal("Single Ages")  # Preserve age type selection
+  custom_data_oag <- reactiveVal(100)        # Preserve OAG selection  
+  custom_data_interp <- reactiveVal("un")    # Preserve interpolation method
+  
+  # UI state
+  accordion_state <- reactiveVal(list(data_config = FALSE))  # Track accordion state
+  previous_modal_tab <- reactiveVal(NULL)  # Track previous tab for auto-saving
+  last_active_modal_tab <- reactiveVal("UN Data")  # Track which tab was last active when modal closed
+  
+  # Clear UN caches when reference date changes (forces fresh fetch)
   observeEvent(input$modal_population_ref_date, {
-    un_data_5yr(NULL)  # Reset cache so it fetches fresh data
+    un_data_single_cache(NULL)  # Reset single age cache
+    un_data_5yr_cache(NULL)     # Reset 5-year cache
   })
   
-  # Update OAG display and validation
+  # Save custom tab configuration changes
+  observeEvent(input$modal_population_age_type, {
+    if (!is.null(input$modal_population_source) && 
+        input$modal_population_source == "Custom Data") {
+      custom_data_age_type(input$modal_population_age_type)
+    }
+  })
+  
   observeEvent(input$modal_population_oag, {
     oag <- input$modal_population_oag
     if (!is.null(oag)) {
+      # Save to custom config if in custom tab
+      if (!is.null(input$modal_population_source) && 
+          input$modal_population_source == "Custom Data") {
+        if (!is.na(oag) && oag >= 35) {
+          custom_data_oag(oag)
+        }
+      }
       # Check if OAG is valid
       if (is.na(oag) || oag < 35) {
         shinyjs::show("modal_population_oag_status")
       } else {
         shinyjs::hide("modal_population_oag_status")
       }
+    }
+  })
+  
+  observeEvent(input$modal_population_interp_method, {
+    if (!is.null(input$modal_population_source) && 
+        input$modal_population_source == "Custom Data") {
+      custom_data_interp(input$modal_population_interp_method)
     }
   })
   
@@ -611,8 +645,65 @@ handle_customize_data <- function(
     })
   })
   
-  # Re-initialize popups when switching between data sources
+  # Re-initialize popups and restore config when switching between data sources
   observeEvent(input$modal_population_source, {
+    # First, save current table data from the tab we're leaving
+    if (!is.null(previous_modal_tab()) && !is.null(input$tmp_pop_dt)) {
+      tryCatch({
+        # Get current table data
+        current_data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
+        
+        # Map translated column names back to standard names
+        col_mapping <- list()
+        col_mapping[[i18n$t("Age")]] <- "age"
+        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
+        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
+        
+        for (old_name in names(col_mapping)) {
+          if (old_name %in% names(current_data)) {
+            names(current_data)[names(current_data) == old_name] <- col_mapping[[old_name]]
+          }
+        }
+        
+        # Save to appropriate cache based on which tab we're leaving
+        if (previous_modal_tab() == "UN Data") {
+          # Check which UN Data type was selected
+          un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
+          if (un_age_type == "Single Ages") {
+            # Save to single age cache
+            un_data_single_cache(current_data[, c("age", "popF", "popM")])
+          } else {
+            # Save to 5-year cache
+            un_data_5yr_cache(current_data[, c("age", "popF", "popM")])
+          }
+        } else if (previous_modal_tab() == "Custom Data") {
+          # Save to custom data entries
+          custom_data_entries(current_data[, c("age", "popF", "popM")])
+        }
+      }, error = function(e) {
+        # Silently handle any errors during auto-save
+        # This prevents disrupting the user experience
+      })
+    }
+    
+    # Now handle the tab we're switching TO
+    if (!is.null(input$modal_population_source) && 
+        input$modal_population_source == "Custom Data") {
+      # Restore saved custom configuration when switching to custom tab
+      shinyjs::delay(100, {
+        # Update UI inputs to reflect saved values
+        updateSelectInput(session, "modal_population_age_type", 
+                         selected = custom_data_age_type())
+        updateNumericInput(session, "modal_population_oag", 
+                          value = custom_data_oag())
+        updateSelectInput(session, "modal_population_interp_method", 
+                         selected = custom_data_interp())
+      })
+    }
+    
+    # Update previous tab tracker
+    previous_modal_tab(input$modal_population_source)
+    
     # Re-initialize popups after content change
     shinyjs::delay(50, {
       shinyjs::runjs("
@@ -630,20 +721,17 @@ handle_customize_data <- function(
   })
 
   output$tmp_pop_dt <- renderRHandsontable({
-    # Enhanced table rendering for population modal
+    # Enhanced table rendering for population modal with separate tab states
     data_source <- input$modal_population_source
     
     if (is.null(data_source) || data_source == "UN Data") {
-      # Show UN data based on age type selection
+      # UN Data tab - always show original UN data
       un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
       
       if (un_age_type == "Single Ages") {
-        # Use the pre-loaded single age data
-        res <- current_pop_reactive()
-      } else {
-        # 5-Year Groups - check cache first
-        if (is.null(un_data_5yr())) {
-          # Only fetch if not cached
+        # Check cache first
+        if (is.null(un_data_single_cache())) {
+          # Fetch and cache single age data
           ref_date <- input$modal_population_ref_date
           ref_year <- if (!is.null(ref_date)) {
             if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
@@ -651,16 +739,27 @@ handle_customize_data <- function(
             else wpp_starting_year()
           } else wpp_starting_year()
           
-          # Fetch and cache the 5-year grouped data
-          print("ref_year")
-          print(ref_year)
+          data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
+          un_data_single_cache(data_single)
+        }
+        res <- un_data_single_cache()
+      } else {
+        # 5-Year Groups - check cache first
+        if (is.null(un_data_5yr_cache())) {
+          # Fetch and cache 5-year grouped data
+          ref_date <- input$modal_population_ref_date
+          ref_year <- if (!is.null(ref_date)) {
+            if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
+            else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
+            else wpp_starting_year()
+          } else wpp_starting_year()
+          
           data_5yr <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
           data_5yr$age <- round(data_5yr$age)  # Clean up decimal ages
-          # Format ages to match custom data pattern
           data_5yr$age <- format_5year_age_labels(data_5yr$age)
-          un_data_5yr(data_5yr)
+          un_data_5yr_cache(data_5yr)
         }
-        res <- un_data_5yr()
+        res <- un_data_5yr_cache()
       }
       
       # Rename columns based on their actual names, not position
@@ -671,19 +770,18 @@ handle_customize_data <- function(
       # Ensure correct column order - Males first
       res <- res[, c(i18n$t("Age"), i18n$t("Male (in thousands)"), i18n$t("Female (in thousands)"))]
     } else {
-      # Custom data mode
-      age_type <- input$modal_population_age_type
-      oag <- input$modal_population_oag
+      # Custom data mode - use saved configuration
+      age_type <- custom_data_age_type()
+      oag <- custom_data_oag()
       
-      # Use defaults if not yet set
-      if (is.null(age_type)) age_type <- "Single Ages"
-      if (is.null(oag) || is.na(oag) || oag < 35) {
+      # Validate OAG
+      if (is.na(oag) || oag < 35) {
         # Return empty table with error message if OAG is invalid
         return(rhandsontable(
           data.frame(
             Age = i18n$t("Invalid OAG value"),
-            Female = NA,
             Male = NA,
+            Female = NA,
             stringsAsFactors = FALSE
           ),
           rowHeaders = NULL,
@@ -693,12 +791,12 @@ handle_customize_data <- function(
         ))
       }
       
-      # Check if we have saved custom data with matching configuration
-      saved_custom <- custom_data()
-      if (!is.null(saved_custom) && 
-          nrow(saved_custom) == length(generate_age_labels(age_type, oag))) {
-        # Use saved custom data
-        res <- saved_custom
+      # Check if we have saved custom entries
+      saved_entries <- custom_data_entries()
+      if (!is.null(saved_entries) && 
+          nrow(saved_entries) == length(generate_age_labels(age_type, oag))) {
+        # Use saved custom entries
+        res <- saved_entries
         # Rename columns based on their actual names, not position
         col_names <- names(res)
         if ("age" %in% col_names) names(res)[names(res) == "age"] <- i18n$t("Age")
@@ -866,7 +964,7 @@ handle_customize_data <- function(
           }
         }
         
-        # Save the raw custom data (before transformation) for later use
+        # Save the raw custom entries (what user entered) for display
         raw_data <- data
         # Map column names properly - data comes from table with translated headers
         col_mapping <- list()
@@ -879,20 +977,45 @@ handle_customize_data <- function(
             names(raw_data)[names(raw_data) == old_name] <- col_mapping[[old_name]]
           }
         }
-        # Ensure we have the right columns in standard order (age, popF, popM for backend)
-        raw_data <- raw_data[, c("age", "popF", "popM")]
-        custom_data(raw_data)
+        # Save the user's entries for the custom tab display
+        custom_data_entries(raw_data[, c("age", "popM", "popF")])
+        
+        # Prepare data for transformation (backend expects age, popF, popM order)
+        data <- raw_data[, c("age", "popF", "popM")]
         
       } else {
-        # UN Data mode - check if 5-year groups selected
+        # UN Data mode - Save edited UN data to cache before transformation
+        raw_data <- data
+        # Map column names properly
+        col_mapping <- list()
+        col_mapping[[i18n$t("Age")]] <- "age"
+        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
+        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
+        
+        for (old_name in names(col_mapping)) {
+          if (old_name %in% names(raw_data)) {
+            names(raw_data)[names(raw_data) == old_name] <- col_mapping[[old_name]]
+          }
+        }
+        
+        # Check if 5-year groups selected
         un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
-        if (un_age_type == "5-Year Groups") {
+        
+        # Save to appropriate UN cache
+        if (un_age_type == "Single Ages") {
+          un_data_single_cache(raw_data[, c("age", "popF", "popM")])
+        } else {
+          un_data_5yr_cache(raw_data[, c("age", "popF", "popM")])
+          # Set transformation parameters for 5-year groups
           needs_transformation <- TRUE
           age_type <- "5-Year Groups"
           oag_current <- 100  # WPP data always has OAG 100+
           interp_method <- "un"  # Default method
           ref_year <- wpp_starting_year()
         }
+        
+        # Prepare data for potential transformation
+        data <- raw_data[, c("age", "popF", "popM")]
       }
       
       # Apply transformation if needed
@@ -946,6 +1069,9 @@ handle_customize_data <- function(
       } else {
         pop_data_source("UN Data")
       }
+      
+      # Save the current tab state before closing
+      last_active_modal_tab(input$modal_population_source)
       
       # Close modal
       shiny.semantic::hide_modal("modal_population")
