@@ -313,6 +313,13 @@ app_server <- function(input, output, session) {
       print(paste("[PLOT-DATA] Output columns after reordering:", paste(names(user_data), collapse=", ")))
       print(paste("[PLOT-DATA] Total rows:", nrow(user_data)))
       
+      # Ensure age column is numeric for compatibility with run_forecast
+      # Convert character ages like "0", "1", "100+" to numeric
+      if (is.character(user_data$age)) {
+        user_data$age <- as.numeric(gsub("\\+", "", user_data$age))
+        print(paste("[PLOT-DATA] Converted age column from character to numeric"))
+      }
+      
       # Convert to data.table as expected by create_pop_pyramid_plot
       return(data.table::as.data.table(user_data))
     } else {
