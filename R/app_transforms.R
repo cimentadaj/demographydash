@@ -173,7 +173,6 @@ prepare_population_table <- function(
     # Apply transformation if display type is different
     if (un_display_type == "5-Year Groups") {
       # Transform from single ages to 5-year groups
-      print("[TRANSFORM] UN Data: Converting Single Ages to 5-Year Groups")
       return(transform_population(
         base_data,
         from_type = "Single Ages",
@@ -223,15 +222,10 @@ prepare_population_table <- function(
 prepare_custom_table <- function(
   data, from_type, from_oag, to_type, to_oag, method, country, ref_year
 ) {
-  print(paste("[PREPARE-CUSTOM] Input - Data rows:", 
-              ifelse(is.null(data), "NULL", nrow(data)),
-              "From:", from_type, "OAG", from_oag,
-              "To:", to_type, "OAG", to_oag))
   
   # Validate OAG values
   if (!is.null(to_oag) && !is.na(to_oag)) {
     if (to_oag < 35 || to_oag > 100) {
-      print(paste("[PREPARE-CUSTOM] Invalid target OAG:", to_oag, "- using 100"))
       to_oag <- 100
     }
   } else {
@@ -240,7 +234,6 @@ prepare_custom_table <- function(
   
   if (!is.null(from_oag) && !is.na(from_oag)) {
     if (from_oag < 35 || from_oag > 100) {
-      print(paste("[PREPARE-CUSTOM] Invalid source OAG:", from_oag, "- using 100"))
       from_oag <- 100
     }
   } else {
@@ -249,37 +242,28 @@ prepare_custom_table <- function(
   
   # Case 1: No data - generate empty template
   if (is.null(data) || nrow(data) == 0) {
-    print(paste("[PREPARE-CUSTOM] Generating empty template for", to_type, "OAG", to_oag))
     return(generate_empty_template(to_type, to_oag))
   }
   
   # Ensure data has required columns
   if (!all(c("age", "popM", "popF") %in% names(data))) {
-    print(paste("[PREPARE-CUSTOM] ERROR: Missing required columns. Found:", 
-                paste(names(data), collapse=", ")))
     return(generate_empty_template(to_type, to_oag))
   }
   
   # Case 2: Data exists - check if transformation is needed
   if (from_type == to_type && from_oag == to_oag) {
-    print("[PREPARE-CUSTOM] No transformation needed - returning data as-is")
     return(data)
   }
   
   # Case 3: Need transformation
-  print(paste("[PREPARE-CUSTOM] Transforming data from", from_type, "OAG", from_oag, 
-              "to", to_type, "OAG", to_oag, "using method:", method))
   
   tryCatch({
     result <- transform_population(
       data, from_type, to_type, from_oag, to_oag, 
       method, country, ref_year
     )
-    print(paste("[PREPARE-CUSTOM] Transformation complete - rows:", nrow(result)))
     return(result)
   }, error = function(e) {
-    print(paste("[PREPARE-CUSTOM] ERROR during transformation:", e$message))
-    print("[PREPARE-CUSTOM] Returning empty template as fallback")
     return(generate_empty_template(to_type, to_oag))
   })
 }
@@ -349,10 +333,6 @@ create_age_labels <- function(age_type, oag) {
 transform_population <- function(
   data, from_type, to_type, from_oag, to_oag, method, country, ref_year
 ) {
-  print(paste("[TRANSFORM-POP] Starting transformation:"))
-  print(paste("  From:", from_type, "OAG", from_oag, "->", to_type, "OAG", to_oag))
-  print(paste("  Method:", method, "Country:", country, "Year:", ref_year))
-  print(paste("  Input rows:", nrow(data)))
   
   # Make a copy to avoid modifying original
   data <- data.frame(data)
@@ -374,24 +354,16 @@ transform_population <- function(
   
   # Step 1: Age group conversion
   if (from_type != to_type) {
-    print(paste("[TRANSFORM-POP] Step 1: Converting age groups from", from_type, "to", to_type))
     data <- convert_age_groups_internal(
       data, from_type, to_type, method, country, ref_year
     )
-    print(paste("[TRANSFORM-POP] After age conversion: rows =", nrow(data)))
-  } else {
-    print("[TRANSFORM-POP] Step 1: No age group conversion needed")
   }
   
   # Step 2: OAG adjustment
   if (from_oag != to_oag) {
-    print(paste("[TRANSFORM-POP] Step 2: Adjusting OAG from", from_oag, "to", to_oag))
     data <- adjust_oag_internal(
       data, from_oag, to_oag, country, ref_year
     )
-    print(paste("[TRANSFORM-POP] After OAG adjustment: rows =", nrow(data)))
-  } else {
-    print("[TRANSFORM-POP] Step 2: No OAG adjustment needed")
   }
   
   # Step 3: Ensure proper age labels match the actual data
@@ -406,8 +378,6 @@ transform_population <- function(
     # if we have 21 rows, last group starts at (21-1)*5 = 100
     actual_oag <- (actual_rows - 1) * 5  
   }
-  print(paste("[TRANSFORM-POP] Step 3: Creating age labels for", to_type, 
-              "with", actual_rows, "rows -> OAG", actual_oag))
   data$age <- create_age_labels(to_type, actual_oag)
   
   # Step 4: Ensure output maintains standard column order (age, popM, popF)
@@ -418,7 +388,6 @@ transform_population <- function(
     data <- data[, required_cols]
   }
   
-  print(paste("[TRANSFORM-POP] Complete: Output rows =", nrow(data)))
   return(data)
 }
 
@@ -441,25 +410,16 @@ transform_population <- function(
 convert_age_groups_internal <- function(data, from, to, method, country, ref_year) {
   if (from == "5-Year Groups" && to == "Single Ages") {
     # Prepare data for graduate_pop (numeric ages)
-    print(paste("[GRADUATE_POP] Converting 5-Year to Single Ages using method:", method))
-    print("[GRADUATE_POP] Input data (first 5 rows):")
-    print(head(data, 5))
     
     data$age <- extract_numeric_ages(data$age, "5-year")
     # graduate_pop can handle data.frame
     result <- graduate_pop(data, method = method, country = country, year = ref_year)
     
-    print("[GRADUATE_POP] Output data (first 10 rows):")
-    print(head(result, 10))
-    print(paste("[GRADUATE_POP] Rows transformed:", nrow(data), "->", nrow(result)))
     
     # Ensure result is a data.frame
     as.data.frame(result)
   } else if (from == "Single Ages" && to == "5-Year Groups") {
     # Ensure numeric ages
-    print("[SUM_TO_POP5] Converting Single Ages to 5-Year Groups")
-    print("[SUM_TO_POP5] Input data (first 10 rows):")
-    print(head(data, 10))
     
     data$age <- extract_numeric_ages(data$age, "single")
     # sum_to_pop5 expects a data.table
@@ -468,9 +428,6 @@ convert_age_groups_internal <- function(data, from, to, method, country, ref_yea
     }
     result <- sum_to_pop5(data)
     
-    print("[SUM_TO_POP5] Output data (first 5 rows):")
-    print(head(result, 5))
-    print(paste("[SUM_TO_POP5] Rows transformed:", nrow(data), "->", nrow(result)))
     
     # Convert back to data.frame for consistency
     as.data.frame(result)
@@ -499,22 +456,11 @@ adjust_oag_internal <- function(data, from_oag, to_oag, country, ref_year) {
   data$age <- extract_numeric_ages(data$age, age_type)
   
   if (from_oag < to_oag) {
-    print(paste("[OAG-ADJUST] TRIGGERED: Extending OAG from", from_oag, "to", to_oag))
-    print(paste("[OAG-ADJUST] Data before extension:", nrow(data), "rows"))
-    print("[OAG-ADJUST] Input tail (last 5 rows):")
-    print(tail(data, 5))
     
     result <- extend_oag(data, country = country, year = ref_year, oag_new = to_oag)
     
-    print(paste("[OAG-ADJUST] Data after extension:", nrow(result), "rows"))
-    print("[OAG-ADJUST] Output tail (last 5 rows):")
-    print(tail(result, 5))
     as.data.frame(result)
   } else if (from_oag > to_oag) {
-    print(paste("[OAG-ADJUST] TRIGGERED: Reducing OAG from", from_oag, "to", to_oag))
-    print(paste("[OAG-ADJUST] Data before reduction:", nrow(data), "rows"))
-    print("[OAG-ADJUST] Input tail (last 5 rows):")
-    print(tail(data, 5))
     
     # reduce_oag expects a data.table
     if (!inherits(data, "data.table")) {
@@ -522,12 +468,8 @@ adjust_oag_internal <- function(data, from_oag, to_oag, country, ref_year) {
     }
     result <- reduce_oag(data, to_oag)
     
-    print(paste("[OAG-ADJUST] Data after reduction:", nrow(result), "rows"))
-    print("[OAG-ADJUST] Output tail (last 5 rows):")
-    print(tail(result, 5))
     as.data.frame(result)
   } else {
-    print(paste("[OAG-ADJUST] No OAG change needed - both are", from_oag))
     data
   }
 }

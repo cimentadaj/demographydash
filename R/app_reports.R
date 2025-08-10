@@ -26,8 +26,6 @@ generate_demography_report <- function(plot_list, country, start_year, end_year,
   # Render the report
   output_file <- file.path(report_dir, paste0("Demographic_Projection_Report_", gsub(" ", "_", country), "_", start_year, "-", end_year, ".pdf"))
 
-  print("rmd_file")
-  print(rmd_file)
   
   tryCatch({
     rmarkdown::render(

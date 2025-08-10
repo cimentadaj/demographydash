@@ -572,9 +572,7 @@ handle_customize_data <- function(
     
     # Fetch single age data if not cached (this is now our base for all UN data)
     if (is.null(un_data_single_cache())) {
-      print("[FETCH] Getting UN single age data (base for all UN transformations)...")
       data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
-      print(paste("[FETCH] UN data columns:", paste(names(data_single), collapse=", ")))
       
       # Ensure standard column order using utility function
       data_single <- ensure_standard_columns(data_single)
@@ -619,13 +617,11 @@ handle_customize_data <- function(
   
   # Reset UN data to original when Reset button is clicked
   observeEvent(input$modal_population_reset_un_btn, {
-    print("[RESET] UN Data Reset button clicked")
     
     # Extract reference year using utility function
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Re-fetch original UN data
-    print("[RESET] Re-fetching original UN single age data...")
     data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
     
     # Ensure standard column order using utility function
@@ -647,7 +643,6 @@ handle_customize_data <- function(
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Fetch and cache single age data (base for all UN transformations)
-    print("[FETCH] Updating UN single age data for new reference date...")
     data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
     
     # Ensure standard column order using utility function
@@ -662,10 +657,6 @@ handle_customize_data <- function(
   
   # Observer for UN Data age type changes - save edits before switching
   observeEvent(input$modal_population_un_age_type, {
-    print(paste("[AGE-TYPE-CHANGE] UN age type change triggered to:", input$modal_population_un_age_type))
-    print(paste("[AGE-TYPE-CHANGE] Previous UN age type was:", previous_un_age_type()))
-    print(paste("[AGE-TYPE-CHANGE] Current modal source:", input$modal_population_source))
-    print(paste("[AGE-TYPE-CHANGE] tmp_pop_dt is NULL?", is.null(input$tmp_pop_dt)))
     
     # Check if we're on UN Data tab (either explicitly or by default)
     current_source <- input$modal_population_source %||% "UN Data"
@@ -678,16 +669,9 @@ handle_customize_data <- function(
       
       # Get current table data directly from rhandsontable
       tryCatch({
-        print("[AGE-TYPE-CHANGE] Attempting to read table data...")
         current_data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
-        print("[AGE-TYPE-CHANGE] Successfully retrieved current table data:")
-        print(paste("[AGE-TYPE-CHANGE] Data dimensions:", nrow(current_data), "rows x", ncol(current_data), "cols"))
-        print("[AGE-TYPE-CHANGE] First 3 rows of current table:")
-        print(head(current_data, 3))
         
         # Also print what's in the cache for comparison
-        print("[AGE-TYPE-CHANGE] Current cache data (first 3 rows):")
-        print(head(un_data_single_cache(), 3))
         
         # Map column names back to standard using utility function
         current_data <- map_column_names(current_data, i18n)
@@ -699,7 +683,6 @@ handle_customize_data <- function(
         new_type <- input$modal_population_un_age_type
         current_type <- if(new_type == "5-Year Groups") "Single Ages" else "5-Year Groups"
         
-        print(paste("[AGE-TYPE-CHANGE] Current data format:", current_type, "-> Converting to cache format"))
         
         # Always convert back to single ages for storage
         if (current_type == "5-Year Groups") {
@@ -712,14 +695,11 @@ handle_customize_data <- function(
             ref_year = ref_year
           )
           un_data_single_cache(single_age_data)
-          print("[AGE-TYPE-CHANGE] Saved graduated data to cache")
         } else {
           # Data is already single ages, save directly
           un_data_single_cache(current_data[, c("age", "popM", "popF")])
-          print("[AGE-TYPE-CHANGE] Saved single age data to cache")
         }
       }, error = function(e) {
-        print(paste("[AGE-TYPE-CHANGE] Error saving UN data:", e$message))
       })
     }
     
@@ -732,9 +712,7 @@ handle_customize_data <- function(
   custom_display_params <- reactive({
     # Check if we're on Custom Data tab (handle NULL case)
     source <- input$modal_population_source
-    print(paste("[CUSTOM-DISPLAY-PARAMS] Called, source is:", source))
     if (!is.null(source) && source == "Custom Data") {
-      print("[CUSTOM-DISPLAY-PARAMS] Returning params for Custom Data")
       list(
         age_type = input$modal_population_age_type %||% "Single Ages",
         oag = oag_debounced() %||% 100,  # Use debounced value
@@ -743,7 +721,6 @@ handle_customize_data <- function(
         trigger = runif(1)  # Force reactivity
       )
     } else {
-      print("[CUSTOM-DISPLAY-PARAMS] Not on Custom Data, returning NULL")
       NULL
     }
   })
@@ -766,8 +743,6 @@ handle_customize_data <- function(
   observeEvent(custom_inputs_tracker(), {
     inputs <- custom_inputs_tracker()
     if (!is.null(inputs$source) && inputs$source == "Custom Data") {
-      print(paste("[CUSTOM-INPUT-CHANGE] Detected change - Age Type:", inputs$age_type, 
-                  "OAG:", inputs$oag, "Method:", inputs$interp_method))
     }
   }, ignoreInit = TRUE)
   
@@ -783,7 +758,6 @@ handle_customize_data <- function(
     # Validate OAG is between 35 and 100
     if (!is.null(oag) && !is.na(oag)) {
       if (oag < 35 || oag > 100) {
-        print(paste("[OAG-VALIDATION] Invalid OAG value:", oag, "- must be between 35 and 100"))
         shinyjs::show("modal_population_oag_status")
       } else {
         shinyjs::hide("modal_population_oag_status")
@@ -812,7 +786,6 @@ handle_customize_data <- function(
   
   # Re-initialize popups and restore config when switching between data sources
   observeEvent(input$modal_population_source, {
-    print(paste("[TAB-SWITCH] Switching from", previous_modal_tab(), "to", input$modal_population_source))
     # First, save current table data from the tab we're leaving
     if (!is.null(previous_modal_tab()) && !is.null(input$tmp_pop_dt)) {
       tryCatch({
@@ -824,19 +797,16 @@ handle_customize_data <- function(
         
         # Ensure we have the expected columns in the right order
         if (!all(c("age", "popM", "popF") %in% names(current_data))) {
-          print(paste("[WARNING] Expected columns not found. Found:", paste(names(current_data), collapse=", ")))
         }
         
         # Save to appropriate cache based on which tab we're leaving
         if (previous_modal_tab() == "UN Data") {
           # Check which UN Data type was selected
           un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
-          print(paste("[TAB-SWITCH] Saving UN Data displayed as", un_age_type))
           
           # Transform back to single ages if needed before saving
           if (un_age_type == "5-Year Groups") {
             # Convert 5-year back to single ages for storage
-            print("[TAB-SWITCH] Converting 5-Year Groups back to Single Ages for storage")
             ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
             
             single_age_data <- transform_5yr_to_single(
@@ -855,11 +825,9 @@ handle_customize_data <- function(
           current_oag <- oag_debounced() %||% 100
           current_method <- input$modal_population_interp_method %||% "beers(ord)"
           
-          print(paste("[TAB-SWITCH] Saving Custom Data from format:", current_age_type, "OAG", current_oag))
           
           # Transform to canonical format (single ages, OAG 100) before saving
           if (current_age_type != "Single Ages" || current_oag != 100) {
-            print("[TAB-SWITCH] Transforming to canonical format...")
             canonical_data <- transform_to_canonical(
               current_data[, c("age", "popM", "popF")],
               from_type = current_age_type,
@@ -878,7 +846,6 @@ handle_customize_data <- function(
             interp_method = current_method
           )
           custom_data_state(new_state)
-          print(paste("[TAB-SWITCH] Saved", nrow(canonical_data), "rows in canonical format"))
         }
       }, error = function(e) {
         # Silently handle any errors during auto-save
@@ -924,29 +891,23 @@ handle_customize_data <- function(
     un_data_reset_trigger()
     
     data_source <- input$modal_population_source %||% "UN Data"
-    print(paste("[RENDER-TABLE] Data source:", data_source))
-    print(paste("[RENDER-TABLE] Timestamp:", Sys.time()))
     
     # Extract reference year using utility function
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Prepare table based on data source
     if (data_source == "Custom Data") {
-      print("[RENDER-TABLE] Rendering Custom Data tab")
       
       # Add explicit dependencies on all custom inputs
       age_type_input <- input$modal_population_age_type
       oag_input <- input$modal_population_oag
       interp_input <- input$modal_population_interp_method
       
-      print(paste("[RENDER-TABLE] Custom inputs - Age Type:", age_type_input, 
-                  "OAG:", oag_input, "Interp:", interp_input))
       
       # Get display parameters (this creates reactive dependency)
       display_params <- custom_display_params()
       
       if (is.null(display_params)) {
-        print("[RENDER-TABLE] Display params is NULL - not on Custom Data tab")
         return(NULL)
       }
       
@@ -961,10 +922,6 @@ handle_customize_data <- function(
       # Get current state (data is always single ages, OAG 100)
       current_state <- isolate(custom_data_state())  # Isolate to prevent double dependency
       
-      print(paste("[RENDER-TABLE] Custom Data state:"))
-      print(paste("  Display Type:", display_params$age_type, "Display OAG:", display_oag))
-      print(paste("  Stored data rows:", ifelse(is.null(current_state$data), "NULL", nrow(current_state$data))))
-      print(paste("  Stored format: Always Single Ages, OAG 100"))
       
       # Transform from canonical format (single ages, OAG 100) to display format
       res <- prepare_custom_table(
@@ -978,12 +935,10 @@ handle_customize_data <- function(
         ref_year = ref_year
       )
       
-      print(paste("[RENDER-TABLE] Result rows:", nrow(res)))
     } else {
       # UN Data handling
       un_display_type <- input$modal_population_un_age_type %||% "Single Ages"
       
-      print(paste("[RENDER-TABLE] UN Data - Display Type:", un_display_type))
       
       res <- prepare_population_table(
         data_source = "UN Data",
@@ -1000,12 +955,10 @@ handle_customize_data <- function(
         ref_year = ref_year
       )
       
-      print(paste("[RENDER-TABLE] UN result rows:", nrow(res)))
     }
     
     # Check if we have valid result data
     if (is.null(res) || nrow(res) == 0) {
-      print("[RENDER-TABLE] WARNING: Result is NULL or empty")
       # Return empty table
       return(rhandsontable(
         data.frame(
@@ -1021,8 +974,6 @@ handle_customize_data <- function(
       ))
     }
     
-    print(paste("[RENDER-TABLE] Preparing final table with", nrow(res), "rows"))
-    print(paste("[RENDER-TABLE] Column names:", paste(names(res), collapse=", ")))
     
     # Map standard column names to display names using utility function
     res <- map_column_names_to_display(res, i18n)
@@ -1162,17 +1113,14 @@ handle_customize_data <- function(
   observeEvent(input$modal_population_ok_btn, {
     req(input$tmp_pop_dt)
     
-    print("[APPLY] Apply button clicked")
     
     tryCatch({
       # Get data from table
       data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
       
       # Standardize column names by mapping display names back to standard names
-      print(paste("[APPLY] Original column names:", paste(names(data), collapse=", ")))
       data <- map_column_names(data, i18n)
       
-      print(paste("[APPLY] Mapped column names:", paste(names(data), collapse=", ")))
       
       # Verify columns and ensure correct order using utility function
       data <- ensure_standard_columns(data)
@@ -1181,22 +1129,18 @@ handle_customize_data <- function(
       ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
       
       data_source <- input$modal_population_source %||% "UN Data"
-      print(paste("[APPLY] Processing data from:", data_source))
       
       if (data_source == "UN Data") {
         # UN Data mode
         un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
-        print(paste("[APPLY] UN Data with age type:", un_age_type))
         
         # Transform to single ages if needed and save
         if (un_age_type == "Single Ages") {
           # Already single ages, save directly
-          print("[APPLY] UN data already single ages, using as is")
           un_data_single_cache(data)
           final_data <- data
         } else {
           # Convert 5-year to single ages for storage and final use
-          print("[APPLY] Transforming UN 5-year to single ages")
           final_data <- transform_5yr_to_single(
             data,
             country = input$wpp_country,
@@ -1210,11 +1154,9 @@ handle_customize_data <- function(
         current_age_type <- input$modal_population_age_type %||% "Single Ages"
         current_oag <- input$modal_population_oag %||% 100
         selected_method <- input$modal_population_interp_method %||% "beers(ord)"
-        print(paste("[APPLY] Custom Data from format:", current_age_type, "OAG:", current_oag))
         
         # Transform to canonical format (single ages, OAG 100) for storage
         if (current_age_type != "Single Ages" || current_oag != 100) {
-          print("[APPLY] Transforming to canonical format for storage...")
           canonical_data <- transform_to_canonical(
             data,
             from_type = current_age_type,
@@ -1233,14 +1175,12 @@ handle_customize_data <- function(
           interp_method = selected_method
         )
         custom_data_state(new_state)
-        print(paste("[APPLY] Saved", nrow(canonical_data), "rows in canonical format"))
         
         # Final data is already in single ages OAG 100
         final_data <- canonical_data
       }
       
       # Update reactive value (this is the final data used by the app)
-      print(paste("[APPLY] Committing final data with", nrow(final_data), "rows"))
       pop_to_commit_rv(final_data)
       
       # Update data source tracker
@@ -1666,7 +1606,7 @@ handle_report_download <- function(simulation_results, wpp_starting_year, wpp_en
     if (!is.null(pdf_file_path) && file.exists(pdf_file_path)) {
       showNotification(i18n$t("Report generated successfully!"), type = "message", duration = 5)
       utils::browseURL(pdf_file_path) # Open the PDF in browser
-      print(paste("Report saved to:", pdf_file_path)) # Also print path to console
+      # Report saved to console
     } else {
       if(!is.null(pdf_file_path)) { # only show if pdf_file_path was set but file does not exist
           showNotification(i18n$t("Report generation failed. PDF file not found."), type = "error", duration = 7)
