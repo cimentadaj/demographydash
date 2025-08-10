@@ -11,7 +11,7 @@ create_enhanced_population_modal_ui(
   file_input_id,
   download_button_id,
   hide_button_id,
-  ref_year = NULL,
+  ref_year,
   additional_header = NULL,
   i18n = NULL
 )
@@ -29,7 +29,7 @@ create_enhanced_population_modal_ui(
 
 \item{hide_button_id}{A string specifying the ID for the actionButton used to close the modal.}
 
-\item{ref_year}{(Optional) The reference year to use as default for the date input.}
+\item{ref_year}{The reference year to use as default for the date input.}
 
 \item{additional_header}{(Optional) An additional UI element to be included in the header.}
 

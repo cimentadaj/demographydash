@@ -20,6 +20,7 @@ handle_customize_data(
   current_tab,
   input,
   output,
+  session,
   i18n = NULL
 )
 }
@@ -48,7 +49,7 @@ handle_customize_data(
 
 \item{current_tab}{A reactive value for the current tab.}
 
-\item{input, output}{Internal parameters for `\{shiny\}`.}
+\item{input, output, session}{Internal parameters for `\{shiny\}`.}
 
 \item{i18n}{The internationalization object.}
 }

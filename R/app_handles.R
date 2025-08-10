@@ -581,10 +581,8 @@ handle_customize_data <- function(
       data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
       print(paste("[FETCH] UN data columns:", paste(names(data_single), collapse=", ")))
       
-      # Ensure standard column order (age, popM, popF)
-      if (all(c("age", "popM", "popF") %in% names(data_single))) {
-        data_single <- data_single[, c("age", "popM", "popF")]
-      }
+      # Ensure standard column order using utility function
+      data_single <- ensure_standard_columns(data_single)
       
       un_data_single_cache(data_single)
     }
@@ -640,10 +638,8 @@ handle_customize_data <- function(
     print("[RESET] Re-fetching original UN single age data...")
     data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
     
-    # Ensure standard column order (age, popM, popF)
-    if (all(c("age", "popM", "popF") %in% names(data_single))) {
-      data_single <- data_single[, c("age", "popM", "popF")]
-    }
+    # Ensure standard column order using utility function
+    data_single <- ensure_standard_columns(data_single)
     
     # Update cache with fresh data
     un_data_single_cache(data_single)
@@ -669,10 +665,8 @@ handle_customize_data <- function(
     print("[FETCH] Updating UN single age data for new reference date...")
     data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
     
-    # Ensure standard column order (age, popM, popF)
-    if (all(c("age", "popM", "popF") %in% names(data_single))) {
-      data_single <- data_single[, c("age", "popM", "popF")]
-    }
+    # Ensure standard column order using utility function
+    data_single <- ensure_standard_columns(data_single)
     
     un_data_single_cache(data_single)
   })
@@ -710,17 +704,8 @@ handle_customize_data <- function(
         print("[AGE-TYPE-CHANGE] Current cache data (first 3 rows):")
         print(head(un_data_single_cache(), 3))
         
-        # Map column names back to standard
-        col_mapping <- list()
-        col_mapping[[i18n$t("Age")]] <- "age"
-        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
-        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
-        
-        for (old_name in names(col_mapping)) {
-          if (old_name %in% names(current_data)) {
-            names(current_data)[names(current_data) == old_name] <- col_mapping[[old_name]]
-          }
-        }
+        # Map column names back to standard using utility function
+        current_data <- map_column_names(current_data, i18n)
         
         # Determine what format the data is currently in
         # This is based on the PREVIOUS value, which we need to infer
@@ -859,18 +844,8 @@ handle_customize_data <- function(
         # Get current table data
         current_data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
         
-        # Map translated column names back to standard names
-        # This ensures we map by actual column name, not position
-        col_mapping <- list()
-        col_mapping[[i18n$t("Age")]] <- "age"
-        col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
-        col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
-        
-        for (old_name in names(col_mapping)) {
-          if (old_name %in% names(current_data)) {
-            names(current_data)[names(current_data) == old_name] <- col_mapping[[old_name]]
-          }
-        }
+        # Map translated column names back to standard names using utility function
+        current_data <- map_column_names(current_data, i18n)
         
         # Ensure we have the expected columns in the right order
         if (!all(c("age", "popM", "popF") %in% names(current_data))) {
@@ -1091,25 +1066,8 @@ handle_customize_data <- function(
     print(paste("[RENDER-TABLE] Preparing final table with", nrow(res), "rows"))
     print(paste("[RENDER-TABLE] Column names:", paste(names(res), collapse=", ")))
     
-    # Map columns by their actual names (not by position)
-    # Create mapping based on what columns actually exist
-    col_mapping <- list()
-    if ("age" %in% names(res)) {
-      col_mapping[["age"]] <- i18n$t("Age")
-    }
-    if ("popM" %in% names(res)) {
-      col_mapping[["popM"]] <- i18n$t("Male (in thousands)")
-    }
-    if ("popF" %in% names(res)) {
-      col_mapping[["popF"]] <- i18n$t("Female (in thousands)")
-    }
-    
-    # Rename columns based on mapping
-    for (old_name in names(col_mapping)) {
-      if (old_name %in% names(res)) {
-        names(res)[names(res) == old_name] <- col_mapping[[old_name]]
-      }
-    }
+    # Map standard column names to display names using utility function
+    res <- map_column_names_to_display(res, i18n)
     
     # Reorder columns - Age, Male, Female (ensures correct order)
     age_col <- i18n$t("Age")
@@ -1253,34 +1211,13 @@ handle_customize_data <- function(
       data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
       
       # Standardize column names by mapping display names back to standard names
-      col_mapping <- list()
-      col_mapping[[i18n$t("Age")]] <- "age"
-      col_mapping[[i18n$t("Male (in thousands)")]] <- "popM"
-      col_mapping[[i18n$t("Female (in thousands)")]] <- "popF"
-      
       print(paste("[APPLY] Original column names:", paste(names(data), collapse=", ")))
-      
-      for (old_name in names(col_mapping)) {
-        if (old_name %in% names(data)) {
-          names(data)[names(data) == old_name] <- col_mapping[[old_name]]
-        }
-      }
+      data <- map_column_names(data, i18n)
       
       print(paste("[APPLY] Mapped column names:", paste(names(data), collapse=", ")))
       
-      # Verify we have all required columns
-      required_cols <- c("age", "popM", "popF")
-      if (!all(required_cols %in% names(data))) {
-        stop(paste("Missing required columns. Found:", paste(names(data), collapse=", "),
-                   "Expected:", paste(required_cols, collapse=", ")))
-      }
-      
-      # Ensure correct column order (age, popM, popF is the standard order)
-      if (inherits(data, "data.table")) {
-        data <- data[, ..required_cols]
-      } else {
-        data <- data[, required_cols]
-      }
+      # Verify columns and ensure correct order using utility function
+      data <- ensure_standard_columns(data)
       
       # Extract reference year
       ref_date <- input$modal_population_ref_date
