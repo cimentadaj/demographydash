@@ -9,7 +9,7 @@ transform_population_data(
   age_type,
   oag_current,
   oag_target = 100,
-  interp_method = "beers(ord)",
+  interp_method = "un",
   country = NULL,
   ref_year = NULL
 )

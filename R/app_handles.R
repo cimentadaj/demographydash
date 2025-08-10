@@ -229,6 +229,7 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
 #' @param file_input_id A string specifying the ID for the fileInput element.
 #' @param download_button_id A string specifying the ID for the downloadButton element.
 #' @param hide_button_id A string specifying the ID for the actionButton used to close the modal.
+#' @param ref_year The reference year to use as default for the date input.
 #' @param additional_header (Optional) An additional UI element to be included in the header.
 #' @param i18n The internationalization object.
 #'
@@ -240,7 +241,7 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
 #' @importFrom shinyjs useShinyjs
 #' @export
 #'
-create_enhanced_population_modal_ui <- function(modal_id, header_title, output_id, file_input_id, download_button_id, hide_button_id, additional_header = NULL, i18n = NULL) {
+create_enhanced_population_modal_ui <- function(modal_id, header_title, output_id, file_input_id, download_button_id, hide_button_id, ref_year, additional_header = NULL, i18n = NULL) {
   modal(
     id = modal_id,
     header = div(
@@ -372,7 +373,7 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                     dateInput(
                       paste0(modal_id, "_ref_date"),
                       NULL,
-                      value = paste0(format(Sys.Date(), "%Y"), "-12-31"),
+                      value = paste0(ref_year, "-12-31"),
                       width = "100%"
                     )
                   )
@@ -402,6 +403,7 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                       paste0(modal_id, "_interp_method"),
                       NULL,
                       choices = c(
+                        "UN" = "un",
                         "Sprague" = "sprague",
                         "Beers Ordinary" = "beers(ord)",
                         "Beers Modified" = "beers(mod)",
@@ -410,7 +412,7 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                         "Uniform" = "uniform",
                         "PCLM" = "pclm"
                       ),
-                      selected = "beers(ord)",
+                      selected = "un",
                       width = "100%"
                     )
                   )
@@ -650,6 +652,8 @@ handle_customize_data <- function(
           } else wpp_starting_year()
           
           # Fetch and cache the 5-year grouped data
+          print("ref_year")
+          print(ref_year)
           data_5yr <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
           data_5yr$age <- round(data_5yr$age)  # Clean up decimal ages
           # Format ages to match custom data pattern
@@ -783,6 +787,7 @@ handle_customize_data <- function(
       file_input_id = "upload_pop",
       download_button_id = "download_pop",
       hide_button_id = "hide_pop",
+      ref_year = ref_year,
       additional_header = NULL,  # The enhanced modal already includes the thousands notice
       i18n = i18n
     )
@@ -844,7 +849,7 @@ handle_customize_data <- function(
         # Get transformation parameters
         age_type <- input$modal_population_age_type %||% "Single Ages"
         oag_current <- input$modal_population_oag %||% 100
-        interp_method <- input$modal_population_interp_method %||% "beers(ord)"
+        interp_method <- input$modal_population_interp_method %||% "un"
         
         # Extract year from reference date
         ref_year <- NULL
@@ -869,7 +874,7 @@ handle_customize_data <- function(
           needs_transformation <- TRUE
           age_type <- "5-Year Groups"
           oag_current <- 100  # WPP data always has OAG 100+
-          interp_method <- "beers(ord)"  # Default method
+          interp_method <- "un"  # Default method
           ref_year <- wpp_starting_year()
         }
       }

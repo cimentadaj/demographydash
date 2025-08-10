@@ -10,6 +10,7 @@ handle_navigation(
   reactive_tfr,
   reactive_e0,
   reactive_mig,
+  pop_data_source,
   wpp_starting_year,
   wpp_ending_year,
   current_tab,

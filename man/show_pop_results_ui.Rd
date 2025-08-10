@@ -4,10 +4,12 @@
 \alias{show_pop_results_ui}
 \title{Generate the UI for the population page.}
 \usage{
-show_pop_results_ui(data_source = "UN Data")
+show_pop_results_ui(data_source = "UN Data", i18n = NULL)
 }
 \arguments{
 \item{data_source}{Character string indicating the data source ("UN Data" or "Custom Data")}
+
+\item{i18n}{The internationalization object for translations}
 }
 \value{
 A div containing UI elements for step one

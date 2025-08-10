@@ -24,7 +24,7 @@
 #' @export
 #'
 transform_population_data <- function(data, age_type, oag_current, oag_target = 100, 
-                                    interp_method = "beers(ord)", country = NULL, ref_year = NULL) {
+                                    interp_method = "un", country = NULL, ref_year = NULL) {
   # Step 1: Validate and standardize column names
   data <- validate_population_data(data)
   
@@ -35,7 +35,13 @@ transform_population_data <- function(data, age_type, oag_current, oag_target = 
     age_starts <- as.numeric(gsub("^([0-9]+).*", "\\1", data$age))
     data$age <- age_starts
     # graduate_pop will graduate all non-age columns
-    data <- graduate_pop(data, method = interp_method)
+    print('----------')
+    print(interp_method)
+    print("ref_year")
+    print(ref_year)
+    print(head(data))
+    data <- graduate_pop(data, method = interp_method, country = country, year = ref_year)
+    print(head(data))
   }
   
   # Step 3: Adjust OAG if needed
