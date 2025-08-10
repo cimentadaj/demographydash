@@ -47,7 +47,11 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
       value.name = "population"
     )
 
-  pop_dt$age <- as.factor(pop_dt$age)
+  # Convert age to factor with proper ordering
+  # Extract numeric values for sorting (handle "100+" type labels)
+  age_numeric <- as.numeric(gsub("\\+.*", "", gsub("-.*", "", pop_dt$age)))
+  # Create ordered factor based on numeric values
+  pop_dt$age <- factor(pop_dt$age, levels = unique(pop_dt$age[order(age_numeric)]))
   pop_dt$sex <- pop_dt$gender
   pop_dt$gender <- NULL
 

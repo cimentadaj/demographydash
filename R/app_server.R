@@ -294,12 +294,34 @@ app_server <- function(input, output, session) {
   reactive_pop <- reactive({
     user_data <- committed_pop_rv()
     if (!is.null(user_data)) {
-
-      names(user_data) <- c("age", "popF", "popM")
-      return(user_data)
+      print("[PLOT-DATA] Preparing population data for plotting after Apply:")
+      print(paste("[PLOT-DATA] Input columns:", paste(names(user_data), collapse=", ")))
+      print(paste("[PLOT-DATA] First few rows of input data:"))
+      print(head(user_data))
+      
+      # Ensure the data has the expected column names
+      # Our standard is age, popM, popF but create_pop_pyramid_plot expects age, popF, popM
+      # So we need to reorder for compatibility
+      if (all(c("age", "popM", "popF") %in% names(user_data))) {
+        # Reorder to what create_pop_pyramid_plot expects
+        user_data <- user_data[, c("age", "popF", "popM")]
+      } else {
+        # Fallback naming if columns are in different order
+        names(user_data) <- c("age", "popF", "popM")
+      }
+      
+      print(paste("[PLOT-DATA] Output columns after reordering:", paste(names(user_data), collapse=", ")))
+      print(paste("[PLOT-DATA] Total rows:", nrow(user_data)))
+      
+      # Convert to data.table as expected by create_pop_pyramid_plot
+      return(data.table::as.data.table(user_data))
     } else {
       # Fallback to default WPP data
-      return(get_wpp_pop(input$wpp_country, wpp_starting_year()))
+      wpp_data <- get_wpp_pop(input$wpp_country, wpp_starting_year())
+      print("[PLOT-DATA] Using default WPP data (no Apply clicked)")
+      print(paste("[PLOT-DATA] WPP data columns:", paste(names(wpp_data), collapse=", ")))
+      # Convert to data.table
+      return(data.table::as.data.table(wpp_data))
     }
   })
 
