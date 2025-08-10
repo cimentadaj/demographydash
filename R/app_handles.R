@@ -568,12 +568,7 @@ handle_customize_data <- function(
     previous_modal_tab(last_active_modal_tab())  # Set to last active tab instead of always UN Data
     
     # Fetch both UN data types upfront if not already cached
-    ref_date <- input$modal_population_ref_date
-    ref_year <- if (!is.null(ref_date)) {
-      if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-      else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-      else wpp_starting_year()
-    } else wpp_starting_year()
+    ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Fetch single age data if not cached (this is now our base for all UN data)
     if (is.null(un_data_single_cache())) {
@@ -626,13 +621,8 @@ handle_customize_data <- function(
   observeEvent(input$modal_population_reset_un_btn, {
     print("[RESET] UN Data Reset button clicked")
     
-    # Extract reference year
-    ref_date <- input$modal_population_ref_date
-    ref_year <- if (!is.null(ref_date)) {
-      if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-      else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-      else wpp_starting_year()
-    } else wpp_starting_year()
+    # Extract reference year using utility function
+    ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Re-fetch original UN data
     print("[RESET] Re-fetching original UN single age data...")
@@ -653,13 +643,8 @@ handle_customize_data <- function(
   
   # Clear and re-fetch UN cache when reference date changes
   observeEvent(input$modal_population_ref_date, {
-    # Extract reference year
-    ref_date <- input$modal_population_ref_date
-    ref_year <- if (!is.null(ref_date)) {
-      if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-      else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-      else wpp_starting_year()
-    } else wpp_starting_year()
+    # Extract reference year using utility function
+    ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Fetch and cache single age data (base for all UN transformations)
     print("[FETCH] Updating UN single age data for new reference date...")
@@ -719,20 +704,10 @@ handle_customize_data <- function(
         # Always convert back to single ages for storage
         if (current_type == "5-Year Groups") {
           # Data is currently 5-year, graduate to single ages
-          ref_date <- input$modal_population_ref_date
-          ref_year <- if (!is.null(ref_date)) {
-            if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-            else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-            else wpp_starting_year()
-          } else wpp_starting_year()
+          ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
           
-          single_age_data <- transform_population(
+          single_age_data <- transform_5yr_to_single(
             current_data[, c("age", "popM", "popF")],
-            from_type = "5-Year Groups",
-            to_type = "Single Ages",
-            from_oag = 100,
-            to_oag = 100,
-            method = "un",
             country = input$wpp_country,
             ref_year = ref_year
           )
@@ -862,20 +837,10 @@ handle_customize_data <- function(
           if (un_age_type == "5-Year Groups") {
             # Convert 5-year back to single ages for storage
             print("[TAB-SWITCH] Converting 5-Year Groups back to Single Ages for storage")
-            ref_date <- input$modal_population_ref_date
-            ref_year <- if (!is.null(ref_date)) {
-              if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-              else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-              else wpp_starting_year()
-            } else wpp_starting_year()
+            ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
             
-            single_age_data <- transform_population(
+            single_age_data <- transform_5yr_to_single(
               current_data[, c("age", "popM", "popF")],
-              from_type = "5-Year Groups",
-              to_type = "Single Ages",
-              from_oag = 100,
-              to_oag = 100,
-              method = "un",
               country = input$wpp_country,
               ref_year = ref_year
             )
@@ -895,12 +860,10 @@ handle_customize_data <- function(
           # Transform to canonical format (single ages, OAG 100) before saving
           if (current_age_type != "Single Ages" || current_oag != 100) {
             print("[TAB-SWITCH] Transforming to canonical format...")
-            canonical_data <- transform_population(
+            canonical_data <- transform_to_canonical(
               current_data[, c("age", "popM", "popF")],
               from_type = current_age_type,
-              to_type = "Single Ages",
               from_oag = current_oag,
-              to_oag = 100,
               method = current_method,
               country = input$wpp_country,
               ref_year = ref_year
@@ -964,13 +927,8 @@ handle_customize_data <- function(
     print(paste("[RENDER-TABLE] Data source:", data_source))
     print(paste("[RENDER-TABLE] Timestamp:", Sys.time()))
     
-    # Extract reference year
-    ref_date <- input$modal_population_ref_date
-    ref_year <- if (!is.null(ref_date)) {
-      if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-      else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-      else wpp_starting_year()
-    } else wpp_starting_year()
+    # Extract reference year using utility function
+    ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Prepare table based on data source
     if (data_source == "Custom Data") {
@@ -1219,13 +1177,8 @@ handle_customize_data <- function(
       # Verify columns and ensure correct order using utility function
       data <- ensure_standard_columns(data)
       
-      # Extract reference year
-      ref_date <- input$modal_population_ref_date
-      ref_year <- if (!is.null(ref_date)) {
-        if (is.character(ref_date)) as.numeric(format(as.Date(ref_date), "%Y"))
-        else if (inherits(ref_date, "Date")) as.numeric(format(ref_date, "%Y"))
-        else wpp_starting_year()
-      } else wpp_starting_year()
+      # Extract reference year using utility function
+      ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
       
       data_source <- input$modal_population_source %||% "UN Data"
       print(paste("[APPLY] Processing data from:", data_source))
@@ -1244,13 +1197,8 @@ handle_customize_data <- function(
         } else {
           # Convert 5-year to single ages for storage and final use
           print("[APPLY] Transforming UN 5-year to single ages")
-          final_data <- transform_population(
-            data, 
-            from_type = "5-Year Groups",
-            to_type = "Single Ages",
-            from_oag = 100,
-            to_oag = 100,
-            method = "un",
+          final_data <- transform_5yr_to_single(
+            data,
             country = input$wpp_country,
             ref_year = ref_year
           )
@@ -1267,12 +1215,10 @@ handle_customize_data <- function(
         # Transform to canonical format (single ages, OAG 100) for storage
         if (current_age_type != "Single Ages" || current_oag != 100) {
           print("[APPLY] Transforming to canonical format for storage...")
-          canonical_data <- transform_population(
+          canonical_data <- transform_to_canonical(
             data,
             from_type = current_age_type,
-            to_type = "Single Ages",
             from_oag = current_oag,
-            to_oag = 100,
             method = selected_method,
             country = input$wpp_country,
             ref_year = ref_year

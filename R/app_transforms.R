@@ -566,3 +566,65 @@ detect_age_type <- function(age_vector) {
     "single"
   }
 }
+
+#' Transform Data to Canonical Format
+#'
+#' @description
+#' Convenience function to transform population data to canonical format
+#' (Single Ages with OAG 100). This is the most common transformation pattern
+#' used throughout the application for data storage.
+#'
+#' @param data Input data frame
+#' @param from_type Source age type
+#' @param from_oag Source OAG
+#' @param method Interpolation method
+#' @param country Country code
+#' @param ref_year Reference year
+#'
+#' @return Data frame in canonical format (Single Ages, OAG 100)
+#' @export
+#'
+transform_to_canonical <- function(data, from_type, from_oag, method, country, ref_year) {
+  # Skip transformation if already in canonical format
+  if (from_type == "Single Ages" && from_oag == 100) {
+    return(data)
+  }
+  
+  # Transform to canonical format
+  transform_population(
+    data,
+    from_type = from_type,
+    to_type = "Single Ages", 
+    from_oag = from_oag,
+    to_oag = 100,
+    method = method,
+    country = country,
+    ref_year = ref_year
+  )
+}
+
+#' Transform 5-Year Groups to Single Ages with Standard Parameters
+#'
+#' @description
+#' Convenience function for the common transformation from 5-year groups to single ages
+#' using UN method and standard OAG of 100. Used frequently in UN data processing.
+#'
+#' @param data Input data frame with 5-year groups
+#' @param country Country code
+#' @param ref_year Reference year
+#'
+#' @return Data frame with single ages, OAG 100
+#' @export
+#'
+transform_5yr_to_single <- function(data, country, ref_year) {
+  transform_population(
+    data,
+    from_type = "5-Year Groups",
+    to_type = "Single Ages",
+    from_oag = 100,
+    to_oag = 100,
+    method = "un",
+    country = country,
+    ref_year = ref_year
+  )
+}
