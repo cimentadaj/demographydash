@@ -13,6 +13,7 @@ handle_customize_data(
   tfr_to_commit_rv,
   e0_to_commit_rv,
   mig_to_commit_rv,
+  pop_data_source,
   tfr_starting_year,
   wpp_starting_year,
   wpp_ending_year,

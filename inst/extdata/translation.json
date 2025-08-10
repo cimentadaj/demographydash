@@ -1301,6 +1301,22 @@
       {
         "en": "Download Report",
         "fr": "Télécharger le rapport"
+      },
+      {
+        "en": "UN Data",
+        "fr": "Données ONU"
+      },
+      {
+        "en": "Custom Data",
+        "fr": "Données personnalisées"
+      },
+      {
+        "en": "Starting population data from UN sources. Use 'Customize' to paste custom data or edit UN data.",
+        "fr": "Données de population de départ provenant de sources ONU. Utilisez 'Personnaliser' pour coller des données personnalisées ou modifier les données ONU."
+      },
+      {
+        "en": "Starting population data from custom source. Use 'Customize' to modify or switch back to UN data.",
+        "fr": "Données de population de départ provenant d'une source personnalisée. Utilisez 'Personnaliser' pour modifier ou revenir aux données ONU."
       }
     ]
 }

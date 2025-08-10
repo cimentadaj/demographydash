@@ -4,7 +4,10 @@
 \alias{show_pop_results_ui}
 \title{Generate the UI for the population page.}
 \usage{
-show_pop_results_ui()
+show_pop_results_ui(data_source = "UN Data")
+}
+\arguments{
+\item{data_source}{Character string indicating the data source ("UN Data" or "Custom Data")}
 }
 \value{
 A div containing UI elements for step one

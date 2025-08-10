@@ -543,7 +543,7 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 handle_customize_data <- function(
     current_pop_reactive, current_tfr_reactive, current_e0_reactive, current_mig_reactive,
     pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
-    tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL
+    pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
@@ -897,6 +897,13 @@ handle_customize_data <- function(
       # Update reactive value (this is the final data used by the app)
       pop_to_commit_rv(data)
       
+      # Update data source tracker
+      if (!is.null(data_source) && data_source == "Custom Data") {
+        pop_data_source("Custom Data")
+      } else {
+        pop_data_source("UN Data")
+      }
+      
       # Close modal
       shiny.semantic::hide_modal("modal_population")
       
@@ -1003,7 +1010,7 @@ handle_customize_data <- function(
 #' @importFrom utils write.csv
 #' @export
 #'
-handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL) {
+handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, reactive_e0, reactive_mig, pop_data_source, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL) {
 
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
@@ -1064,7 +1071,7 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
         i18n = i18n
       )
 
-      res <- show_pop_results_ui()
+      res <- show_pop_results_ui(data_source = pop_data_source(), i18n = i18n)
       processing(FALSE)
       res
     })

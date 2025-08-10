@@ -158,24 +158,73 @@ show_forecast_results_ui <- function(input, i18n) {
 
 #' Generate the UI for the population page.
 #'
+#' @param data_source Character string indicating the data source ("UN Data" or "Custom Data")
+#' @param i18n The internationalization object for translations
 #' @return A div containing UI elements for step one
-#' @importFrom shiny actionButton tableOutput
+#' @importFrom shiny actionButton tableOutput div tags
 #' @importFrom shiny.semantic grid
+#' @importFrom shiny.fluent TooltipHost
 #' @importFrom DT DTOutput
 #' @importFrom plotly plotlyOutput
 #' @export
 #'
-show_pop_results_ui <- function() {
+show_pop_results_ui <- function(data_source = "UN Data", i18n = NULL) {
+  # Get translated text
+  label_text <- if (!is.null(i18n)) i18n$t(data_source) else data_source
+  
+  # Get tooltip text based on data source
+  tooltip_text <- if (!is.null(i18n)) {
+    if (data_source == "UN Data") {
+      i18n$t("Starting population data from UN sources. Use 'Customize' to paste custom data or edit UN data.")
+    } else {
+      i18n$t("Starting population data from custom source. Use 'Customize' to modify or switch back to UN data.")
+    }
+  } else {
+    if (data_source == "UN Data") {
+      "Starting population data from UN sources. Use 'Customize' to paste custom data or edit UN data."
+    } else {
+      "Starting population data from custom source. Use 'Customize' to modify or switch back to UN data."
+    }
+  }
+  
   div(
     class = "ui raised very padded container segment responsive-container",
-    style = "display: flex; align-items: flex-start; gap: 10px",
+    style = "display: flex; flex-direction: column; gap: 10px",
+    # Data source indicator with tooltip
     div(
-      style = "flex: 2;",
-      plotlyOutput("plot_pop", height = "600px", width = "100%")
+      style = "display: flex; justify-content: center; margin-bottom: 10px;",
+      TooltipHost(
+        content = tooltip_text,
+        tags$span(
+          style = paste0(
+            "display: inline-block; ",
+            "padding: 6px 14px; ",
+            "border: none; ",
+            "border-radius: 4px; ",
+            "font-size: 0.9em; ",
+            "color: #ffffff; ",
+            "background-color: #2185d0; ",
+            "cursor: help; ",
+            "transition: all 0.2s ease; ",
+            "font-weight: 500;"
+          ),
+          onmouseover = "this.style.backgroundColor='#1678c2';",
+          onmouseout = "this.style.backgroundColor='#2185d0';",
+          label_text
+        )
+      )
     ),
+    # Main content
     div(
-      style = "flex: 1;",
-      DTOutput("table_pop")
+      style = "display: flex; align-items: flex-start; gap: 10px",
+      div(
+        style = "flex: 2;",
+        plotlyOutput("plot_pop", height = "600px", width = "100%")
+      ),
+      div(
+        style = "flex: 1;",
+        DTOutput("table_pop")
+      )
     )
   )
 }

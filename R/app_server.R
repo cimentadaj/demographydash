@@ -274,6 +274,9 @@ app_server <- function(input, output, session) {
   committed_tfr_rv <- reactiveVal(NULL)
   committed_e0_rv  <- reactiveVal(NULL)
   committed_mig_rv <- reactiveVal(NULL)
+  
+  # Track data source for population (UN Data or Custom Data)
+  pop_data_source <- reactiveVal("UN Data")
 
   # Observe changes to wpp_countries and reset committed data
   observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year), {
@@ -281,6 +284,7 @@ app_server <- function(input, output, session) {
     committed_tfr_rv(NULL)
     committed_e0_rv(NULL)
     committed_mig_rv(NULL)
+    pop_data_source("UN Data")  # Reset to UN Data when country/year changes
     # Reset data_source if still relevant to distinguish default from committed
     data_source$tfr <- "downloaded" # or "default"
     data_source$e0  <- "downloaded" # or "default"
@@ -368,6 +372,7 @@ app_server <- function(input, output, session) {
     reactive_tfr = reactive_tfr,
     reactive_e0 = reactive_e0,
     reactive_mig = reactive_mig,
+    pop_data_source = pop_data_source,
     wpp_starting_year = wpp_starting_year,
     wpp_ending_year = wpp_ending_year,
     current_tab = current_tab,
@@ -386,6 +391,7 @@ app_server <- function(input, output, session) {
     tfr_to_commit_rv = committed_tfr_rv,
     e0_to_commit_rv = committed_e0_rv,
     mig_to_commit_rv = committed_mig_rv,
+    pop_data_source = pop_data_source,
     tfr_starting_year,
     wpp_starting_year,
     wpp_ending_year,
