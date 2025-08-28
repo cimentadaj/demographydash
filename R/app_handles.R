@@ -1399,14 +1399,21 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
 #' @importFrom shiny.semantic action_button
 #' @export
 #'
-handle_validity_checks <- function(wpp_starting_year, wpp_ending_year, output, i18n = NULL) {
+handle_validity_checks <- function(wpp_starting_year, wpp_ending_year, input, output, i18n = NULL) {
   output$next_pop_page <- renderUI({
     if (wpp_ending_year() < wpp_starting_year()) {
       wellPanel(
         class = "danger",
         i18n$t("\u274C Ending year should be higher than starting year")
       )
+    } else if (is.null(input$simulation_name) || input$simulation_name == "") {
+      cat("[PHASE1] Simulation name validation: FALSE\n")
+      wellPanel(
+        class = "danger",
+        i18n$t("\u274C Please enter a simulation name")
+      )
     } else {
+      cat("[PHASE1] Simulation name validation: TRUE\n")
       action_button("forward_pop_page", i18n$t("Next"), class = "ui blue button")
     }
   })

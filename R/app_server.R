@@ -116,7 +116,8 @@ file_parser <- function(file, data_type, i18n = NULL) {
 #' @export
 #'
 app_server <- function(input, output, session) {
-
+  cat("[PHASE1] Sidebar structure created\n")
+  
   i18n <- usei18n_local()
 
   # Render the toggle_region UI with translated options
@@ -370,7 +371,7 @@ app_server <- function(input, output, session) {
   tfr_starting_year <- reactive(min(reactive_tfr()[[1]], na.rm = TRUE))
 
   # Handle any checks on inputs to make sure everything is correct
-  handle_validity_checks(wpp_starting_year, wpp_ending_year, output, i18n)
+  handle_validity_checks(wpp_starting_year, wpp_ending_year, input, output, i18n)
 
   # Handle pop/tfr plots/tables before analysis
   handle_before_analysis_plots(

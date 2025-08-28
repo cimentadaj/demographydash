@@ -172,9 +172,26 @@ app_ui <- function(request) {
     shiny.i18n::usei18n(i18n),
     useShinyjs(),
     introjsUI(),
-    main_panel(
-      # Add the landing page as the first page
-      div(id = "landing_page", create_landing_page(i18n)),
+    # Sidebar layout with empty sidebar for now
+    div(
+      style = "display: flex; min-height: 100vh;",
+      
+      # Sidebar (initially hidden, will be shown after naming simulation)
+      div(
+        id = "simulation_sidebar",
+        class = "ui sidebar left visible",
+        style = "width: 250px; background: #f8f8f9; padding: 10px; border-right: 1px solid #ddd; display: none;",
+        tags$h4(class = "ui header", "Simulations"),
+        div(id = "sidebar_content", "")
+      ),
+      
+      # Main content
+      div(
+        id = "main_content",
+        style = "flex: 1; padding: 0;",
+        main_panel(
+          # Add the landing page as the first page
+          div(id = "landing_page", create_landing_page(i18n)),
 
       # Hide the input page initially
       shinyjs::hidden(
@@ -281,10 +298,12 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),
-      hidden(
-        numericInput("step", label = NULL, value = 1)
-      ),
-      width = NULL
+          hidden(
+            numericInput("step", label = NULL, value = 1)
+          ),
+          width = NULL
+        )
+      )
     )
   )
 }

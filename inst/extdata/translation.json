@@ -186,6 +186,18 @@
         "fr": "Annuler"
       },
       {
+        "en": "Simulation Name",
+        "fr": "Nom de Simulation"
+      },
+      {
+        "en": "Please give a name to your analysis...",
+        "fr": "Veuillez donner un nom à votre analyse..."
+      },
+      {
+        "en": "❌ Please enter a simulation name",
+        "fr": "❌ Veuillez entrer un nom de simulation"
+      },
+      {
         "en": "Download",
         "fr": "Télécharger"
       },
