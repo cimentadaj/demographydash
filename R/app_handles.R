@@ -289,28 +289,24 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
             div(
               class = "ui form",
               div(
-                style = "display: flex; gap: 15px; align-items: flex-end;",
-                div(
-                  class = "field",
-                  style = "width: 200px;",
-                  tags$label(style = "font-size: 0.9em;", if (!is.null(i18n)) i18n$t("Age Type") else "Age Type"),
-                  selectInput(
-                    paste0(modal_id, "_un_age_type"),
-                    NULL,
-                    choices = c("Single Ages", "5-Year Groups"),
-                    selected = "Single Ages",
-                    width = "100%"
-                  )
-                ),
-                div(
-                  class = "field",
-                  style = "padding-bottom: 5px;",
-                  actionButton(
-                    paste0(modal_id, "_reset_un_btn"),
-                    if (!is.null(i18n)) i18n$t("Reset") else "Reset",
-                    class = "ui small button",
-                    icon = icon("undo")
-                  )
+                class = "field",
+                style = "width: 200px;",
+                tags$label(style = "font-size: 0.9em;", if (!is.null(i18n)) i18n$t("Age Type") else "Age Type"),
+                selectInput(
+                  paste0(modal_id, "_un_age_type"),
+                  NULL,
+                  choices = c("Single Ages", "5-Year Groups"),
+                  selected = "Single Ages",
+                  width = "100%"
+                )
+              ),
+              div(
+                style = "margin-top: 10px;",
+                actionButton(
+                  paste0(modal_id, "_reset_un_btn"),
+                  if (!is.null(i18n)) i18n$t("Reset") else "Reset",
+                  class = "ui small button",
+                  icon = icon("undo")
                 )
               )
             )
