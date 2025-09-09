@@ -556,7 +556,9 @@ handle_customize_data <- function(
     pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
     pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, session, i18n = NULL,
     save_population_files = NULL,
-    save_tfr_files = NULL
+    save_tfr_files = NULL,
+    save_e0_files = NULL,
+    save_mig_files = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
@@ -1165,16 +1167,60 @@ handle_customize_data <- function(
 
   observeEvent(input$modal_e0_ok_btn, {
     req(input$tmp_e0_dt)
-    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_e0_dt)
-    e0_to_commit_rv(current_data_from_table)
-    shiny.semantic::hide_modal("modal_e0")
+    
+    tryCatch({
+      # Get raw data from table
+      data <- rhandsontable::hot_to_r(input$tmp_e0_dt)
+      
+      # SAVE RAW INPUT DATA with correct parameter context
+      tryCatch({
+        save_e0_files(trigger = "modal_e0_ok", raw_data_override = data)
+      }, error = function(e) {
+        cat("[PHASE6] Error saving raw e0 data:", conditionMessage(e), "\n")
+      })
+      
+      # Update reactive value (this is the data used by the app)
+      e0_to_commit_rv(data)
+      
+      # Close modal
+      shiny.semantic::hide_modal("modal_e0")
+      
+      # Show success message
+      showNotification(i18n$t("Life expectancy data updated successfully"), type = "message", duration = 3)
+      
+    }, error = function(e) {
+      # Handle any errors in the modal processing
+      showNotification(paste("Error updating e0 data:", conditionMessage(e)), type = "error", duration = 5)
+    })
   })
 
   observeEvent(input$modal_mig_ok_btn, {
     req(input$tmp_mig_dt)
-    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_mig_dt)
-    mig_to_commit_rv(current_data_from_table)
-    shiny.semantic::hide_modal("modal_mig")
+    
+    tryCatch({
+      # Get raw data from table
+      data <- rhandsontable::hot_to_r(input$tmp_mig_dt)
+      
+      # SAVE RAW INPUT DATA with correct parameter context
+      tryCatch({
+        save_mig_files(trigger = "modal_mig_ok", raw_data_override = data)
+      }, error = function(e) {
+        cat("[PHASE6] Error saving raw migration data:", conditionMessage(e), "\n")
+      })
+      
+      # Update reactive value (this is the data used by the app)
+      mig_to_commit_rv(data)
+      
+      # Close modal
+      shiny.semantic::hide_modal("modal_mig")
+      
+      # Show success message
+      showNotification(i18n$t("Migration data updated successfully"), type = "message", duration = 3)
+      
+    }, error = function(e) {
+      # Handle any errors in the modal processing
+      showNotification(paste("Error updating migration data:", conditionMessage(e)), type = "error", duration = 5)
+    })
   })
 
   cnt_years <-

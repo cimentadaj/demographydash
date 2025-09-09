@@ -325,6 +325,136 @@ app_server <- function(input, output, session) {
     cat("[PHASE5] tfr_params.json content:\n", params_json, "\n")
   }
 
+  # Phase 6: Save e0 data and parameters
+  save_e0_files <- function(trigger = NULL, raw_data_override = NULL) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    e0_path <- file.path(inputs_dir, "e0.csv")
+    params_path <- file.path(inputs_dir, "e0_params.json")
+
+    # Choose data to save - prioritize raw input data when provided
+    e0_dt <- tryCatch({ raw_data_override }, error = function(e) NULL)
+    if (is.null(e0_dt)) {
+      # If a committed dataset exists, use it; else use current reactive_e0()
+      e0_dt <- tryCatch({ committed_e0_rv() }, error = function(e) NULL)
+      if (is.null(e0_dt)) e0_dt <- tryCatch({ reactive_e0() }, error = function(e) NULL)
+    }
+    if (is.null(e0_dt)) return(invisible(NULL))
+
+    # Preview head in logs before saving
+    df_save <- as.data.frame(e0_dt)
+    preview <- tryCatch({
+      paste(utils::capture.output(print(utils::head(df_save, 10))), collapse = "\n")
+    }, error = function(e) NULL)
+
+    # Write e0.csv
+    try({
+      data.table::fwrite(df_save, e0_path)
+    }, silent = TRUE)
+
+    # Params snapshot
+    src <- tryCatch({ data_source$e0 }, error = function(e) NULL)
+    
+    params <- list(
+      aggregation = input$toggle_region %||% NULL,
+      location = input$wpp_country %||% NULL,
+      start_year = tryCatch({ wpp_starting_year() }, error = function(e) NULL),
+      end_year = tryCatch({ wpp_ending_year() }, error = function(e) NULL),
+      data_source = src,
+      trigger = trigger %||% "unknown",
+      saved_at = as.character(Sys.time())
+    )
+    params_json <- jsonlite::toJSON(params, pretty = TRUE, auto_unbox = TRUE, na = "null")
+    writeLines(params_json, params_path, useBytes = TRUE)
+
+    # Update metadata with e0 summary
+    meta_path <- file.path(sim_dir, "metadata.json")
+    meta <- list()
+    if (file.exists(meta_path)) {
+      meta <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) list())
+    }
+    meta$last_e0_saved <- as.character(Sys.time())
+    if (is.null(meta$data_sources)) meta$data_sources <- list()
+    meta$data_sources$e0 <- tryCatch({ data_source$e0 }, error = function(e) meta$data_sources$e0 %||% NULL)
+    writeLines(jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null"), meta_path, useBytes = TRUE)
+
+    # Logs
+    cat("[PHASE6] e0 files saved for:", sim_name, " (trigger: ", (trigger %||% "unknown"), ")\n", sep = "")
+    cat("[PHASE6] e0 data source:", (src %||% "unknown"), "\n")
+    cat("[PHASE6] e0.csv saved to:", e0_path, " rows:", tryCatch({ nrow(df_save) }, error=function(e) NA_integer_), "\n")
+    if (!is.null(preview)) {
+      cat("[PHASE6] e0.csv head (first 10 rows):\n", preview, "\n")
+    }
+    cat("[PHASE6] e0_params.json content:\n", params_json, "\n")
+  }
+
+  # Phase 6: Save migration data and parameters
+  save_mig_files <- function(trigger = NULL, raw_data_override = NULL) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    mig_path <- file.path(inputs_dir, "mig.csv")
+    params_path <- file.path(inputs_dir, "mig_params.json")
+
+    # Choose data to save - prioritize raw input data when provided
+    mig_dt <- tryCatch({ raw_data_override }, error = function(e) NULL)
+    if (is.null(mig_dt)) {
+      # If a committed dataset exists, use it; else use current reactive_mig()
+      mig_dt <- tryCatch({ committed_mig_rv() }, error = function(e) NULL)
+      if (is.null(mig_dt)) mig_dt <- tryCatch({ reactive_mig() }, error = function(e) NULL)
+    }
+    if (is.null(mig_dt)) return(invisible(NULL))
+
+    # Preview head in logs before saving
+    df_save <- as.data.frame(mig_dt)
+    preview <- tryCatch({
+      paste(utils::capture.output(print(utils::head(df_save, 10))), collapse = "\n")
+    }, error = function(e) NULL)
+
+    # Write mig.csv
+    try({
+      data.table::fwrite(df_save, mig_path)
+    }, silent = TRUE)
+
+    # Params snapshot
+    src <- tryCatch({ data_source$mig }, error = function(e) NULL)
+    
+    params <- list(
+      aggregation = input$toggle_region %||% NULL,
+      location = input$wpp_country %||% NULL,
+      start_year = tryCatch({ wpp_starting_year() }, error = function(e) NULL),
+      end_year = tryCatch({ wpp_ending_year() }, error = function(e) NULL),
+      data_source = src,
+      trigger = trigger %||% "unknown",
+      saved_at = as.character(Sys.time())
+    )
+    params_json <- jsonlite::toJSON(params, pretty = TRUE, auto_unbox = TRUE, na = "null")
+    writeLines(params_json, params_path, useBytes = TRUE)
+
+    # Update metadata with migration summary
+    meta_path <- file.path(sim_dir, "metadata.json")
+    meta <- list()
+    if (file.exists(meta_path)) {
+      meta <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) list())
+    }
+    meta$last_mig_saved <- as.character(Sys.time())
+    if (is.null(meta$data_sources)) meta$data_sources <- list()
+    meta$data_sources$mig <- tryCatch({ data_source$mig }, error = function(e) meta$data_sources$mig %||% NULL)
+    writeLines(jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null"), meta_path, useBytes = TRUE)
+
+    # Logs
+    cat("[PHASE6] Migration files saved for:", sim_name, " (trigger: ", (trigger %||% "unknown"), ")\n", sep = "")
+    cat("[PHASE6] Migration data source:", (src %||% "unknown"), "\n")
+    cat("[PHASE6] mig.csv saved to:", mig_path, " rows:", tryCatch({ nrow(df_save) }, error=function(e) NA_integer_), "\n")
+    if (!is.null(preview)) {
+      cat("[PHASE6] mig.csv head (first 10 rows):\n", preview, "\n")
+    }
+    cat("[PHASE6] mig_params.json content:\n", params_json, "\n")
+  }
+
   # Dynamic header and dropdown for simulations (Phase 2)
   output$sim_header <- shiny::renderUI({
     n <- length(names(simulations$data))
@@ -452,12 +582,15 @@ app_server <- function(input, output, session) {
     save_sim_metadata(trigger = "forward_e0_page")
     save_population_files(trigger = "forward_e0_page")
     save_tfr_files(trigger = "forward_e0_page")
+    save_e0_files(trigger = "forward_e0_page")
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_mig_page, {
     save_sim_metadata(trigger = "forward_mig_page")
     save_population_files(trigger = "forward_mig_page")
     save_tfr_files(trigger = "forward_mig_page")
+    save_e0_files(trigger = "forward_mig_page")
+    save_mig_files(trigger = "forward_mig_page")
   }, ignoreInit = TRUE)
 
   # Population data is now saved directly in the Apply button handler
@@ -772,7 +905,9 @@ app_server <- function(input, output, session) {
     session,
     i18n,
     save_population_files = save_population_files,
-    save_tfr_files = save_tfr_files
+    save_tfr_files = save_tfr_files,
+    save_e0_files = save_e0_files,
+    save_mig_files = save_mig_files
   )
 
 
