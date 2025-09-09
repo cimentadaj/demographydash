@@ -163,56 +163,63 @@ cat("[PHASE4] pop_params.json content:\n", params_json, "\n")
 
 ---
 
-## Phase 5: Track & Save TFR Data ⏳ PENDING
+## Phase 5: Track & Save TFR Data ✅ COMPLETED
 
 **Goal**: Save TFR data source, parameters, and customizations.
 
-### Planned Changes:
-1. **Save TFR data source (UN/custom)**
-2. **Save TFR parameters and customizations**
-3. **Update metadata with TFR info**
+### Changes Made:
+1. **Created save_tfr_files function following population pattern**
+2. **Added raw_data_override parameter to capture user input before transformations**
+3. **Hooked save_tfr_files to TFR modal Apply button with correct timing**
+4. **Added TFR saving to step transitions (Next buttons)**
+5. **Updated metadata with TFR info and last_tfr_saved timestamp**
 
-### Files to Modify:
-- TFR handling functions
-- TFR modal customization handlers
-- Metadata update functions
+### Files Modified:
+- `R/app_server.R`: Added `save_tfr_files()` function and step transition hooks
+- `R/app_handles.R`: Modified TFR modal Apply button handler to save raw data
 
-### Logging to Add:
+### Logging Added:
 ```r
-cat("[PHASE5] TFR data source:", data_source$tfr, "\n")
-cat("[PHASE5] TFR data saved for simulation:", simulations$current, "\n")
+cat("[PHASE5] TFR files saved for:", sim_name, "(trigger:", trigger, ")\n")
+cat("[PHASE5] TFR data source:", src, "\n")
+cat("[PHASE5] tfr.csv saved to:", tfr_path, " rows:", nrow(df_save), "\n")
+cat("[PHASE5] tfr_params.json content:\n", params_json, "\n")
 ```
 
-### Expected Outcome:
-- TFR data completely saved
-- All TFR customizations preserved
+### Outcome:
+- TFR data and parameters saved to `/tmp/hasdaney213/<simulation_name>/inputs/`
+- Raw user input preserved before any transformations
+- Complete TFR customizations preserved with metadata tracking
 
 ---
 
-## Phase 6: Track & Save e0 and Migration Data ⏳ PENDING
+## Phase 6: Track & Save e0 and Migration Data ✅ COMPLETED
 
 **Goal**: Complete input data saving for e0 and migration.
 
-### Planned Changes:
-1. **Save e0 data source and customizations**
-2. **Save migration data source and customizations**
-3. **Complete all input data saving**
+### Changes Made:
+1. **Created save_e0_files and save_mig_files functions following established pattern**
+2. **Added raw_data_override parameters to capture user input before transformations**
+3. **Hooked both functions to modal Apply buttons with correct timing**
+4. **Added e0 and migration saving to step transitions (Next buttons)**
+5. **Complete all input data saving with metadata tracking**
 
-### Files to Modify:
-- e0 and migration handling functions
-- Modal customization handlers
-- Complete metadata structure
+### Files Modified:
+- `R/app_server.R`: Added `save_e0_files()` and `save_mig_files()` functions and step transition hooks
+- `R/app_handles.R`: Modified e0 and migration modal Apply button handlers to save raw data
 
-### Logging to Add:
+### Logging Added:
 ```r
-cat("[PHASE6] e0 data source:", data_source$e0, "\n")
-cat("[PHASE6] Migration data source:", data_source$mig, "\n")
-cat("[PHASE6] All input data saved for:", simulations$current, "\n")
+cat("[PHASE6] e0 files saved for:", sim_name, "(trigger:", trigger, ")\n")
+cat("[PHASE6] e0 data source:", src, "\n")
+cat("[PHASE6] Migration files saved for:", sim_name, "(trigger:", trigger, ")\n")
+cat("[PHASE6] Migration data source:", src, "\n")
 ```
 
-### Expected Outcome:
-- All demographic input data saved
-- Complete simulation state preserved
+### Outcome:
+- All demographic input data saved (pop, tfr, e0, mig) to `/tmp/hasdaney213/<simulation_name>/inputs/`
+- Complete simulation state preserved with metadata tracking
+- Raw user input preserved for all data types before any transformations
 
 ---
 
@@ -391,14 +398,14 @@ simulations$data[["sim_name"]] <- list(
 | Phase | Status | Files Modified | Key Features |
 |-------|--------|----------------|--------------|
 | Phase 1 | ✅ COMPLETED | 5 files | Simulation name UI, validation, sidebar structure |
-| Phase 2 | ⏳ PENDING | - | Sidebar display, plus button |
-| Phase 3 | ⏳ PENDING | - | Basic metadata saving |
-| Phase 4 | ⏳ PENDING | - | Population data saving |
-| Phase 5 | ⏳ PENDING | - | TFR data saving |
-| Phase 6 | ⏳ PENDING | - | e0 and migration saving |
-| Phase 7 | ⏳ PENDING | - | New simulation creation |
-| Phase 8 | ⏳ PENDING | - | Simulation switching |
+| Phase 2 | ✅ COMPLETED | 4 files | Sidebar display, inline simulation creation |
+| Phase 3 | ✅ COMPLETED | 2 files | Basic metadata saving, directory structure |
+| Phase 4 | ✅ COMPLETED | 2 files | Population data saving with raw input preservation |
+| Phase 5 | ✅ COMPLETED | 2 files | TFR data saving |
+| Phase 6 | ✅ COMPLETED | 2 files | e0 and migration data saving |
+| Phase 7 | ⏳ PENDING | - | New simulation creation via plus button |
+| Phase 8 | ⏳ PENDING | - | Simulation switching and state restoration |
 | Phase 9 | ⏳ PENDING | - | Results management |
 | Phase 10 | ⏳ PENDING | - | Polish and error handling |
 
-**Current Status**: Phase 1 completed successfully. Ready for Phase 2 upon approval.
+**Current Status**: Phases 1-6 completed. All input data saving implemented. Ready for Phase 7 upon approval.
