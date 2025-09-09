@@ -535,6 +535,24 @@ app_server <- function(input, output, session) {
 
   observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
 
+  # Phase 7: Reset simulation state function
+  reset_simulation_state <- function() {
+    # Clear all committed reactive values
+    committed_pop_rv(NULL)
+    committed_tfr_rv(NULL)
+    committed_e0_rv(NULL)
+    committed_mig_rv(NULL)
+    
+    # Reset data source flags
+    pop_data_source("UN Data")
+    data_source$tfr <- "downloaded"
+    data_source$e0 <- "downloaded"
+    data_source$mig <- "downloaded"
+    
+    # Log the reset
+    cat("[PHASE7] Reactive values cleared for new simulation\n")
+  }
+
   observeEvent(input$create_sim_confirm, {
     nm <- input$new_sim_name
     if (is.null(nm) || !nzchar(trimws(nm))) {
@@ -545,13 +563,41 @@ app_server <- function(input, output, session) {
       shiny::showNotification(i18n$translate("A simulation with this name already exists"), type = "error")
       return()
     }
+    
+    # Phase 7: Complete new simulation creation
+    cat("[PHASE7] Plus button clicked - starting new simulation:", nm, "\n")
+    
+    # Create simulation in list
     simulations$data[[nm]] <- list()
     simulations$current <- nm
+    
+    # Create simulation directory structure immediately
+    sim_dir <- ensure_sim_dirs(sim_base_dir, nm)
+    cat("[PHASE7] Created simulation directory:", sim_dir, "\n")
+    
+    # Reset all reactive values for fresh start
+    reset_simulation_state()
+    
+    # Hide the inline form
     new_sim_form_visible(FALSE)
+    
+    # Update sidebar header to show current simulation
     output$current_sim_name <- shiny::renderUI({
       shiny::tags$div(class = "ui small header", paste(i18n$translate("Current simulation:"), simulations$current))
     })
-    cat("[PHASE2] Simulation created via inline form:", nm, "\n")
+    
+    # Navigate to input page for new simulation
+    # Hide any currently visible page
+    for (page in c("landing_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "results_page")) {
+      shinyjs::hide(page)
+    }
+    
+    # Show input page
+    shinyjs::show("input_page")
+    current_tab("input_page")
+    
+    cat("[PHASE7] Navigated to input page for new simulation\n")
+    cat("[PHASE7] Total simulations:", length(simulations$data), "\n")
   })
 
   # Keep current simulation header in sync
