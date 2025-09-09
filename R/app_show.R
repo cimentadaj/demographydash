@@ -8,26 +8,7 @@
 #' @export
 #'
 show_input_ui <- function(i18n) {
-  cat("[PHASE1] Simulation name input rendered\n")
   div(
-    # Simulation Name Field
-    div(
-      class = "ui form",
-      div(
-        class = "required field",
-        tags$label(
-          i18n$translate("Simulation Name"),
-          tags$i(class = "asterisk icon")
-        ),
-        textInput(
-          inputId = "simulation_name",
-          label = NULL,
-          placeholder = "Please give a name to your analysis...",
-          width = "100%"
-        )
-      )
-    ),
-    br(),
     uiOutput("toggle_region_ui"),
     br(),
     uiOutput("location_selector"),

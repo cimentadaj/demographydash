@@ -15,6 +15,51 @@ app_ui <- function(request) {
     tags$head(
       tags$style(HTML("
         /* Custom CSS */
+        :root { --app-top-offset: 0px; }
+
+        /* App root below host header */
+        .dd-app { padding-top: var(--app-top-offset); }
+
+        /* Left menu layout */
+        .dd-layout { display: flex; min-height: 100vh; padding-left: 12px; }
+        #left_menu { width: 210px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) / 4); z-index: 2; }
+        #left_menu .menu-inner {
+          position: sticky;
+          top: var(--app-top-offset);
+          height: calc((100vh - var(--app-top-offset)) / 2);
+          overflow: auto;
+          padding: 8px;
+          background: #ffffff;
+          border: 2px solid rgba(0,0,0,0.3);
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        #main_content { flex: 1; padding: 0; }
+
+        /* Mobile: stack menu above content */
+        @media (max-width: 1200px) {
+          .dd-layout { flex-direction: column; padding-left: 0; }
+          #left_menu { position: relative; left: auto; top: auto; width: 100%; border-right: none; border-bottom: none; z-index: auto; }
+          #left_menu .menu-inner { position: relative; top: 0; height: auto; max-height: none; padding: 8px; }
+        }
+
+        /* On wider screens, disable inner sticky so content starts at box top */
+        @media (min-width: 1201px) {
+          #left_menu .menu-inner { position: static; top: auto; }
+        }
+
+        /* Navigation items: keep icon and text on one line */
+        #left_menu .ui.list .item { display: flex; align-items: center; gap: 6px; }
+        #left_menu .ui.list { margin-left: 0; }
+        #left_menu .ui.list .item .icon { margin: 0 6px 0 0; }
+
+        /* Space below simulations header */
+        #left_menu .sim-header { margin-bottom: 8px; }
+
+        /* Add button: full width, no wrap, spacing below select */
+        #left_menu .menu-actions { margin: 8px 0 0 0; }
+        #left_menu .menu-actions .ui.button { width: 100%; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px; margin: 0; }
+        #left_menu .menu-actions .ui.button .icon { margin: 0 6px 0 0; }
         .footer-container {
             display: flex;
             gap: 10px;
@@ -172,24 +217,40 @@ app_ui <- function(request) {
     shiny.i18n::usei18n(i18n),
     useShinyjs(),
     introjsUI(),
-    # Sidebar layout with empty sidebar for now
+    # Full-width app container and left menu
     div(
-      style = "display: flex; min-height: 100vh;",
-      
-      # Sidebar (initially hidden, will be shown after naming simulation)
+      class = "dd-app",
       div(
-        id = "simulation_sidebar",
-        class = "ui sidebar left visible",
-        style = "width: 250px; background: #f8f8f9; padding: 10px; border-right: 1px solid #ddd; display: none;",
-        tags$h4(class = "ui header", "Simulations"),
-        div(id = "sidebar_content", "")
-      ),
-      
-      # Main content
-      div(
-        id = "main_content",
-        style = "flex: 1; padding: 0;",
-        main_panel(
+        class = "dd-layout",
+        # Left menu (always visible; shows empty state until first simulation)
+        div(
+          id = "left_menu",
+          div(class = "menu-inner",
+              uiOutput("sim_header"),
+              uiOutput("new_sim_inline"),
+              uiOutput("sim_switcher_ui"),
+              uiOutput("no_sims_state"),
+              div(class = "menu-actions", action_button("add_sim", i18n$translate("Add a new simulation"), icon = icon("plus"), class = "ui primary button")),
+              tags$div(class = "ui divider"),
+              # Current simulation name (Phase 2)
+              uiOutput("current_sim_name"),
+              tags$div(class = "ui divider"),
+              tags$div(class = "ui small header", i18n$translate("Navigation")),
+              tags$div(class = "ui list",
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Input"))),
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Population"))),
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("TFR"))),
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Life Expectancy"))),
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Migration"))),
+                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Forecast")))
+              )
+          )
+        ),
+        
+        # Main content
+        div(
+          id = "main_content",
+          main_panel(
           # Add the landing page as the first page
           div(id = "landing_page", create_landing_page(i18n)),
 
@@ -304,7 +365,39 @@ app_ui <- function(request) {
           width = NULL
         )
       )
-    )
+    )),
+    # JS to compute host header height and apply offset; sync URL for sim
+    tags$script(HTML('
+      (function(){
+        function computeTopOffset(){
+          var selectors = ["header", ".un-header", ".untheme-header", ".ui.top.fixed.menu", ".ui.top.menu"];
+          for (var i=0;i<selectors.length;i++){
+            var el = document.querySelector(selectors[i]);
+            if (el && el.offsetHeight){ return el.offsetHeight; }
+          }
+          return 0;
+        }
+        function setTopOffset(){
+          var h = computeTopOffset();
+          document.documentElement.style.setProperty("--app-top-offset", h+"px");
+        }
+        function getSimFromSearch(){
+          var p = new URLSearchParams(window.location.search);
+          return p.get("sim");
+        }
+        window.addEventListener("resize", setTopOffset);
+        document.addEventListener("DOMContentLoaded", setTopOffset);
+        $(document).on("shiny:connected", function(){
+          setTopOffset();
+          var sim = getSimFromSearch();
+          if (sim){ Shiny.setInputValue("sim_from_url", sim, {priority: "event"}); }
+          window.addEventListener("popstate", function(){
+            var sim = getSimFromSearch();
+            Shiny.setInputValue("sim_from_url", sim || null, {priority: "event"});
+          });
+        });
+      })();
+    '))
   )
 }
 

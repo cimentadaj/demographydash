@@ -120,6 +120,281 @@ app_server <- function(input, output, session) {
   
   i18n <- usei18n_local()
 
+  # --- Phase 2: Temp directory + simulations reactive ---
+  # Phase 3 base directory (matching plans): /tmp/hasdaney213
+  sim_base_dir <- "/tmp/hasdaney213"
+  if (!dir.exists(sim_base_dir)) {
+    dir.create(sim_base_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+  cat("[PHASE2] Temp directory created:", dir.exists(sim_base_dir), "\n")
+
+  simulations <- reactiveValues(
+    current = NULL,
+    data = list()
+  )
+  sim_draft_name <- reactiveVal(NULL)
+
+  # --- Phase 3: helpers to save metadata ---
+  `%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
+
+  ensure_sim_dirs <- function(base_dir, sim_name) {
+    sim_dir <- file.path(base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    results_dir <- file.path(sim_dir, "results")
+    if (!dir.exists(sim_dir)) dir.create(sim_dir, recursive = TRUE, showWarnings = FALSE)
+    if (!dir.exists(inputs_dir)) dir.create(inputs_dir, recursive = TRUE, showWarnings = FALSE)
+    if (!dir.exists(results_dir)) dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
+    sim_dir
+  }
+
+  save_sim_metadata <- function(trigger = NULL) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    meta_path <- file.path(sim_dir, "metadata.json")
+    # read existing to preserve created_at
+    created_at <- as.character(Sys.time())
+    if (file.exists(meta_path)) {
+      try({
+        prev <- jsonlite::read_json(meta_path, simplifyVector = TRUE)
+        if (!is.null(prev$created_at)) created_at <- as.character(prev$created_at)
+      }, silent = TRUE)
+    }
+    meta <- list(
+      name = sim_name,
+      created_at = created_at,
+      updated_at = as.character(Sys.time()),
+      last_trigger = trigger %||% "unknown",
+      country = input$wpp_country %||% NULL,
+      start_year = tryCatch({ wpp_starting_year() }, error = function(e) NULL),
+      end_year = tryCatch({ wpp_ending_year() }, error = function(e) NULL),
+      data_sources = list(
+        population = tryCatch({ pop_data_source() }, error = function(e) NULL),
+        tfr = data_source$tfr %||% NULL,
+        e0 = data_source$e0 %||% NULL,
+        mig = data_source$mig %||% NULL
+      )
+    )
+    json_txt <- jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null")
+    writeLines(json_txt, meta_path, useBytes = TRUE)
+    cat("[PHASE3] Saving metadata for simulation:", sim_name, "\n")
+    cat("[PHASE3] Metadata saved to:", meta_path, "\n")
+    cat("[PHASE3] Metadata content:\n", paste0(json_txt, collapse = "\n"), "\n")
+  }
+
+  # Phase 4: Save population data and parameters
+  save_population_files <- function(trigger = NULL, raw_data_override = NULL) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    pop_path <- file.path(inputs_dir, "pop.csv")
+    params_path <- file.path(inputs_dir, "pop_params.json")
+
+    # Choose data to save - prioritize raw input data when provided
+    pop_dt <- tryCatch({ raw_data_override }, error = function(e) NULL)
+    if (is.null(pop_dt)) {
+      # If a committed dataset exists, use it; else use current reactive_pop()
+      pop_dt <- tryCatch({ committed_pop_rv() }, error = function(e) NULL)
+      if (is.null(pop_dt)) pop_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+    }
+    if (is.null(pop_dt)) return(invisible(NULL))
+
+    # Preview head in logs before saving
+    df_save <- as.data.frame(pop_dt)
+    preview <- tryCatch({
+      paste(utils::capture.output(print(utils::head(df_save, 10))), collapse = "\n")
+    }, error = function(e) NULL)
+
+    # Write pop.csv
+    try({
+      data.table::fwrite(df_save, pop_path)
+    }, silent = TRUE)
+
+    # Params snapshot
+    src <- tryCatch({ pop_data_source() }, error = function(e) NULL)
+    age_type_val <- NULL
+    open_age_val <- NULL
+    interp_method_val <- NULL
+    if (!is.null(src) && identical(src, "Custom Data")) {
+      age_type_val <- tryCatch({ input$modal_population_age_type }, error = function(e) NULL) %||% NULL
+      open_age_val <- tryCatch({ input$modal_population_oag }, error = function(e) NULL) %||% NULL
+      interp_method_val <- tryCatch({ input$modal_population_interp_method }, error = function(e) NULL) %||% NULL
+    } else if (!is.null(src) && identical(src, "UN Data")) {
+      # Default to Single Ages if user never touched the UN tab in the modal
+      age_type_val <- tryCatch({ input$modal_population_un_age_type }, error = function(e) NULL) %||% "Single Ages"
+    }
+
+    params <- list(
+      aggregation = input$toggle_region %||% NULL,
+      location = input$wpp_country %||% NULL,
+      ref_year = tryCatch({ wpp_starting_year() }, error = function(e) NULL),
+      data_source = src,
+      age_type = age_type_val %||% NULL,
+      open_age = open_age_val %||% NULL,
+      interp_method = interp_method_val %||% NULL,
+      trigger = trigger %||% "unknown",
+      saved_at = as.character(Sys.time())
+    )
+    params_json <- jsonlite::toJSON(params, pretty = TRUE, auto_unbox = TRUE, na = "null")
+    writeLines(params_json, params_path, useBytes = TRUE)
+
+    # Update metadata with population summary
+    meta_path <- file.path(sim_dir, "metadata.json")
+    meta <- list()
+    if (file.exists(meta_path)) {
+      meta <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) list())
+    }
+    meta$last_pop_saved <- as.character(Sys.time())
+    if (is.null(meta$data_sources)) meta$data_sources <- list()
+    meta$data_sources$population <- tryCatch({ pop_data_source() }, error = function(e) meta$data_sources$population %||% NULL)
+    writeLines(jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null"), meta_path, useBytes = TRUE)
+
+    # Logs
+    cat("[PHASE4] Population files saved for:", sim_name, " (trigger: ", (trigger %||% "unknown"), ")\n", sep = "")
+    cat("[PHASE4] Population data source:", (src %||% "unknown"), "\n")
+    cat("[PHASE4] pop.csv saved to:", pop_path, " rows:", tryCatch({ nrow(df_save) }, error=function(e) NA_integer_), "\n")
+    if (!is.null(preview)) {
+      cat("[PHASE4] pop.csv head (first 10 rows):\n", preview, "\n")
+    }
+    cat("[PHASE4] pop_params.json content:\n", params_json, "\n")
+  }
+
+  # Dynamic header and dropdown for simulations (Phase 2)
+  output$sim_header <- shiny::renderUI({
+    n <- length(names(simulations$data))
+    shiny::tags$h4(class = "ui header sim-header", paste0(i18n$translate("Simulations"), " (", n, ")"))
+  })
+
+  output$sim_switcher_ui <- shiny::renderUI({
+    sim_names <- names(simulations$data)
+    if (length(sim_names) == 0) return(NULL)
+    selected <- if (!is.null(simulations$current) && simulations$current %in% sim_names) simulations$current else sim_names[[1]]
+    shiny::selectInput("sim_switcher", label = NULL, choices = sim_names, selected = selected, width = "100%")
+  })
+
+  output$no_sims_state <- shiny::renderUI({
+    if (length(names(simulations$data)) == 0) {
+      shiny::div(class = "ui message", i18n$translate("No simulations yet. Click 'Add a new simulation' to begin."))
+    } else {
+      NULL
+    }
+  })
+
+  # Initialize sim from URL (if present)
+  observe({
+    qry <- isolate(session$clientData$url_search)
+    if (!is.null(qry) && nzchar(qry)) {
+      params <- shiny::parseQueryString(sub("^\\?", "", qry))
+      if (!is.null(params$sim)) {
+        shiny::updateSelectInput(session, "sim_switcher", selected = params$sim)
+      }
+    }
+  })
+
+  # Update URL when simulation changes (preserve other params)
+  observeEvent(input$sim_switcher, ignoreInit = TRUE, {
+    # Keep current selection in memory
+    simulations$current <- input$sim_switcher
+    cat("[PHASE2] Simulations dropdown updated:", length(names(simulations$data)), "\\n")
+    qry <- isolate(session$clientData$url_search)
+    params <- list()
+    if (!is.null(qry) && nzchar(qry)) {
+      params <- shiny::parseQueryString(sub("^\\?", "", qry))
+    }
+    params$sim <- input$sim_switcher
+    if (length(params)) {
+      kv <- vapply(names(params), function(k){
+        paste(utils::URLencode(k, reserved = TRUE), utils::URLencode(as.character(params[[k]]), reserved = TRUE), sep = "=")
+      }, character(1))
+      new_qs <- paste0("?", paste(kv, collapse = "&"))
+    } else {
+      new_qs <- paste0("?sim=", utils::URLencode(input$sim_switcher, reserved = TRUE))
+    }
+    shiny::updateQueryString(new_qs, mode = "push", session = session)
+  })
+
+  # Respond to back/forward navigation updates from JS
+  observeEvent(input$sim_from_url, {
+    if (is.null(input$sim_from_url)) return()
+    shiny::updateSelectInput(session, "sim_switcher", selected = input$sim_from_url)
+  })
+
+    # New Simulation inline flow (sidebar)
+  new_sim_form_visible <- reactiveVal(FALSE)
+  observeEvent(input$add_sim, { new_sim_form_visible(TRUE) })
+
+  output$new_sim_inline <- shiny::renderUI({
+    if (!isTRUE(new_sim_form_visible())) return(NULL)
+    shiny::div(
+      class = "ui form",
+      shiny::div(class = "required field",
+                shiny::tags$label(i18n$translate("Simulation Name")),
+                shiny::textInput("new_sim_name", label = NULL, placeholder = i18n$translate("Enter a simulation name"), width = "100%")
+      ),
+      shiny::div(style = "display:flex; gap:6px; margin:6px 0;",
+                 shiny.semantic::action_button("create_sim_confirm", i18n$translate("Create"), class = "ui primary button"),
+                 shiny.semantic::action_button("cancel_sim_create", i18n$translate("Cancel"), class = "ui button"))
+    )
+  })
+
+  observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
+
+  observeEvent(input$create_sim_confirm, {
+    nm <- input$new_sim_name
+    if (is.null(nm) || !nzchar(trimws(nm))) {
+      shiny::showNotification(i18n$translate("Please enter a simulation name"), type = "error")
+      return()
+    }
+    if (nm %in% names(simulations$data)) {
+      shiny::showNotification(i18n$translate("A simulation with this name already exists"), type = "error")
+      return()
+    }
+    simulations$data[[nm]] <- list()
+    simulations$current <- nm
+    new_sim_form_visible(FALSE)
+    output$current_sim_name <- shiny::renderUI({
+      shiny::tags$div(class = "ui small header", paste(i18n$translate("Current simulation:"), simulations$current))
+    })
+    cat("[PHASE2] Simulation created via inline form:", nm, "\n")
+  })
+
+  # Keep current simulation header in sync
+  observe({
+    if (!is.null(simulations$current)) {
+      output$current_sim_name <- shiny::renderUI({
+        shiny::tags$div(class = "ui small header", paste(i18n$translate("Current simulation:"), simulations$current))
+      })
+    } else {
+      output$current_sim_name <- shiny::renderUI({ NULL })
+    }
+  })
+
+  # --- Phase 3: Save metadata on each Next action to keep it up to date ---
+  observeEvent(input$forward_pop_page, {
+    save_sim_metadata(trigger = "forward_pop_page")
+    # Also snapshot population at this transition (in case user didn't customize)
+    save_population_files(trigger = "forward_pop_page")
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$forward_tfr_page, {
+    save_sim_metadata(trigger = "forward_tfr_page")
+    save_population_files(trigger = "forward_tfr_page")
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$forward_e0_page, {
+    save_sim_metadata(trigger = "forward_e0_page")
+    save_population_files(trigger = "forward_e0_page")
+  }, ignoreInit = TRUE)
+
+  observeEvent(input$forward_mig_page, {
+    save_sim_metadata(trigger = "forward_mig_page")
+    save_population_files(trigger = "forward_mig_page")
+  }, ignoreInit = TRUE)
+
+  # Population data is now saved directly in the Apply button handler
+  # to capture raw input data before transformations
+
   # Render the toggle_region UI with translated options
   output$toggle_region_ui <- renderUI({
     multiple_radio(
@@ -371,7 +646,14 @@ app_server <- function(input, output, session) {
   tfr_starting_year <- reactive(min(reactive_tfr()[[1]], na.rm = TRUE))
 
   # Handle any checks on inputs to make sure everything is correct
-  handle_validity_checks(wpp_starting_year, wpp_ending_year, input, output, i18n)
+  handle_validity_checks(
+    wpp_starting_year,
+    wpp_ending_year,
+    input,
+    output,
+    i18n,
+    has_simulation = reactive({ !is.null(simulations$current) && simulations$current %in% names(simulations$data) })
+  )
 
   # Handle pop/tfr plots/tables before analysis
   handle_before_analysis_plots(
@@ -420,7 +702,8 @@ app_server <- function(input, output, session) {
     input,
     output,
     session,
-    i18n
+    i18n,
+    save_population_files = save_population_files
   )
 
 

@@ -56,49 +56,61 @@ cat("[PHASE1] Simulation name validation:", !is.null(input$simulation_name), "\n
 
 ---
 
-## Phase 2: Create Sidebar with Current Simulation Display ⏳ PENDING
+## Phase 2: Create Sidebar with Current Simulation Display ✅ COMPLETED
 
-**Goal**: Display entered simulation name in sidebar and add plus button for new simulations.
+**Goal**: Provide a persistent, left sidebar to manage simulations; display the current simulation; allow creating new simulations; and prevent advancing without a saved selection.
 
-### Planned Changes:
-1. **app_server.R**: Initialize temp directory and simulations reactive
-2. **app_ui.R**: Add reactive sidebar content that displays current simulation
-3. **Show sidebar when simulation name is entered**
-4. **Add plus button at bottom of sidebar for new simulations**
+### Changes Made:
+1. Always‑visible left sidebar with dynamic header and dropdown
+   - Header shows `Simulations (N)` where N is the count of saved simulations.
+   - Dropdown lists only saved simulations (no drafts); selecting updates the current simulation and URL.
+2. Inline “Add a new simulation” flow in the sidebar (no modal)
+   - Clicking “+ Add a new simulation” reveals an inline form (name + Create/Cancel).
+   - Name must be non-empty and unique; on Create, the simulation is saved and set current; the form hides.
+3. Current simulation display
+   - Sidebar shows “Current simulation: <name>” for the active saved simulation.
+4. Guard “Next” until a saved and selected simulation exists
+   - Replaces the former name-on-main-page approach; shows a clear red panel message without ❌ when blocked.
+5. Removed the Simulation Name field from the main input page
+   - Naming now only happens via the sidebar’s “Add a new simulation” button.
 
-### Files to Modify:
-- `app_server.R`: Create temp dir, initialize simulations reactiveValues
-- `app_ui.R`: Add reactive sidebar content
-- `app_handles.R`: Show/hide sidebar based on simulation state
+### Files Modified:
+- `R/app_ui.R`: Sidebar structure; dynamic `sim_header`, `sim_switcher_ui`, `no_sims_state`, `current_sim_name`, and `new_sim_inline` outputs.
+- `R/app_server.R`: Temp directory init; `simulations` reactive store; inline add form handlers; dynamic header/dropdown/labels; URL sync retained.
+- `R/app_show.R`: Removed Simulation Name field from the main page UI.
+- `R/app_handles.R`: Updated `handle_validity_checks()` to block “Next” until a saved, selected simulation exists; removed ❌ from messages.
 
-### Logging to Add:
+### Logging Added:
 ```r
-cat("[PHASE2] Temp directory created:", dir.exists("/tmp/hasdaney213"), "\n")
-cat("[PHASE2] Simulation name displayed in sidebar:", input$simulation_name, "\n") 
-cat("[PHASE2] Simulations list:", names(simulations$data), "\n")
+cat("[PHASE2] Temp directory created:", dir.exists(sim_base_dir), "\n")
+cat("[PHASE2] Simulation created via inline form:", nm, "\n")
+cat("[PHASE2] Simulations dropdown updated:", length(names(simulations$data)), "\n")
 ```
 
-### Expected Outcome:
-- Sidebar becomes visible when simulation name is entered
-- Current simulation name displays in sidebar
-- Plus button for creating new simulations
+### Final Outcome:
+- Sidebar is persistent; empty state shown until first simulation is created.
+- Users add simulations via the single, obvious entry point in the sidebar.
+- “Next” is available only when a saved and selected simulation exists.
 
 ---
 
-## Phase 3: Save Basic Metadata (Country/Years) ⏳ PENDING
+## Phase 3: Save Basic Metadata (Country/Years) ✅ COMPLETED
 
 **Goal**: Save country, years, and simulation name to disk when clicking Next.
 
-### Planned Changes:
-1. **Create simulation subdirectory structure**
-2. **Save metadata.json with country/years/name when Next is clicked**
-3. **Track current simulation in reactiveValues**
+### Changes Made:
+1. Created simulation subdirectory structure under `/tmp/hasdaney213/<simulation_name>/` with `inputs/` and `results/`.
+2. Save `metadata.json` on every Next click (pop/tfr/e0/mig step transitions). The file includes:
+   - `name`, `created_at`, `updated_at`, `last_trigger`
+   - `country`, `start_year`, `end_year`
+   - `data_sources`: `population`, `tfr`, `e0`, `mig`
+3. Continue tracking current simulation in `reactiveValues`.
 
 ### Files to Modify:
 - `app_server.R`: Add save functions and simulation tracking
 - `app_handles.R`: Call save functions on Next click
 
-### Directory Structure to Create:
+### Directory Structure:
 ```
 /tmp/hasdaney213/
   ├── [created on app startup]
@@ -108,46 +120,46 @@ cat("[PHASE2] Simulations list:", names(simulations$data), "\n")
   │   └── results/ (created in later phases)
 ```
 
-### Logging to Add:
+### Logging Added:
 ```r
 cat("[PHASE3] Saving metadata for simulation:", sim_name, "\n")
-cat("[PHASE3] Metadata saved to:", file.path(sim_dir, "metadata.json"), "\n")
-cat("[PHASE3] Current simulation set to:", simulations$current, "\n")
+cat("[PHASE3] Metadata saved to:", meta_path, "\n")
+cat("[PHASE3] Metadata content:\n", json_txt, "\n")
 ```
 
-### Expected Outcome:
-- Temp directory structure created
-- Basic metadata saved to disk
-- Simulation tracking in memory
+### Outcome:
+- Temp directory structure created on startup
+- Metadata saved/updated on each Next click with full details
+- Simulation tracking maintained in memory
 
 ---
 
-## Phase 4: Track & Save Population Data ⏳ PENDING
+## Phase 4: Track & Save Population Data ✅ COMPLETED
 
 **Goal**: Save all population parameters and customizations.
 
-### Planned Changes:
-1. **Save population data source (UN/custom)**
-2. **Save all population parameters** (age types, open age, reference date, processing methods)
-3. **Save customizations from modal**
-4. **Update metadata with population info**
+### Changes Made:
+1. Save population data source (UN/Custom) snapshot alongside data and params.
+2. Save population parameters snapshot (aggregation, location, reference year; placeholders for age/open-age/method).
+3. Save customizations immediately on population modal "OK" (committed data), and also snapshot on step transitions (Next buttons).
+4. Update metadata with population info and last save timestamp.
 
-### Files to Modify:
-- `app_server.R`: Add population data saving logic
-- `app_handles.R`: Integrate with existing population handling
-- Population modal handlers to save customizations
+### Files Modified:
+- `R/app_server.R`: Added `save_population_files()` and hooks on modal commit + step transitions.
+- `R/app_handles.R`: No signature change; existing modal commit triggers now observed by server to save data.
 
-### Logging to Add:
+### Logging Added:
 ```r
-cat("[PHASE4] Population data source:", pop_source, "\n")
-cat("[PHASE4] Population parameters saved for:", simulations$current, "\n")
-cat("[PHASE4] Custom pop data saved:", !is.null(custom_pop), "\n")
+cat("[PHASE4] Population files saved for:", sim_name, "(trigger:", trigger, ")\n")
+cat("[PHASE4] Population data source:", pop_data_source(), "\n")
+cat("[PHASE4] pop.csv saved to:", pop_path, " rows:", nrow(pop_dt), "\n")
+cat("[PHASE4] pop_params.json content:\n", params_json, "\n")
 ```
 
-### Expected Outcome:
-- Population data and parameters saved
-- Custom population data preserved
-- Metadata updated with population info
+### Outcome:
+- Population data and parameters saved to `/tmp/hasdaney213/<simulation_name>/inputs/`.
+- Custom population data preserved on modal commit; snapshots also taken on step transitions.
+- Metadata updated with population info and `last_pop_saved` timestamp.
 
 ---
 

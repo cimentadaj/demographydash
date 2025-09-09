@@ -554,7 +554,8 @@ create_header_content <- function(text, additional_text = NULL, additional_style
 handle_customize_data <- function(
     current_pop_reactive, current_tfr_reactive, current_e0_reactive, current_mig_reactive,
     pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
-    pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, session, i18n = NULL
+    pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, session, i18n = NULL,
+    save_population_files = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
@@ -1106,6 +1107,13 @@ handle_customize_data <- function(
         pop_data_source("UN Data")
       }
       
+      # SAVE RAW INPUT DATA with correct parameter context
+      tryCatch({
+        save_population_files(trigger = "modal_population_ok", raw_data_override = data)
+      }, error = function(e) {
+        cat("[PHASE4] Error saving raw data:", conditionMessage(e), "\n")
+      })
+      
       # Save the current tab state before closing
       last_active_modal_tab(input$modal_population_source)
       
@@ -1399,23 +1407,29 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
 #' @importFrom shiny.semantic action_button
 #' @export
 #'
-handle_validity_checks <- function(wpp_starting_year, wpp_ending_year, input, output, i18n = NULL) {
+handle_validity_checks <- function(wpp_starting_year, wpp_ending_year, input, output, i18n = NULL, has_simulation = NULL) {
   output$next_pop_page <- renderUI({
+    # Year guard
     if (wpp_ending_year() < wpp_starting_year()) {
-      wellPanel(
+      return(wellPanel(
         class = "danger",
-        i18n$t("\u274C Ending year should be higher than starting year")
-      )
-    } else if (is.null(input$simulation_name) || input$simulation_name == "") {
-      cat("[PHASE1] Simulation name validation: FALSE\n")
-      wellPanel(
-        class = "danger",
-        i18n$t("\u274C Please enter a simulation name")
-      )
-    } else {
-      cat("[PHASE1] Simulation name validation: TRUE\n")
-      action_button("forward_pop_page", i18n$t("Next"), class = "ui blue button")
+        i18n$t("Ending year should be higher than starting year")
+      ))
     }
+
+    # Simulation guard (Phase 2+)
+    if (!is.null(has_simulation)) {
+      has_sim <- tryCatch({ has_simulation() }, error = function(e) FALSE)
+      if (!isTRUE(has_sim)) {
+        return(wellPanel(
+          class = "danger",
+          i18n$t("Please add and select a simulation first (use '+ Add a new simulation')")
+        ))
+      }
+    }
+
+    # OK to proceed
+    action_button("forward_pop_page", i18n$t("Next"), class = "ui blue button")
   })
 }
 
@@ -1583,4 +1597,3 @@ initialize_population_modal_accordion <- function(modal_id, initial_state = FALS
   
   return(js_code)
 }
-
