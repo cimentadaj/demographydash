@@ -555,7 +555,8 @@ handle_customize_data <- function(
     current_pop_reactive, current_tfr_reactive, current_e0_reactive, current_mig_reactive,
     pop_to_commit_rv, tfr_to_commit_rv, e0_to_commit_rv, mig_to_commit_rv,
     pop_data_source, tfr_starting_year, wpp_starting_year, wpp_ending_year, current_tab, input, output, session, i18n = NULL,
-    save_population_files = NULL
+    save_population_files = NULL,
+    save_tfr_files = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
@@ -1135,9 +1136,31 @@ handle_customize_data <- function(
 
   observeEvent(input$modal_tfr_ok_btn, {
     req(input$tmp_tfr_dt)
-    current_data_from_table <- rhandsontable::hot_to_r(input$tmp_tfr_dt)
-    tfr_to_commit_rv(current_data_from_table)
-    shiny.semantic::hide_modal("modal_tfr")
+    
+    tryCatch({
+      # Get raw data from table
+      data <- rhandsontable::hot_to_r(input$tmp_tfr_dt)
+      
+      # SAVE RAW INPUT DATA with correct parameter context
+      tryCatch({
+        save_tfr_files(trigger = "modal_tfr_ok", raw_data_override = data)
+      }, error = function(e) {
+        cat("[PHASE5] Error saving raw TFR data:", conditionMessage(e), "\n")
+      })
+      
+      # Update reactive value (this is the data used by the app)
+      tfr_to_commit_rv(data)
+      
+      # Close modal
+      shiny.semantic::hide_modal("modal_tfr")
+      
+      # Show success message
+      showNotification(i18n$t("TFR data updated successfully"), type = "message", duration = 3)
+      
+    }, error = function(e) {
+      # Handle any errors in the modal processing
+      showNotification(paste("Error updating TFR data:", conditionMessage(e)), type = "error", duration = 5)
+    })
   })
 
   observeEvent(input$modal_e0_ok_btn, {

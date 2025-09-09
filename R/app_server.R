@@ -260,6 +260,71 @@ app_server <- function(input, output, session) {
     cat("[PHASE4] pop_params.json content:\n", params_json, "\n")
   }
 
+  # Phase 5: Save TFR data and parameters
+  save_tfr_files <- function(trigger = NULL, raw_data_override = NULL) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    tfr_path <- file.path(inputs_dir, "tfr.csv")
+    params_path <- file.path(inputs_dir, "tfr_params.json")
+
+    # Choose data to save - prioritize raw input data when provided
+    tfr_dt <- tryCatch({ raw_data_override }, error = function(e) NULL)
+    if (is.null(tfr_dt)) {
+      # If a committed dataset exists, use it; else use current reactive_tfr()
+      tfr_dt <- tryCatch({ committed_tfr_rv() }, error = function(e) NULL)
+      if (is.null(tfr_dt)) tfr_dt <- tryCatch({ reactive_tfr() }, error = function(e) NULL)
+    }
+    if (is.null(tfr_dt)) return(invisible(NULL))
+
+    # Preview head in logs before saving
+    df_save <- as.data.frame(tfr_dt)
+    preview <- tryCatch({
+      paste(utils::capture.output(print(utils::head(df_save, 10))), collapse = "\n")
+    }, error = function(e) NULL)
+
+    # Write tfr.csv
+    try({
+      data.table::fwrite(df_save, tfr_path)
+    }, silent = TRUE)
+
+    # Params snapshot
+    src <- tryCatch({ data_source$tfr }, error = function(e) NULL)
+    
+    params <- list(
+      aggregation = input$toggle_region %||% NULL,
+      location = input$wpp_country %||% NULL,
+      start_year = tryCatch({ tfr_starting_year() }, error = function(e) NULL),
+      end_year = tryCatch({ wpp_ending_year() }, error = function(e) NULL),
+      data_source = src,
+      trigger = trigger %||% "unknown",
+      saved_at = as.character(Sys.time())
+    )
+    params_json <- jsonlite::toJSON(params, pretty = TRUE, auto_unbox = TRUE, na = "null")
+    writeLines(params_json, params_path, useBytes = TRUE)
+
+    # Update metadata with TFR summary
+    meta_path <- file.path(sim_dir, "metadata.json")
+    meta <- list()
+    if (file.exists(meta_path)) {
+      meta <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) list())
+    }
+    meta$last_tfr_saved <- as.character(Sys.time())
+    if (is.null(meta$data_sources)) meta$data_sources <- list()
+    meta$data_sources$tfr <- tryCatch({ data_source$tfr }, error = function(e) meta$data_sources$tfr %||% NULL)
+    writeLines(jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null"), meta_path, useBytes = TRUE)
+
+    # Logs
+    cat("[PHASE5] TFR files saved for:", sim_name, " (trigger: ", (trigger %||% "unknown"), ")\n", sep = "")
+    cat("[PHASE5] TFR data source:", (src %||% "unknown"), "\n")
+    cat("[PHASE5] tfr.csv saved to:", tfr_path, " rows:", tryCatch({ nrow(df_save) }, error=function(e) NA_integer_), "\n")
+    if (!is.null(preview)) {
+      cat("[PHASE5] tfr.csv head (first 10 rows):\n", preview, "\n")
+    }
+    cat("[PHASE5] tfr_params.json content:\n", params_json, "\n")
+  }
+
   # Dynamic header and dropdown for simulations (Phase 2)
   output$sim_header <- shiny::renderUI({
     n <- length(names(simulations$data))
@@ -380,16 +445,19 @@ app_server <- function(input, output, session) {
   observeEvent(input$forward_tfr_page, {
     save_sim_metadata(trigger = "forward_tfr_page")
     save_population_files(trigger = "forward_tfr_page")
+    save_tfr_files(trigger = "forward_tfr_page")
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_e0_page, {
     save_sim_metadata(trigger = "forward_e0_page")
     save_population_files(trigger = "forward_e0_page")
+    save_tfr_files(trigger = "forward_e0_page")
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_mig_page, {
     save_sim_metadata(trigger = "forward_mig_page")
     save_population_files(trigger = "forward_mig_page")
+    save_tfr_files(trigger = "forward_mig_page")
   }, ignoreInit = TRUE)
 
   # Population data is now saved directly in the Apply button handler
@@ -703,7 +771,8 @@ app_server <- function(input, output, session) {
     output,
     session,
     i18n,
-    save_population_files = save_population_files
+    save_population_files = save_population_files,
+    save_tfr_files = save_tfr_files
   )
 
 
