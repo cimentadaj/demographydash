@@ -1008,6 +1008,15 @@ app_server <- function(input, output, session) {
     # Show input page
     shinyjs::show("input_page")
     shinyjs::show("left_menu")
+    
+    # Explicitly reset inputs to defaults
+    try({ updateNumericInput(session, "wpp_starting_year", value = 2024) }, silent = TRUE)
+    try({ updateNumericInput(session, "wpp_ending_year", value = 2100) }, silent = TRUE)
+    # Reset Country/Region toggle to Country (translated)
+    try({ shinyjs::runjs(paste0(
+      "Shiny.setInputValue('toggle_region', '", i18n$translate("Country"), "', {priority: 'event'})")) }, silent = TRUE)
+    # Clear country selection
+    try({ updateSelectInput(session, "wpp_country", selected = NULL) }, silent = TRUE)
     current_tab("input_page")
     
     cat("[PHASE7] Navigated to input page for new simulation\n")
