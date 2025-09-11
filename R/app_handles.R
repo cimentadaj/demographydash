@@ -567,9 +567,21 @@ handle_customize_data <- function(
     last_active_modal_tab = NULL,
     resetting_simulation = NULL,
     just_restored_data = NULL,
-    opening_modal = NULL
+    opening_modal = NULL,
+    restored_location = NULL,
+    restored_aggregation = NULL
 ) {
-  output$location_selector <- renderUI(location_selector_ui(input, i18n))
+  output$location_selector <- renderUI({
+    sel <- NULL
+    if (!is.null(restored_location)) {
+      sel <- tryCatch({ restored_location() }, error = function(e) NULL)
+    }
+    force_mode <- NULL
+    if (!is.null(restored_aggregation)) {
+      force_mode <- tryCatch({ restored_aggregation() }, error = function(e) NULL)
+    }
+    location_selector_ui(input, i18n, selected_value = sel, force_mode = force_mode)
+  })
 
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
@@ -623,7 +635,7 @@ handle_customize_data <- function(
     
     # Fetch single age data if not cached (this is now our base for all UN data)
     if (is.null(un_data_single_cache())) {
-      data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
+      data_single <- safe_get_wpp_pop(input$wpp_country, ref_year, 1)
       
       # Ensure standard column order using utility function
       data_single <- ensure_standard_columns(data_single)
@@ -686,8 +698,8 @@ handle_customize_data <- function(
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Re-fetch original UN data for both age types
-    data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
-    data_5yr <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
+    data_single <- safe_get_wpp_pop(input$wpp_country, ref_year, 1)
+    data_5yr <- safe_get_wpp_pop(input$wpp_country, ref_year, 5)
     
     # Ensure standard column order using utility function
     data_single <- ensure_standard_columns(data_single)
@@ -704,14 +716,15 @@ handle_customize_data <- function(
     showNotification(i18n$t("UN Data reset to original"), type = "message", duration = 2)
   })
   
-  # Clear and re-fetch UN cache when reference date changes
+  # Clear and re-fetch UN cache when reference date changes (only when modal is open)
   observeEvent(input$modal_population_ref_date, {
+    if (!identical(current_tab(), "modal_pop")) return()
     # Extract reference year using utility function
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
     
     # Fetch and cache both age types (independent caches)
-    data_single <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
-    data_5yr <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
+    data_single <- safe_get_wpp_pop(input$wpp_country, ref_year, 1)
+    data_5yr <- safe_get_wpp_pop(input$wpp_country, ref_year, 5)
     
     # Ensure standard column order using utility function
     data_single <- ensure_standard_columns(data_single)
@@ -995,18 +1008,31 @@ handle_customize_data <- function(
         cat("[MODAL_RENDER] Using restored UN data:", nrow(raw_data), "x", ncol(raw_data), "\n")
         cat("[MODAL_RENDER] UN data head (restored):\n"); try(print(utils::head(res, 5)), silent = TRUE)
       } else {
-        # Fetch fresh UN data with current age type
+        # Fetch fresh UN data with current age type (guard + tryCatch)
         ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
-        
-        if (un_display_type == "Single Ages") {
-          res <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
-        } else {
-          res <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
+        req(!is.null(input$wpp_country), nzchar(input$wpp_country))
+        res <- tryCatch({
+          if (un_display_type == "Single Ages") {
+            safe_get_wpp_pop(input$wpp_country, ref_year, 1)
+          } else {
+            safe_get_wpp_pop(input$wpp_country, ref_year, 5)
+          }
+        }, error = function(e) NULL)
+        if (is.null(res)) {
+          return(rhandsontable(
+            data.frame(
+              Age = character(0),
+              `Male (in thousands)` = numeric(0),
+              `Female (in thousands)` = numeric(0),
+              stringsAsFactors = FALSE
+            ),
+            rowHeaders = NULL,
+            readOnly = FALSE,
+            stretchH = "all",
+            height = 400
+          ))
         }
-        
-        # Ensure standard column order
         res <- ensure_standard_columns(res)
-        
         cat("[MODAL_RENDER] Fetched fresh UN data:", nrow(res), "x", ncol(res), "for", un_display_type, "\n")
         cat("[MODAL_RENDER] UN data head (fresh):\n"); try(print(utils::head(res, 5)), silent = TRUE)
       }
@@ -1068,6 +1094,10 @@ handle_customize_data <- function(
 
   output$tmp_tfr_dt <- renderRHandsontable({
     res <- current_tfr_reactive()
+    try({
+      cat("[TFR_DEBUG] Customize RAW head (as shown in table):\n");
+      print(utils::head(as.data.frame(res), 5))
+    }, silent = TRUE)
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("TFR")
@@ -1082,6 +1112,10 @@ handle_customize_data <- function(
 
   output$tmp_e0_dt <- renderRHandsontable({
     res <- current_e0_reactive()
+    try({
+      cat("[E0_DEBUG] Customize RAW head (as shown in table):\n");
+      print(utils::head(as.data.frame(res), 5))
+    }, silent = TRUE)
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Males"), 
@@ -1097,6 +1131,10 @@ handle_customize_data <- function(
 
   output$tmp_mig_dt <- renderRHandsontable({
     res <- current_mig_reactive()
+    try({
+      cat("[MIG_DEBUG] Customize RAW head (as shown in table):\n");
+      print(utils::head(as.data.frame(res), 5))
+    }, silent = TRUE)
     names(res) <- c(
       i18n$t("Year"), 
       i18n$t("Migration")
@@ -1449,7 +1487,31 @@ handle_customize_data <- function(
 #' @importFrom utils write.csv
 #' @export
 #'
-handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, reactive_e0, reactive_mig, pop_data_source, wpp_starting_year, wpp_ending_year, current_tab, input_next_completed, input, output, i18n = NULL) {
+handle_navigation <- function(
+  simulation_results,
+  reactive_pop,
+  reactive_tfr,
+  reactive_e0,
+  reactive_mig,
+  pop_data_source,
+  wpp_starting_year,
+  wpp_ending_year,
+  current_tab,
+  input_next_completed,
+  input,
+  output,
+  i18n = NULL,
+  # Optional hooks to rehydrate population transforms on sidebar nav
+  pop_to_commit_rv = NULL,
+  modal_raw_pop_data = NULL,
+  modal_pop_params = NULL,
+  process_population_data = NULL,
+  # Optional hooks to rehydrate other indicators
+  tfr_to_commit_rv = NULL,
+  e0_to_commit_rv = NULL,
+  mig_to_commit_rv = NULL,
+  restoring_inputs = NULL
+) {
 
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
@@ -1480,9 +1542,14 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
     show("input_page")
     current_tab("input_page")
+    # Log gating state when arriving via sidebar nav
+    cat("[GATE_DEBUG] nav_input | sim:", input$sim_switcher,
+        "| next_clicked:", isTRUE(input_next_completed()), "\n")
   })
 
   observeEvent(input$nav_pop, {
+    cat("[GATE_DEBUG] nav_pop | sim:", input$sim_switcher,
+        "| next_clicked:", isTRUE(input_next_completed()), "\n")
     if (!isTRUE(input_next_completed())) {
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
@@ -1490,6 +1557,43 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("input_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
     show("pop_page")
     current_tab("pop_page")
+    # Log pre-transform (Customize/raw) and post-transform (Plot) data heads
+    try({
+      raw_dt <- tryCatch({ modal_raw_pop_data() }, error = function(e) NULL)
+      if (!is.null(raw_dt)) {
+        cat("[PYRAMID_DEBUG] [Sidebar] Customize RAW data head (as saved/displayed):\n");
+        try(print(utils::head(as.data.frame(raw_dt), 5)), silent = TRUE)
+      } else {
+        cat("[PYRAMID_DEBUG] [Sidebar] Customize RAW data is NULL\n")
+      }
+      plot_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+      if (!is.null(plot_dt)) {
+        cat("[PYRAMID_DEBUG] [Sidebar] PLOT data head (after transform):\n");
+        try(print(utils::head(as.data.frame(plot_dt), 5)), silent = TRUE)
+      } else {
+        cat("[PYRAMID_DEBUG] [Sidebar] PLOT data is NULL\n")
+      }
+    }, silent = TRUE)
+    # If the committed pop data was cleared during sim switching, re-derive it
+    try({
+      if (!is.null(pop_to_commit_rv) && is.null(pop_to_commit_rv()) &&
+          !is.null(modal_raw_pop_data) && !is.null(modal_raw_pop_data()) &&
+          !is.null(modal_pop_params) && !is.null(modal_pop_params()) &&
+          !is.null(process_population_data)) {
+        params <- modal_pop_params()
+        data <- modal_raw_pop_data()
+        final_data <- process_population_data(
+          raw_data = data,
+          params = params,
+          country = input$wpp_country,
+          ref_year = wpp_starting_year()
+        )
+        pop_to_commit_rv(final_data)
+        # Keep data source indicator consistent
+        if (!is.null(params$data_source)) pop_data_source(params$data_source)
+      }
+    }, silent = TRUE)
+    # Render same content as the Next flow to ensure fresh, per-sim results
     output$show_pop_results_ui <- renderUI({
       create_pop_pyramid_plot(
         reactive_pop(),
@@ -1505,6 +1609,8 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
   })
 
   observeEvent(input$nav_tfr, {
+    cat("[GATE_DEBUG] nav_tfr | sim:", input$sim_switcher,
+        "| next_clicked:", isTRUE(input_next_completed()), "\n")
     if (!isTRUE(input_next_completed())) {
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
@@ -1512,10 +1618,30 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("input_page"); hide("pop_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
     show("tfr_page")
     current_tab("tfr_page")
+    
+    # Rehydrate TFR if missing: load from disk for this sim
+    try({
+      if (!is.null(tfr_to_commit_rv) && is.null(tfr_to_commit_rv())) {
+        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        tfr_path <- file.path(sim_dir, "tfr.csv")
+        if (file.exists(tfr_path)) {
+          dt <- data.table::fread(tfr_path)
+          if (nrow(dt) > 0) {
+            names(dt) <- c("year", "tfr")
+            suppressWarnings({ dt$year <- as.numeric(dt$year) })
+            suppressWarnings({ dt$tfr  <- as.numeric(dt$tfr) })
+            tfr_to_commit_rv(as.data.frame(dt))
+          }
+        }
+      }
+    }, silent = TRUE)
+    # Page compute debug
     show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
   })
 
   observeEvent(input$nav_e0, {
+    cat("[GATE_DEBUG] nav_e0 | sim:", input$sim_switcher,
+        "| next_clicked:", isTRUE(input_next_completed()), "\n")
     if (!isTRUE(input_next_completed())) {
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
@@ -1523,10 +1649,29 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page")
     show("e0_page")
     current_tab("e0_page")
+    # Rehydrate e0 if missing
+    try({
+      if (!is.null(e0_to_commit_rv) && is.null(e0_to_commit_rv())) {
+        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        e0_path <- file.path(sim_dir, "e0.csv")
+        if (file.exists(e0_path)) {
+          dt <- data.table::fread(e0_path)
+          if (nrow(dt) > 0) {
+            names(dt) <- c("year", "e0M", "e0F")
+            suppressWarnings({ dt$year <- as.numeric(dt$year) })
+            suppressWarnings({ dt$e0M <- as.numeric(dt$e0M) })
+            suppressWarnings({ dt$e0F <- as.numeric(dt$e0F) })
+            e0_to_commit_rv(as.data.frame(dt))
+          }
+        }
+      }
+    }, silent = TRUE)
     show_e0(reactive_e0, wpp_ending_year, input, output, i18n)
   })
 
   observeEvent(input$nav_mig, {
+    cat("[GATE_DEBUG] nav_mig | sim:", input$sim_switcher,
+        "| next_clicked:", isTRUE(input_next_completed()), "\n")
     if (!isTRUE(input_next_completed())) {
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
@@ -1534,6 +1679,42 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("forecast_page")
     show("mig_page")
     current_tab("mig_page")
+    if (!is.null(restoring_inputs) && isTRUE(restoring_inputs())) {
+      cat("[RESTORE_GUARD] Delaying migration compute until restore completes\n")
+      local_obs <- NULL
+      local_obs <- observeEvent(restoring_inputs(), {
+        if (!isTRUE(restoring_inputs())) {
+          try({
+            if (!is.null(mig_to_commit_rv) && is.null(mig_to_commit_rv())) {
+              sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+              mig_path <- file.path(sim_dir, "mig.csv")
+              if (file.exists(mig_path)) { dt <- data.table::fread(mig_path); if (nrow(dt)>0){ names(dt)<-c("year","mig"); suppressWarnings({dt$year<-as.numeric(dt$year)}); suppressWarnings({dt$mig<-as.numeric(dt$mig)}); mig_to_commit_rv(as.data.frame(dt)) } }
+            }
+          }, silent = TRUE)
+          show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
+          local_obs$destroy()
+        }
+      }, ignoreInit = FALSE)
+      return()
+    }
+    # Rehydrate migration if missing
+    try({
+      if (!is.null(mig_to_commit_rv) && is.null(mig_to_commit_rv())) {
+        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        mig_path <- file.path(sim_dir, "mig.csv")
+        if (file.exists(mig_path)) {
+          dt <- data.table::fread(mig_path)
+          if (nrow(dt) > 0) {
+            names(dt) <- c("year", "mig")
+            suppressWarnings({ dt$year <- as.numeric(dt$year) })
+            suppressWarnings({ dt$mig  <- as.numeric(dt$mig) })
+            mig_to_commit_rv(as.data.frame(dt))
+          }
+        }
+      }
+    }, silent = TRUE)
+    curr_sig <- paste0(input$toggle_region, "|", input$wpp_country, "|", input$wpp_starting_year, "|", input$wpp_ending_year)
+    cat("[PAGE_COMPUTE_DEBUG] page=mig sim=", input$sim_switcher, " curr_sig=", curr_sig, "\n", sep = "")
     show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
   })
 
@@ -1566,10 +1747,54 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     show("pop_page")
     current_tab("pop_page")
 
+    # If restore is in progress, delay rendering until complete
+    if (!is.null(restoring_inputs) && isTRUE(restoring_inputs())) {
+      cat("[RESTORE_GUARD] Delaying Population compute (Next) until restore completes\n")
+      local_obs <- NULL
+      local_obs <- observeEvent(restoring_inputs(), {
+        if (!isTRUE(restoring_inputs())) {
+          try({
+            raw_dt <- tryCatch({ modal_raw_pop_data() }, error = function(e) NULL)
+            if (!is.null(raw_dt)) { cat("[PYRAMID_DEBUG] [Next] Customize RAW data head (as saved/displayed):\n"); try(print(utils::head(as.data.frame(raw_dt), 5)), silent = TRUE) }
+            plot_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+            if (!is.null(plot_dt)) { cat("[PYRAMID_DEBUG] [Next] PLOT data head (after transform):\n"); try(print(utils::head(as.data.frame(plot_dt), 5)), silent = TRUE) }
+          }, silent = TRUE)
+          output$show_pop_results_ui <- renderUI({
+            create_pop_pyramid_plot(reactive_pop(), country = input$wpp_country, input_year = wpp_starting_year(), i18n = i18n)
+            res <- show_pop_results_ui(data_source = pop_data_source(), i18n = i18n)
+            processing(FALSE); res
+          })
+          local_obs$destroy()
+        }
+      }, ignoreInit = FALSE)
+      return()
+    }
+
+    # Log pre-transform (Customize/raw) and post-transform (Plot) data heads
+    try({
+      raw_dt <- tryCatch({ modal_raw_pop_data() }, error = function(e) NULL)
+      if (!is.null(raw_dt)) {
+        cat("[PYRAMID_DEBUG] [Next] Customize RAW data head (as saved/displayed):\n");
+        try(print(utils::head(as.data.frame(raw_dt), 5)), silent = TRUE)
+      } else {
+        cat("[PYRAMID_DEBUG] [Next] Customize RAW data is NULL\n")
+      }
+      plot_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+      if (!is.null(plot_dt)) {
+        cat("[PYRAMID_DEBUG] [Next] PLOT data head (after transform):\n");
+        try(print(utils::head(as.data.frame(plot_dt), 5)), silent = TRUE)
+      } else {
+        cat("[PYRAMID_DEBUG] [Next] PLOT data is NULL\n")
+      }
+    }, silent = TRUE)
+
     output$show_pop_results_ui <- renderUI({
+      curr_sig <- paste0(input$toggle_region, "|", input$wpp_country, "|", input$wpp_starting_year, "|", input$wpp_ending_year)
+      cat("[PAGE_COMPUTE_DEBUG] page=population (Next) sim=", input$sim_switcher, " curr_sig=", curr_sig, "\n", sep = "")
+      eff_country <- tryCatch({ if (!is.null(restoring_inputs) && isTRUE(restoring_inputs())) restored_location() else input$wpp_country }, error=function(e) input$wpp_country)
       create_pop_pyramid_plot(
         reactive_pop(),
-        country = input$wpp_country,
+        country = eff_country,
         input_year = wpp_starting_year(),
         i18n = i18n
       )
@@ -1660,7 +1885,9 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
       i18n = i18n,
       results_dir = file.path("/tmp/hasdaney213", input$sim_switcher, "results"),
       force = TRUE,
-      is_active = reactive({ current_tab() == "forecast_page" })
+      is_active = reactive({ current_tab() == "forecast_page" }),
+      sim_name = input$sim_switcher,
+      is_current_sim = reactive({ input$sim_switcher == input$sim_switcher })
     )
   })
 

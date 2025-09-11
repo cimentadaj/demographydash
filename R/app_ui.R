@@ -48,6 +48,7 @@ app_ui <- function(request) {
           #left_menu .menu-inner { position: static; top: auto; }
         }
 
+
         /* Navigation items: keep icon and text on one line */
         #left_menu .ui.list .item { display: flex; align-items: center; gap: 6px; }
         #left_menu .ui.list { margin-left: 0; }
@@ -273,6 +274,14 @@ app_ui <- function(request) {
                   tags$span(i18n$t("Migration"))
                 )
               )
+              ,
+              tags$div(class = "ui divider"),
+              div(class = "menu-actions",
+                  shiny.semantic::action_button("nav_run_projection", i18n$t("Run Projection"), class = "ui primary button")
+              )
+              ,
+              # Conditionally show Projection Results link when results exist
+              uiOutput("nav_forecast_ui")
             )
           )
         ),

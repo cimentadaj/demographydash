@@ -25,6 +25,12 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   # raises error. By fixing the output directory run_forecast and plotly use different
   # temporary directories.
   forecast_res <- reactive({
+    try({
+      cat("[FORECAST_INPUT_DEBUG] sim=", if (is.null(sim_name)) "<unknown>" else sim_name,
+          " country=", input$wpp_country,
+          " start=", tryCatch({ wpp_starting_year() }, error=function(e) NA),
+          " end=", tryCatch({ wpp_ending_year() }, error=function(e) NA), "\n", sep = "")
+    }, silent = TRUE)
     # Ensure per-simulation results directory exists
     if (!dir.exists(results_dir)) {
       dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)

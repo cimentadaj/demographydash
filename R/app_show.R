@@ -28,24 +28,33 @@ show_input_ui <- function(i18n) {
 #' @return A UI element for selecting a country or region
 #' @export
 #'
-location_selector_ui <- function(input, i18n) {
-  if (length(input$toggle_region != 0) && input$toggle_region == i18n$translate("Region")) {
-    create_field_set(
-      "globe",
-      i18n$translate("Select a region"),
-      "wpp_country",
-      OPPPserver::get_wpp_regions(),
-      NULL
-    )
+location_selector_ui <- function(input, i18n, selected_value = NULL, force_mode = NULL) {
+  # Determine mode: prefer forced mode during restoration, else from input
+  if (!is.null(force_mode)) {
+    is_region <- identical(force_mode, i18n$translate("Region")) || identical(force_mode, "Region")
   } else {
-    create_field_set(
-      "globe",
-      i18n$translate("Select a country"),
-      "wpp_country",
-      OPPPserver::get_wpp_countries(),
-      NULL
-    )
+    is_region <- length(input$toggle_region != 0) && input$toggle_region == i18n$translate("Region")
   }
+  choices <- if (is_region) OPPPserver::get_wpp_regions() else OPPPserver::get_wpp_countries()
+  label <- if (is_region) i18n$translate("Select a region") else i18n$translate("Select a country")
+  # Determine the selected value: prefer provided selected_value if valid, else keep current input if valid
+  selected <- NULL
+  if (!is.null(selected_value) && selected_value %in% choices) {
+    selected <- selected_value
+  } else if (!is.null(input$wpp_country) && input$wpp_country %in% choices) {
+    selected <- input$wpp_country
+  }
+  try({
+    cat("[LOCATION_SELECTOR_DEBUG] mode:", if (is_region) "Region" else "Country", "| selected:", if (is.null(selected)) "<NULL>" else selected,
+        "| choices_len:", length(choices), "\n")
+  }, silent = TRUE)
+  create_field_set(
+    "globe",
+    label,
+    "wpp_country",
+    choices,
+    selected
+  )
 }
 
 #' Generate the UI for the page containing the results of the forecast.
@@ -310,6 +319,11 @@ show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
 compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
+  try({
+    dt <- reactive_tfr()
+    cat("[TFR_DEBUG] PLOT input head (reactive_tfr before plotting):\n");
+    print(utils::head(as.data.frame(dt), 5))
+  }, silent = TRUE)
   create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country, i18n)
   output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
 }
@@ -350,6 +364,11 @@ show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
 compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
+  try({
+    dt <- reactive_e0()
+    cat("[E0_DEBUG] PLOT input head (reactive_e0 before plotting):\n");
+    print(utils::head(as.data.frame(dt), 5))
+  }, silent = TRUE)
   create_e0_plot(
     reactive_e0(),
     end_year = wpp_ending_year(),
@@ -362,6 +381,11 @@ compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
 
 
 compute_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
+  try({
+    dt <- reactive_mig()
+    cat("[MIG_DEBUG] PLOT input head (reactive_mig before plotting):\n");
+    print(utils::head(as.data.frame(dt), 5))
+  }, silent = TRUE)
   create_mig_plot(
     reactive_mig(),
     end_year = wpp_ending_year(),

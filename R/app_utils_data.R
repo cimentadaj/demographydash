@@ -122,3 +122,29 @@ extract_reference_year <- function(ref_date, fallback_year) {
     fallback_year
   }
 }
+
+#' Safe, memoized WPP population fetch
+#'
+#' Fetches UN WPP population with simple memoization per session and returns
+#' a fresh, unkeyed data.table to avoid low-level data.table key issues.
+#'
+#' @param country Country name (character)
+#' @param year Numeric year (single)
+#' @param n Age grouping: 1 for single ages, 5 for 5-year groups
+#' @return data.table with columns age, popF, popM
+#' @export
+safe_get_wpp_pop <- local({
+  cache <- new.env(parent = emptyenv())
+  function(country, year, n = 1) {
+    key <- paste0(country, "|", year, "|", n)
+    if (exists(key, envir = cache, inherits = FALSE)) {
+      return(get(key, envir = cache, inherits = FALSE))
+    }
+    dt <- OPPPserver::get_wpp_pop(country, year = year, n = n)
+    # Return a fresh, unkeyed data.table copy
+    dt <- data.table::as.data.table(as.data.frame(dt))
+    data.table::setkey(dt, NULL)
+    assign(key, dt, envir = cache)
+    dt
+  }
+})

@@ -29,6 +29,14 @@ color_labels <- function() {
 #' @export
 #'
 create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n = NULL) {
+  # Robust guard: if data is missing or empty, return an empty plot
+  if (is.null(dt) || !all(c("age", "popF", "popM") %in% names(dt)) || nrow(dt) == 0) {
+    empty <- ggplot() + theme_minimal() + labs(title = i18n$translate("Population by age and sex: "))
+    return(plotly::ggplotly(empty))
+  }
+  # Normalize to a fresh, unkeyed data.table to avoid low-level data.table issues
+  dt <- data.table::as.data.table(as.data.frame(dt))
+  data.table::setkey(dt, NULL)
   if ("year" %in% names(dt)) {
     dt <- dt[year == input_year]
     id_vars <- c("year", "age")

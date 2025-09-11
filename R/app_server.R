@@ -142,6 +142,24 @@ app_server <- function(input, output, session) {
       shinyjs::show("left_menu")
       shinyjs::show(page_id)
     }
+    # Debug state when landing on input page
+    if (identical(page_id, "input_page")) {
+      sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
+      has_results <- tryCatch({
+        if (!is.null(sim_name)) file.exists(file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")) else FALSE
+      }, error = function(e) FALSE)
+      next_clicked <- tryCatch({ isTRUE(input_next_clicked()) }, error = function(e) FALSE)
+      restoring <- tryCatch({ isTRUE(restoring_inputs()) }, error = function(e) FALSE)
+      rloc <- tryCatch({ restored_location() }, error = function(e) NULL)
+      tog <- tryCatch({ input$toggle_region }, error = function(e) NULL)
+      cnt <- tryCatch({ input$wpp_country }, error = function(e) NULL)
+      sy <- tryCatch({ input$wpp_starting_year }, error = function(e) NULL)
+      ey <- tryCatch({ input$wpp_ending_year }, error = function(e) NULL)
+      cat("[INPUT_PAGE_DEBUG] Arrived at input_page | sim:", sim_name, "| has_results:", has_results,
+          "| next_clicked:", next_clicked, "| restoring_inputs:", restoring,
+          "| restored_location:", ifelse(is.null(rloc), "<NULL>", rloc),
+          "| toggle:", tog, "| wpp_country:", cnt, "| start:", sy, "| end:", ey, "\n")
+    }
     # Defer setting current_tab until it's initialized
     pending_page(page_id)
     # Persist the page choice for this simulation
@@ -167,6 +185,11 @@ app_server <- function(input, output, session) {
 
   # --- Phase 3: helpers to save metadata ---
   `%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
+
+  # Create a simple signature for current input selection
+  compute_input_signature <- function(agg, loc, sy, ey) {
+    paste0(agg %||% "", "|", loc %||% "", "|", sy %||% "", "|", ey %||% "")
+  }
 
   # Process population data through transformation pipeline (reusing Apply button logic)
   process_population_data <- function(raw_data, params, country, ref_year) {
@@ -235,6 +258,13 @@ app_server <- function(input, output, session) {
     sim_dir
   }
 
+  # --- Signature tracking for gating ---
+  compute_input_signature <- function(agg, loc, sy, ey) {
+    paste0(agg %||% "", "|", loc %||% "", "|", sy %||% "", "|", ey %||% "")
+  }
+  sim_saved_signature <- reactiveVal(NULL)
+  sim_progressed <- reactiveVal(FALSE)
+
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
     sim_name <- simulations$current
@@ -276,7 +306,11 @@ app_server <- function(input, output, session) {
         tfr = data_source$tfr %||% NULL,
         e0 = data_source$e0 %||% NULL,
         mig = data_source$mig %||% NULL
-      )
+      ),
+      aggregation = input$toggle_region %||% NULL,
+      input_signature = compute_input_signature(input$toggle_region, input$wpp_country,
+                                                tryCatch({ wpp_starting_year() }, error = function(e) NULL),
+                                                tryCatch({ wpp_ending_year() }, error = function(e) NULL))
     )
     json_txt <- jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null")
     writeLines(json_txt, meta_path, useBytes = TRUE)
@@ -571,6 +605,20 @@ app_server <- function(input, output, session) {
     shiny::selectInput("sim_switcher", label = NULL, choices = sim_names, selected = selected, width = "100%")
   })
 
+  # Conditionally render a 'Projection Results' nav link when results exist for current sim
+  output$nav_forecast_ui <- shiny::renderUI({
+    sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
+    if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
+    results_rds <- file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")
+    if (!file.exists(results_rds)) return(NULL)
+    shiny::tags$div(
+      class = "item nav-link",
+      onclick = "Shiny.setInputValue('nav_forecast', Math.random(), {priority: 'event'})",
+      shiny.semantic::icon("angle right"),
+      shiny::tags$span(i18n$translate("Projection Results"))
+    )
+  })
+
   output$no_sims_state <- shiny::renderUI({
     if (length(names(simulations$data)) == 0) {
       shiny::div(class = "ui message", i18n$translate("No simulations yet. Click 'Add a new simulation' to begin."))
@@ -626,25 +674,65 @@ app_server <- function(input, output, session) {
       desired_page <- tryCatch({ loaded_data$metadata$current_page }, error = function(e) NULL)
       if (is.null(desired_page) || !nzchar(desired_page)) desired_page <- "input_page"
       go_to_page(desired_page)
-      # Mark input step completion based on restored page
-      input_next_clicked(!identical(desired_page, "input_page"))
+      # Determine if Next had been clicked for these exact inputs
+      saved_meta <- tryCatch({ loaded_data$metadata }, error = function(e) NULL)
+      saved_sig <- tryCatch({ saved_meta$input_signature }, error = function(e) NULL)
+      curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+      # Consider Next clicked if last_trigger indicates progression beyond input
+      last_trig <- tryCatch({ saved_meta$last_trigger }, error = function(e) NULL)
+      progressed <- isTRUE(last_trig %in% c("forward_pop_page","forward_tfr_page","forward_e0_page","forward_mig_page","begin","pass_source_btn"))
+      sim_saved_signature(saved_sig)
+      sim_progressed(progressed)
+      input_next_clicked(isTRUE(progressed) && !identical(saved_sig, NULL) && identical(saved_sig, curr_sig))
+      cat("[RESTORE_NAV_DEBUG] desired_page:", desired_page, "| progressed:", progressed,
+          "| saved_sig:", saved_sig, "| curr_sig:", curr_sig,
+          "| next_clicked:", isTRUE(input_next_clicked()), "\n")
       # If last page is forecast, ensure UI is set up and results are loaded from disk
       if (identical(desired_page, "forecast_page")) {
-        begin_forecast(
-          reactive_pop = reactive_pop,
-          reactive_tfr = reactive_tfr,
-          reactive_e0 = reactive_e0,
-          reactive_mig = reactive_mig,
-          wpp_starting_year = wpp_starting_year,
-          wpp_ending_year = wpp_ending_year,
-          input = input,
-          output = output,
-          simulation_results = simulation_results,
-          i18n = i18n,
-          results_dir = file.path("/tmp/hasdaney213", simulations$current, "results"),
-          force = FALSE,
-          is_active = reactive({ current_tab() == "forecast_page" })
-        )
+        if (isTRUE(restoring_inputs())) {
+          cat("[FORECAST_GUARD] Delaying forecast load on sim-switch until restore completes\n")
+          local_obs <- NULL
+          local_obs <- observeEvent(restoring_inputs(), {
+            if (!isTRUE(restoring_inputs())) {
+              begin_forecast(
+                reactive_pop = reactive_pop,
+                reactive_tfr = reactive_tfr,
+                reactive_e0 = reactive_e0,
+                reactive_mig = reactive_mig,
+                wpp_starting_year = wpp_starting_year,
+                wpp_ending_year = wpp_ending_year,
+                input = input,
+                output = output,
+                simulation_results = simulation_results,
+                i18n = i18n,
+                results_dir = file.path("/tmp/hasdaney213", simulations$current, "results"),
+                force = FALSE,
+                is_active = reactive({ current_tab() == "forecast_page" }),
+                sim_name = simulations$current,
+                is_current_sim = reactive({ simulations$current == input$sim_switcher })
+              )
+              local_obs$destroy()
+            }
+          }, ignoreInit = FALSE)
+        } else {
+          begin_forecast(
+            reactive_pop = reactive_pop,
+            reactive_tfr = reactive_tfr,
+            reactive_e0 = reactive_e0,
+            reactive_mig = reactive_mig,
+            wpp_starting_year = wpp_starting_year,
+            wpp_ending_year = wpp_ending_year,
+            input = input,
+            output = output,
+            simulation_results = simulation_results,
+            i18n = i18n,
+            results_dir = file.path("/tmp/hasdaney213", simulations$current, "results"),
+            force = FALSE,
+            is_active = reactive({ current_tab() == "forecast_page" }),
+            sim_name = simulations$current,
+            is_current_sim = reactive({ simulations$current == input$sim_switcher })
+          )
+        }
       }
     } else {
       cat("[PHASE8] No saved data found for simulation:", selected_sim, "\n")
@@ -837,18 +925,58 @@ app_server <- function(input, output, session) {
     if (is.null(loaded_data)) return()
     
     cat("[PHASE8] Starting state restoration...\n")
+    restoring_inputs(TRUE)
     
     # Restore metadata (input fields)
     if (!is.null(loaded_data$metadata)) {
-      if (!is.null(loaded_data$metadata$country)) {
-        updateSelectInput(session, "wpp_country", selected = loaded_data$metadata$country)
+      # 0) Restore aggregation toggle FIRST so the location selector has correct choices
+      agg <- tryCatch({
+        # Prefer pop_params aggregation if present, else metadata
+        if (!is.null(loaded_data$pop_params$aggregation)) loaded_data$pop_params$aggregation else loaded_data$metadata$aggregation
+      }, error = function(e) NULL)
+
+      if (!is.null(agg) && nzchar(agg)) {
+        # Translate aggregation label to match current UI language
+        val <- tryCatch({ i18n$translate(agg) }, error = function(e) agg)
+        restored_aggregation(val)
+        # Use shiny.semantic updater for the radio
+        shiny.semantic::update_multiple_radio(
+          session,
+          "toggle_region",
+          choices = i18n$translate(c("Country", "Region")),
+          selected = val
+        )
+        cat("[RESTORE_TARGETS_DEBUG] agg_target:", val, "\n")
+        # Proactively rebuild selector with correct choices and target selected
+        target_loc <- tryCatch({ loaded_data$metadata$country }, error = function(e) NULL)
+        if (!is.null(target_loc)) {
+          choices <- tryCatch({
+            if (identical(val, i18n$translate("Region")) || identical(val, "Region")) OPPPserver::get_wpp_regions() else OPPPserver::get_wpp_countries()
+          }, error = function(e) NULL)
+          if (!is.null(choices)) {
+            cat("[RESTORE_SELECTOR_DEBUG] Forcing selector rebuild | mode:", val, " choices_len:", length(choices), " target:", target_loc, "\n")
+            try({ shiny.semantic::updateSelectInput(session, "wpp_country", choices = choices, selected = target_loc) }, silent = TRUE)
+          }
+        }
       }
+
+      # 1) Years
       if (!is.null(loaded_data$metadata$start_year)) {
         updateNumericInput(session, "wpp_starting_year", value = loaded_data$metadata$start_year)
       }
       if (!is.null(loaded_data$metadata$end_year)) {
         updateNumericInput(session, "wpp_ending_year", value = loaded_data$metadata$end_year)
       }
+
+      # 2) Location (after toggle has switched and selector has re-rendered)
+      if (!is.null(loaded_data$metadata$country)) {
+        restored_location(loaded_data$metadata$country)
+        shinyjs::delay(150, {
+          try({ shiny.semantic::updateSelectInput(session, "wpp_country", selected = loaded_data$metadata$country) }, silent = TRUE)
+        })
+        cat("[RESTORE_TARGETS_DEBUG] location_target:", loaded_data$metadata$country, "\n")
+      }
+
       cat("[PHASE8] Input fields updated successfully\n")
     }
     
@@ -962,8 +1090,29 @@ app_server <- function(input, output, session) {
       cat("[PHASE8] No migration data found; will use WPP defaults\n")
     }
     
+    # Fallback: do not forcibly end restore; rely on match or retry loop
+    shinyjs::delay(1500, {
+      cat("[RESTORE_FALLBACK_DEBUG] Still restoring after initial delay | toggle:", input$toggle_region,
+          " wpp_country:", input$wpp_country, " target_toggle:", tryCatch({ restored_aggregation() }, error=function(e) NA),
+          " target_location:", tryCatch({ restored_location() }, error=function(e) NA), "\n")
+    })
+    
     cat("[PHASE8] State restoration complete\n")
   }
+
+  # When the restored location actually lands in the input, finish restoration and enable nav if results exist
+  observeEvent(input$wpp_country, {
+    if (is.null(restored_location())) return()
+    if (identical(input$wpp_country, restored_location())) {
+      restored_location(NULL)
+      restoring_inputs(FALSE)
+      current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
+      if (!is.null(current_sim)) {
+        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        if (has_results) input_next_clicked(TRUE)
+      }
+    }
+  }, ignoreInit = TRUE)
 
   # Reset trigger for modal configurations
   modal_reset_trigger <- reactiveVal(0)
@@ -976,12 +1125,19 @@ app_server <- function(input, output, session) {
   
   # Flag to prevent saving custom configs during simulation reset
   resetting_simulation <- reactiveVal(FALSE)
+  # Flag to indicate inputs are being restored (avoid clearing committed data)
+  restoring_inputs <- reactiveVal(FALSE)
   
   # Flag to prevent auto-saving after restoration
   just_restored_data <- reactiveVal(FALSE)
   
   # Flag to differentiate automatic vs user-initiated tab switches
   opening_modal <- reactiveVal(FALSE)
+  
+  # The location (country/region) value we want the selector to restore to
+  restored_location <- reactiveVal(NULL)
+  # The aggregation label (translated) we want the toggle to restore to
+  restored_aggregation <- reactiveVal(NULL)
 
   # Phase 7: Reset simulation state function
   reset_simulation_state <- function() {
@@ -1023,6 +1179,7 @@ app_server <- function(input, output, session) {
     data_source$tfr <- "downloaded"
     data_source$e0 <- "downloaded"
     data_source$mig <- "downloaded"
+    restored_location(NULL)
     
     # Clear the resetting flag after reset is complete
     resetting_simulation(FALSE)
@@ -1082,10 +1239,10 @@ app_server <- function(input, output, session) {
     try({ updateNumericInput(session, "wpp_starting_year", value = 2024) }, silent = TRUE)
     try({ updateNumericInput(session, "wpp_ending_year", value = 2100) }, silent = TRUE)
     # Reset Country/Region toggle to Country (translated)
-    try({ shinyjs::runjs(paste0(
-      "Shiny.setInputValue('toggle_region', '", i18n$translate("Country"), "', {priority: 'event'})")) }, silent = TRUE)
+    try({ shiny.semantic::update_multiple_radio(session, "toggle_region",
+      choices = i18n$translate(c("Country", "Region")), selected = i18n$translate("Country")) }, silent = TRUE)
     # Clear country selection
-    try({ updateSelectInput(session, "wpp_country", selected = NULL) }, silent = TRUE)
+    try({ shiny.semantic::updateSelectInput(session, "wpp_country", selected = NULL) }, silent = TRUE)
     current_tab("input_page")
     
     cat("[PHASE7] Navigated to input page for new simulation\n")
@@ -1105,16 +1262,52 @@ app_server <- function(input, output, session) {
 
   # --- Phase 3: Save metadata on each Next action to keep it up to date ---
   observeEvent(input$forward_pop_page, {
+    # Before proceeding, if core inputs changed vs last saved signature, clear sim contents
+    try({
+      sim_name <- simulations$current
+      if (!is.null(sim_name) && nzchar(sim_name)) {
+        sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+        meta_path <- file.path(sim_dir, "metadata.json")
+        prev_sig <- NULL
+        if (file.exists(meta_path)) {
+          prev <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) NULL)
+          prev_sig <- tryCatch({ prev$input_signature }, error = function(e) NULL)
+        }
+        curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+        if (!is.null(prev_sig) && !identical(prev_sig, curr_sig)) {
+          cat("[SIM_RESET] Input signature changed. Clearing simulation folder contents for:", sim_name, "\n")
+          cat("[SIM_RESET] Previous signature:", prev_sig, "| New signature:", curr_sig, "\n")
+          # Remove everything inside sim_dir (keep the folder)
+          contents <- list.files(sim_dir, full.names = TRUE, all.files = FALSE, recursive = FALSE, include.dirs = TRUE)
+          try(unlink(contents, recursive = TRUE, force = TRUE), silent = TRUE)
+          # Recreate folders
+          ensure_sim_dirs(sim_base_dir, sim_name)
+          # Clear in-memory committed data to fully reset pipeline for this sim
+          committed_pop_rv(NULL); committed_tfr_rv(NULL); committed_e0_rv(NULL); committed_mig_rv(NULL)
+          modal_raw_pop_data(NULL); modal_pop_params(NULL)
+          pop_data_source("UN Data"); data_source$tfr <- "downloaded"; data_source$e0 <- "downloaded"; data_source$mig <- "downloaded"
+          cat("[SIM_RESET] Cleared disk contents and in-memory commits for:", sim_name, "\n")
+        }
+      }
+    }, silent = TRUE)
+
     save_sim_metadata(trigger = "forward_pop_page")
     # Also snapshot population at this transition (in case user didn't customize)
     save_population_files(trigger = "forward_pop_page")
     input_next_clicked(TRUE)
+    # Update signature/progress cache for current sim
+    curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+    sim_saved_signature(curr_sig)
+    sim_progressed(TRUE)
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_tfr_page, {
     save_sim_metadata(trigger = "forward_tfr_page")
     save_population_files(trigger = "forward_tfr_page")
     save_tfr_files(trigger = "forward_tfr_page")
+    curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+    sim_saved_signature(curr_sig)
+    sim_progressed(TRUE)
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_e0_page, {
@@ -1122,6 +1315,9 @@ app_server <- function(input, output, session) {
     save_population_files(trigger = "forward_e0_page")
     save_tfr_files(trigger = "forward_e0_page")
     save_e0_files(trigger = "forward_e0_page")
+    curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+    sim_saved_signature(curr_sig)
+    sim_progressed(TRUE)
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_mig_page, {
@@ -1130,7 +1326,96 @@ app_server <- function(input, output, session) {
     save_tfr_files(trigger = "forward_mig_page")
     save_e0_files(trigger = "forward_mig_page")
     save_mig_files(trigger = "forward_mig_page")
+    curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+    sim_saved_signature(curr_sig)
+    sim_progressed(TRUE)
   }, ignoreInit = TRUE)
+
+  # Run Projection from sidebar (same behavior as migration page button)
+  observeEvent(input$nav_run_projection, {
+    if (!isTRUE(input_next_clicked())) {
+      showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
+      return()
+    }
+    # Move to forecast page and trigger compute for current simulation
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page")
+    show("forecast_page")
+    current_tab("forecast_page")
+    save_current_page("forecast_page")
+
+    my_sim <- simulations$current
+    begin_forecast(
+      reactive_pop = reactive_pop,
+      reactive_tfr = reactive_tfr,
+      reactive_e0 = reactive_e0,
+      reactive_mig = reactive_mig,
+      wpp_starting_year = wpp_starting_year,
+      wpp_ending_year = wpp_ending_year,
+      input = input,
+      output = output,
+      simulation_results = simulation_results,
+      i18n = i18n,
+      results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+      force = TRUE,
+      is_active = reactive({ current_tab() == "forecast_page" }),
+      sim_name = my_sim,
+      is_current_sim = reactive({ simulations$current == my_sim })
+    )
+  })
+
+  # View Projection Results from sidebar (only when results exist)
+  observeEvent(input$nav_forecast, {
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page")
+    show("forecast_page")
+    current_tab("forecast_page")
+    save_current_page("forecast_page")
+
+    my_sim <- simulations$current
+    if (isTRUE(restoring_inputs())) {
+      cat("[FORECAST_GUARD] Delaying forecast load until restore completes\n")
+      local_obs <- NULL
+      local_obs <- observeEvent(restoring_inputs(), {
+        if (!isTRUE(restoring_inputs())) {
+          begin_forecast(
+            reactive_pop = reactive_pop,
+            reactive_tfr = reactive_tfr,
+            reactive_e0 = reactive_e0,
+            reactive_mig = reactive_mig,
+            wpp_starting_year = wpp_starting_year,
+            wpp_ending_year = wpp_ending_year,
+            input = input,
+            output = output,
+            simulation_results = simulation_results,
+            i18n = i18n,
+            results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+            force = FALSE,
+            is_active = reactive({ current_tab() == "forecast_page" }),
+            sim_name = my_sim,
+            is_current_sim = reactive({ simulations$current == my_sim })
+          )
+          local_obs$destroy()
+        }
+      }, ignoreInit = FALSE)
+    } else {
+      begin_forecast(
+        reactive_pop = reactive_pop,
+        reactive_tfr = reactive_tfr,
+        reactive_e0 = reactive_e0,
+        reactive_mig = reactive_mig,
+        wpp_starting_year = wpp_starting_year,
+        wpp_ending_year = wpp_ending_year,
+        input = input,
+        output = output,
+        simulation_results = simulation_results,
+        i18n = i18n,
+        results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+        force = FALSE,
+        is_active = reactive({ current_tab() == "forecast_page" }),
+        sim_name = my_sim,
+        is_current_sim = reactive({ simulations$current == my_sim })
+      )
+    }
+  })
 
   # Persist current page to metadata on navigation button clicks (inside server)
   observeEvent(input$nav_input, { save_current_page("input_page") })
@@ -1151,8 +1436,39 @@ app_server <- function(input, output, session) {
   observeEvent(input$forward_mig_page, { save_current_page("mig_page") })
   observeEvent(input$begin, { save_current_page("forecast_page") })
   observeEvent(input$pass_source_btn, { save_current_page("forecast_page") })
+  observeEvent(input$nav_forecast, { save_current_page("forecast_page") })
 
   # Population data is now saved directly in the Apply button handler
+  
+  # Complete restoration when the restored location lands in the input
+  observeEvent(input$wpp_country, {
+    rl <- tryCatch({ restored_location() }, error = function(e) NULL)
+    if (is.null(rl)) return()
+    if (!is.null(input$wpp_country) && identical(input$wpp_country, rl)) {
+      cat("[RESTORED_MATCH_DEBUG] wpp_country matched restored_location:", rl, "— finishing restore and enabling nav (if results exist)\n")
+      restored_location(NULL)
+      # Only finish restoring once aggregation also matched (if set)
+      if (is.null(restored_aggregation())) restoring_inputs(FALSE)
+      current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
+      if (!is.null(current_sim)) {
+        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        if (has_results) input_next_clicked(TRUE)
+      }
+    }
+  }, ignoreInit = TRUE)
+
+
+  # When restoration completes, print the final active inputs
+  observeEvent(restoring_inputs(), {
+    if (!isTRUE(restoring_inputs())) {
+      sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
+      sig <- paste0(input$toggle_region, "|", input$wpp_country, "|", input$wpp_starting_year, "|", input$wpp_ending_year)
+      cat("[RESTORE_COMPLETE_DEBUG] sim=", sim_name, " toggle=", input$toggle_region,
+          " wpp_country=", input$wpp_country, " signature=", sig, "\n", sep = "")
+    }
+  })
+  
+  # (Removed verbose input event debug observers)
   # to capture raw input data before transformations
 
   # Render the toggle_region UI with translated options
@@ -1166,6 +1482,28 @@ app_server <- function(input, output, session) {
       type = "radio"
     )
   })
+
+
+  # When toggle matches restored aggregation, complete restoration and enable nav if results exist
+  observeEvent(input$toggle_region, {
+    ra <- tryCatch({ restored_aggregation() }, error = function(e) NULL)
+    if (is.null(ra)) return()
+    if (!is.null(input$toggle_region) && identical(input$toggle_region, ra)) {
+      cat("[RESTORED_MATCH_DEBUG] toggle_region matched restored_aggregation:", ra, "— finishing restore and enabling nav (if results exist)\n")
+      # Do not clear restored_aggregation yet; wait until location also matches
+      if (identical(input$wpp_country, tryCatch({ restored_location() }, error=function(e) NULL))) {
+        # Both match: finish restore
+        restored_aggregation(NULL)
+        restored_location(NULL)
+        restoring_inputs(FALSE)
+      }
+      current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
+      if (!is.null(current_sim)) {
+        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        if (has_results) input_next_clicked(TRUE)
+      }
+    }
+  }, ignoreInit = TRUE)
 
   # At the top with other reactives
   selected_tab_index <- reactiveVal(1)  # Start with first tab
@@ -1327,17 +1665,43 @@ app_server <- function(input, output, session) {
   # Track data source for population (UN Data or Custom Data)
   pop_data_source <- reactiveVal("UN Data")
 
-  # Observe changes to wpp_countries and reset committed data
-  observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year), {
-    committed_pop_rv(NULL)
-    committed_tfr_rv(NULL)
-    committed_e0_rv(NULL)
-    committed_mig_rv(NULL)
-    pop_data_source("UN Data")  # Reset to UN Data when country/year changes
-    # Reset data_source if still relevant to distinguish default from committed
-    data_source$tfr <- "downloaded" # or "default"
-    data_source$e0  <- "downloaded" # or "default"
-    data_source$mig <- "downloaded" # or "default"
+  # Observe changes to inputs and reset committed data (skip during restoration/reset)
+  observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year, input$toggle_region), {
+    # If this change corresponds to the target restored location, do not re-gate
+    rl <- tryCatch({ restored_location() }, error = function(e) NULL)
+    if (!is.null(rl) && !is.null(input$wpp_country) && identical(input$wpp_country, rl)) {
+      cat("[INPUT_CHANGE_DEBUG] Change matches restored_location; skipping gating | wpp_country:", input$wpp_country, "\n")
+      return()
+    }
+    if (isTRUE(restoring_inputs()) || isTRUE(resetting_simulation())) {
+      cat("[INPUT_CHANGE_DEBUG] Ignored change during restore/reset | toggle:", input$toggle_region,
+          "| wpp_country:", input$wpp_country, "| start:", input$wpp_starting_year, "| end:", input$wpp_ending_year, "\n")
+      return()
+    }
+
+    # Recompute gating based on signature match
+    curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
+    saved_sig <- tryCatch({ sim_saved_signature() }, error = function(e) NULL)
+    progressed <- tryCatch({ isTRUE(sim_progressed()) }, error = function(e) FALSE)
+    next_ok <- isTRUE(progressed) && !is.null(saved_sig) && identical(curr_sig, saved_sig)
+    input_next_clicked(next_ok)
+
+    # Only clear committed data if the signature changed (i.e., inputs invalidated prior commits)
+    if (!next_ok) {
+      committed_pop_rv(NULL)
+      committed_tfr_rv(NULL)
+      committed_e0_rv(NULL)
+      committed_mig_rv(NULL)
+      pop_data_source("UN Data")  # Reset to UN Data when country/year changes
+      data_source$tfr <- "downloaded"
+      data_source$e0  <- "downloaded"
+      data_source$mig <- "downloaded"
+      cat("[SIGNATURE_DEBUG] Inputs changed; signature DIFFERENT — cleared committed data | curr_sig:", curr_sig,
+          "| saved_sig:", saved_sig, "| progressed:", progressed, "\n")
+    } else {
+      cat("[SIGNATURE_DEBUG] Inputs changed; signature SAME — kept committed data | curr_sig:", curr_sig,
+          "| saved_sig:", saved_sig, "| progressed:", progressed, "\n")
+    }
   })
 
   reactive_pop <- reactive({
@@ -1361,12 +1725,19 @@ app_server <- function(input, output, session) {
       if (is.character(user_data$age)) {
         user_data$age <- as.numeric(gsub("\\+", "", user_data$age))
       }
-      
+      try({
+        cat("[POP_SOURCE_DEBUG] Using COMMITTED population data for plot. Head:\n");
+        print(utils::head(as.data.frame(user_data[, c("age","popF","popM")]), 5))
+      }, silent = TRUE)
       # Convert to data.table as expected by create_pop_pyramid_plot
       return(data.table::as.data.table(user_data))
     } else {
-      # Fallback to default WPP data
-      wpp_data <- get_wpp_pop(input$wpp_country, wpp_starting_year())
+      # Fallback to default WPP data (single ages)
+      wpp_data <- safe_get_wpp_pop(input$wpp_country, wpp_starting_year(), n = 1)
+      try({
+        cat("[POP_SOURCE_DEBUG] Using WPP DEFAULT population data for plot:", input$wpp_country, wpp_starting_year(), "Head:\n")
+        print(utils::head(as.data.frame(wpp_data), 5))
+      }, silent = TRUE)
       # Convert to data.table
       return(data.table::as.data.table(wpp_data))
     }
@@ -1380,10 +1751,18 @@ app_server <- function(input, output, session) {
       suppressWarnings({ user_data$year <- as.numeric(user_data$year) })
       suppressWarnings({ user_data$tfr  <- as.numeric(user_data$tfr) })
       data_source$tfr <- "custom" # Indicate data is from modal commit
+      try({
+        cat("[TFR_SOURCE_DEBUG] Using COMMITTED TFR data for plot. Head:\n");
+        print(utils::head(as.data.frame(user_data), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_tfr(input$wpp_country)
       data_source$tfr <- "downloaded" # Default WPP data
+      try({
+        cat("[TFR_SOURCE_DEBUG] Using WPP DEFAULT TFR for plot:", input$wpp_country, "Head:\n");
+        print(utils::head(as.data.frame(res), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(res))
     }
   })
@@ -1396,10 +1775,18 @@ app_server <- function(input, output, session) {
       suppressWarnings({ user_data$e0M <- as.numeric(user_data$e0M) })
       suppressWarnings({ user_data$e0F <- as.numeric(user_data$e0F) })
       data_source$e0 <- "custom" # Indicate data is from modal commit
+      try({
+        cat("[E0_SOURCE_DEBUG] Using COMMITTED e0 data for plot. Head:\n");
+        print(utils::head(as.data.frame(user_data), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_e0(input$wpp_country)
       data_source$e0 <- "downloaded" # Default WPP data
+      try({
+        cat("[E0_SOURCE_DEBUG] Using WPP DEFAULT e0 for plot:", input$wpp_country, "Head:\n");
+        print(utils::head(as.data.frame(res), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(res))
     }
   })
@@ -1411,10 +1798,18 @@ app_server <- function(input, output, session) {
       suppressWarnings({ user_data$year <- as.numeric(user_data$year) })
       suppressWarnings({ user_data$mig  <- as.numeric(user_data$mig) })
       data_source$mig <- "custom" # Indicate data is from modal commit
+      try({
+        cat("[MIG_SOURCE_DEBUG] Using COMMITTED migration data for plot. Head:\n");
+        print(utils::head(as.data.frame(user_data), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_mig(input$wpp_country)
       data_source$mig <- "downloaded" # Default WPP data
+      try({
+        cat("[MIG_SOURCE_DEBUG] Using WPP DEFAULT migration for plot:", input$wpp_country, "Head:\n");
+        print(utils::head(as.data.frame(res), 5))
+      }, silent = TRUE)
       return(data.table::as.data.table(res))
     }
   })
@@ -1463,7 +1858,15 @@ app_server <- function(input, output, session) {
     input_next_completed = input_next_clicked,
     input = input,
     output = output,
-    i18n = i18n
+    i18n = i18n,
+    pop_to_commit_rv = committed_pop_rv,
+    modal_raw_pop_data = modal_raw_pop_data,
+    modal_pop_params = modal_pop_params,
+    process_population_data = process_population_data,
+    tfr_to_commit_rv = committed_tfr_rv,
+    e0_to_commit_rv = committed_e0_rv,
+    mig_to_commit_rv = committed_mig_rv,
+    restoring_inputs = restoring_inputs
   )
 
   # Handle all customize actions
@@ -1497,7 +1900,9 @@ app_server <- function(input, output, session) {
     last_active_modal_tab = last_active_modal_tab,
     resetting_simulation = resetting_simulation,
     just_restored_data = just_restored_data,
-    opening_modal = opening_modal
+    opening_modal = opening_modal,
+    restored_location = restored_location,
+    restored_aggregation = restored_aggregation
   )
 
 
