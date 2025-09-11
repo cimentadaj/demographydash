@@ -564,6 +564,10 @@ app_server <- function(input, output, session) {
     # Update current selection in memory
     simulations$current <- selected_sim
     
+    # Hard reset all in-memory state to avoid cross-simulation leakage
+    # This guarantees reactive values and modal caches do not bleed between sims
+    reset_simulation_state()
+    
     # Load simulation data from disk
     loaded_data <- load_simulation_data(selected_sim)
     
@@ -635,25 +639,30 @@ app_server <- function(input, output, session) {
     
     cat("[WIDGET_RESTORE] Restoring modal widgets from saved parameters\n")
     
-    # Restore age type for both UN and Custom data tabs
-    if (!is.null(pop_params$age_type)) {
-      updateSelectInput(session, "modal_population_un_age_type", selected = pop_params$age_type)
-      updateSelectInput(session, "modal_population_age_type", selected = pop_params$age_type)
-      cat("[WIDGET_RESTORE] Age type set to:", pop_params$age_type, "\n")
-    }
+    src <- pop_params$data_source %||% "UN Data"
     
-    # Restore OAG if it exists and is valid
-    if (!is.null(pop_params$open_age) && length(pop_params$open_age) > 0 && 
-        !is.list(pop_params$open_age)) {  # Skip empty list {}
-      updateNumericInput(session, "modal_population_oag", value = pop_params$open_age)
-      cat("[WIDGET_RESTORE] OAG set to:", pop_params$open_age, "\n")
-    }
-    
-    # Restore interpolation method if it exists
-    if (!is.null(pop_params$interp_method) && length(pop_params$interp_method) > 0 &&
-        !is.list(pop_params$interp_method)) {  # Skip empty list {}
-      updateSelectInput(session, "modal_population_interp_method", selected = pop_params$interp_method)
-      cat("[WIDGET_RESTORE] Interp method set to:", pop_params$interp_method, "\n")
+    if (identical(src, "UN Data")) {
+      # Only restore UN widgets
+      if (!is.null(pop_params$age_type)) {
+        updateSelectInput(session, "modal_population_un_age_type", selected = pop_params$age_type)
+        cat("[WIDGET_RESTORE] (UN) Age type:", pop_params$age_type, "\n")
+      }
+      # Do not touch Custom widgets here
+    } else if (identical(src, "Custom Data")) {
+      # Only restore Custom widgets
+      if (!is.null(pop_params$age_type)) {
+        updateSelectInput(session, "modal_population_age_type", selected = pop_params$age_type)
+        cat("[WIDGET_RESTORE] (Custom) Age type:", pop_params$age_type, "\n")
+      }
+      if (!is.null(pop_params$open_age) && length(pop_params$open_age) > 0 && !is.list(pop_params$open_age)) {
+        updateNumericInput(session, "modal_population_oag", value = pop_params$open_age)
+        cat("[WIDGET_RESTORE] (Custom) OAG:", pop_params$open_age, "\n")
+      }
+      if (!is.null(pop_params$interp_method) && length(pop_params$interp_method) > 0 && !is.list(pop_params$interp_method)) {
+        updateSelectInput(session, "modal_population_interp_method", selected = pop_params$interp_method)
+        cat("[WIDGET_RESTORE] (Custom) Interp method:", pop_params$interp_method, "\n")
+      }
+      # Do not touch UN widgets here
     }
   }
 
@@ -755,6 +764,13 @@ app_server <- function(input, output, session) {
       # 5. Restore data source flag
       pop_data_source(loaded_data$pop_params$data_source %||% "UN Data")
       
+      # If this simulation is not Custom Data, ensure no stale custom configs remain
+      if (!identical(loaded_data$pop_params$data_source, "Custom Data")) {
+        custom_data_configs(list())
+        modal_reset_trigger(modal_reset_trigger() + 1)
+        cat("[PHASE8] Cleared custom_data_configs for UN Data simulation\n")
+      }
+      
       # 6. If Custom Data, repopulate the custom_data_configs
       if (loaded_data$pop_params$data_source == "Custom Data") {
         # Create config key from saved params
@@ -783,6 +799,15 @@ app_server <- function(input, output, session) {
       }
       
       cat("[PHASE8] Population data restored and processed through pipeline\n")
+    } else {
+      # No population files found: ensure a clean UN default state
+      committed_pop_rv(NULL)
+      modal_raw_pop_data(NULL)
+      modal_pop_params(NULL)
+      pop_data_source("UN Data")
+      custom_data_configs(list())
+      modal_reset_trigger(modal_reset_trigger() + 1)
+      cat("[PHASE8] No pop data/params present; cleared state to defaults (UN Data)\n")
     }
     
     cat("[PHASE8] State restoration complete\n")
@@ -825,6 +850,9 @@ app_server <- function(input, output, session) {
     modal_raw_pop_data(NULL)
     modal_pop_params(NULL)
     
+    # Clear custom configs immediately (avoid race with modal observer)
+    custom_data_configs(list())
+    
     # Reset modal widgets to defaults
     reset_modal_widgets(session)
     
@@ -835,7 +863,7 @@ app_server <- function(input, output, session) {
     cat("[RESET_DEBUG] AFTER RESET - Data source:", pop_data_source(), ", Last active tab:", last_active_modal_tab(), "\n")
     cat("[RESET_DEBUG] AFTER RESET - Custom configs count:", length(custom_data_configs()), ", keys:", paste(names(custom_data_configs()), collapse=", "), "\n")
     
-    # Trigger modal configuration reset
+    # Trigger modal configuration reset (clears UN caches + re-render in handles)
     modal_reset_trigger(modal_reset_trigger() + 1)
     
     # Reset data source flags

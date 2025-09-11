@@ -585,6 +585,23 @@ handle_customize_data <- function(
       shinyjs::runjs("setTimeout(function() { $('#modal_population_source_custom').click(); }, 100);")
       shinyjs::runjs("setTimeout(function() { Shiny.setInputValue('opening_modal_complete', Math.random()); }, 200);")
       cat("[MODAL_OPEN_DEBUG] Opening Custom Data tab - preserving existing configs\n")
+      # Restore Custom widgets from saved params if available; else defaults
+      shinyjs::delay(150, {
+        params <- tryCatch({ modal_pop_params() }, error = function(e) NULL)
+        if (!is.null(params) && identical(params$data_source, "Custom Data")) {
+          if (!is.null(params$age_type)) updateSelectInput(session, "modal_population_age_type", selected = params$age_type)
+          if (!is.null(params$open_age) && !is.list(params$open_age)) updateNumericInput(session, "modal_population_oag", value = params$open_age)
+          if (!is.null(params$interp_method) && !is.list(params$interp_method)) updateSelectInput(session, "modal_population_interp_method", selected = params$interp_method)
+          cat("[WIDGET_RESTORE] (Custom) age_type=", params$age_type, ", OAG=", params$open_age, ", method=", params$interp_method, "\n", sep = "")
+        } else {
+          updateSelectInput(session, "modal_population_age_type", selected = "Single Ages")
+          updateNumericInput(session, "modal_population_oag", value = 100)
+          updateSelectInput(session, "modal_population_interp_method", selected = "beers(ord)")
+          cat("[WIDGET_RESET] (Custom) Defaults applied: Single Ages, OAG 100, beers(ord)\n")
+        }
+        # Force table re-render after adjusting widgets
+        try({ un_data_reset_trigger(un_data_reset_trigger() + 1) }, silent = TRUE)
+      })
     } else {
       opening_modal(TRUE)  # Set flag before automatic tab switch
       shinyjs::runjs("setTimeout(function() { $('#modal_population_source_un').click(); }, 100);")
@@ -645,15 +662,17 @@ handle_customize_data <- function(
   # Note: last_active_modal_tab is now passed as parameter from main server scope
   un_data_reset_trigger <- reactiveVal(0)  # Trigger to force table re-render on reset
   
-  # Clear custom data configurations when switching simulations
+  # On simulation reset, clear only UN caches and force re-render.
+  # app_server handles cross-sim clearing of custom_data_configs to avoid races.
   observeEvent(modal_reset_trigger(), {
     if (!is.null(modal_reset_trigger())) {
       current_configs <- custom_data_configs()
-      cat("[MODAL_RESET] Before clearing - configs count:", length(current_configs), "keys:", paste(names(current_configs), collapse=", "), "\n")
-      custom_data_configs(list())  # Clear all custom configurations
+      cat("[MODAL_RESET] (handles) Pre-reset — UN caches will be cleared; configs count:", length(current_configs), "keys:", paste(names(current_configs), collapse=", "), "\n")
       un_data_single_cache(NULL)   # Clear UN data caches
       un_data_5yr_cache(NULL)
-      cat("[MODAL_RESET] After clearing - configs count:", length(custom_data_configs()), "\n")
+      # Force the data table to re-render on next open for both UN and Custom
+      un_data_reset_trigger(un_data_reset_trigger() + 1)
+      cat("[MODAL_RESET] (handles) UN caches cleared; table re-render scheduled\n")
     }
   }, ignoreInit = TRUE)
   
@@ -944,6 +963,7 @@ handle_customize_data <- function(
         # Use restored raw data (it matches what user expects to see)
         res <- raw_data
         cat("[MODAL_RENDER] Using restored UN data:", nrow(raw_data), "x", ncol(raw_data), "\n")
+        cat("[MODAL_RENDER] UN data head (restored):\n"); try(print(utils::head(res, 5)), silent = TRUE)
       } else {
         # Fetch fresh UN data with current age type
         ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
@@ -958,6 +978,7 @@ handle_customize_data <- function(
         res <- ensure_standard_columns(res)
         
         cat("[MODAL_RENDER] Fetched fresh UN data:", nrow(res), "x", ncol(res), "for", un_display_type, "\n")
+        cat("[MODAL_RENDER] UN data head (fresh):\n"); try(print(utils::head(res, 5)), silent = TRUE)
       }
     }
     
@@ -1192,6 +1213,11 @@ handle_customize_data <- function(
         }
       }
       
+      # Persist current parameter state for this simulation so modal reopens with same widgets
+      try({ modal_pop_params(params) }, silent = TRUE)
+      # Persist raw data for UN display path; harmless for Custom
+      try({ modal_raw_pop_data(data) }, silent = TRUE)
+
       # Use the reusable transformation function
       final_data <- process_population_data(
         data,
