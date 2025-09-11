@@ -119,6 +119,30 @@ app_server <- function(input, output, session) {
   cat("[PHASE1] Sidebar structure created\n")
   
   i18n <- usei18n_local()
+  
+  # Track the current visible page
+  current_tab <- reactiveVal()
+  
+  # Store a desired page when navigating from contexts where current_tab may
+  # not yet be initialized
+  pending_page <- reactiveVal(NULL)
+
+  # Helper to navigate to a specific page and keep sidebar state consistent
+  go_to_page <- function(page_id) {
+    all_pages <- c("landing_page", "input_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "results_page")
+    for (p in all_pages) {
+      shinyjs::hide(p)
+    }
+    if (identical(page_id, "landing_page")) {
+      shinyjs::hide("left_menu")
+      shinyjs::show("landing_page")
+    } else {
+      shinyjs::show("left_menu")
+      shinyjs::show(page_id)
+    }
+    # Defer setting current_tab until it's initialized
+    pending_page(page_id)
+  }
 
   # Sidebar should not be visible on landing page
   shinyjs::hide("left_menu")
@@ -205,6 +229,21 @@ app_server <- function(input, output, session) {
     if (!dir.exists(inputs_dir)) dir.create(inputs_dir, recursive = TRUE, showWarnings = FALSE)
     if (!dir.exists(results_dir)) dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
     sim_dir
+  }
+
+  # Save only the current page into the simulation metadata
+  save_current_page <- function(page_id) {
+    sim_name <- simulations$current
+    if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
+    sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
+    meta_path <- file.path(sim_dir, "metadata.json")
+    meta <- list()
+    if (file.exists(meta_path)) {
+      meta <- tryCatch({ jsonlite::read_json(meta_path, simplifyVector = TRUE) }, error = function(e) list())
+    }
+    meta$current_page <- page_id
+    meta$updated_at <- as.character(Sys.time())
+    writeLines(jsonlite::toJSON(meta, pretty = TRUE, auto_unbox = TRUE, na = "null"), meta_path, useBytes = TRUE)
   }
 
   save_sim_metadata <- function(trigger = NULL) {
@@ -579,8 +618,13 @@ app_server <- function(input, output, session) {
       
       # Restore all reactive values and inputs
       restore_simulation_state(loaded_data)
+      # Navigate to last page if available
+      desired_page <- tryCatch({ loaded_data$metadata$current_page }, error = function(e) NULL)
+      if (is.null(desired_page) || !nzchar(desired_page)) desired_page <- "input_page"
+      go_to_page(desired_page)
     } else {
       cat("[PHASE8] No saved data found for simulation:", selected_sim, "\n")
+      go_to_page("input_page")
     }
     
     # Update URL (keeping existing logic)
@@ -1062,6 +1106,20 @@ app_server <- function(input, output, session) {
     save_mig_files(trigger = "forward_mig_page")
   }, ignoreInit = TRUE)
 
+  # Persist current page to metadata on navigation button clicks (inside server)
+  observeEvent(input$start_analysis, { save_current_page("input_page") })
+  observeEvent(input$back_to_landing, { save_current_page("landing_page") })
+  observeEvent(input$back_to_input_page, { save_current_page("input_page") })
+  observeEvent(input$back_to_pop_page, { save_current_page("pop_page") })
+  observeEvent(input$back_to_tfr_page, { save_current_page("tfr_page") })
+  observeEvent(input$back_to_e0_page, { save_current_page("e0_page") })
+  observeEvent(input$back_to_mig_page, { save_current_page("mig_page") })
+  observeEvent(input$forward_pop_page, { save_current_page("pop_page") })
+  observeEvent(input$forward_tfr_page, { save_current_page("tfr_page") })
+  observeEvent(input$forward_e0_page, { save_current_page("e0_page") })
+  observeEvent(input$forward_mig_page, { save_current_page("mig_page") })
+  observeEvent(input$begin, { save_current_page("forecast_page") })
+
   # Population data is now saved directly in the Apply button handler
   # to capture raw input data before transformations
 
@@ -1131,6 +1189,15 @@ app_server <- function(input, output, session) {
   })
 
   current_tab <- reactiveVal()
+
+  # If a navigation occurred before current_tab existed, apply it now
+  observe({
+    pg <- tryCatch({ pending_page() }, error = function(e) NULL)
+    if (!is.null(pg) && nzchar(pg)) {
+      current_tab(pg)
+      pending_page(NULL)
+    }
+  })
 
   observe({
     req(input$get_screen_width)
