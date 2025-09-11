@@ -1062,7 +1062,8 @@ handle_customize_data <- function(
       maxRows = nrow(res)
     ) %>%
       hot_col(i18n$t("Age"), readOnly = TRUE) %>%
-      hot_col(c(i18n$t("Female (in thousands)"), i18n$t("Male (in thousands)")), type = "numeric", format = "0,0")
+      # Display population values with one decimal place (e.g., 3,551.9)
+      hot_col(c(i18n$t("Female (in thousands)"), i18n$t("Male (in thousands)")), type = "numeric", format = "0,0.0")
   })
 
   output$tmp_tfr_dt <- renderRHandsontable({

@@ -684,7 +684,9 @@ app_server <- function(input, output, session) {
     result <- list(
       metadata = NULL,
       pop_data = NULL,
-      pop_params = NULL
+      pop_params = NULL,
+      tfr_data = NULL,
+      tfr_params = NULL
     )
     
     # Load metadata
@@ -711,7 +713,53 @@ app_server <- function(input, output, session) {
       }, error = function(e) NULL)
     }
     
-    cat("[PHASE8] Loaded data - Meta:", !is.null(result$metadata), "Pop:", !is.null(result$pop_data), "PopParams:", !is.null(result$pop_params), "\n")
+    # Load TFR data and parameters (if present)
+    tfr_path <- file.path(inputs_dir, "tfr.csv")
+    tfr_params_path <- file.path(inputs_dir, "tfr_params.json")
+    if (file.exists(tfr_path)) {
+      result$tfr_data <- tryCatch({
+        data.table::fread(tfr_path)
+      }, error = function(e) NULL)
+    }
+    if (file.exists(tfr_params_path)) {
+      result$tfr_params <- tryCatch({
+        jsonlite::read_json(tfr_params_path, simplifyVector = TRUE)
+      }, error = function(e) NULL)
+    }
+    
+    # Load e0 data and parameters (if present)
+    e0_path <- file.path(inputs_dir, "e0.csv")
+    e0_params_path <- file.path(inputs_dir, "e0_params.json")
+    if (file.exists(e0_path)) {
+      result$e0_data <- tryCatch({
+        data.table::fread(e0_path)
+      }, error = function(e) NULL)
+    }
+    if (file.exists(e0_params_path)) {
+      result$e0_params <- tryCatch({
+        jsonlite::read_json(e0_params_path, simplifyVector = TRUE)
+      }, error = function(e) NULL)
+    }
+
+    # Load migration data and parameters (if present)
+    mig_path <- file.path(inputs_dir, "mig.csv")
+    mig_params_path <- file.path(inputs_dir, "mig_params.json")
+    if (file.exists(mig_path)) {
+      result$mig_data <- tryCatch({
+        data.table::fread(mig_path)
+      }, error = function(e) NULL)
+    }
+    if (file.exists(mig_params_path)) {
+      result$mig_params <- tryCatch({
+        jsonlite::read_json(mig_params_path, simplifyVector = TRUE)
+      }, error = function(e) NULL)
+    }
+
+    cat("[PHASE8] Loaded data - Meta:", !is.null(result$metadata),
+        "Pop:", !is.null(result$pop_data), "PopParams:", !is.null(result$pop_params),
+        "TFR:", !is.null(result$tfr_data), "TfrParams:", !is.null(result$tfr_params),
+        "e0:", !is.null(result$e0_data), "e0Params:", !is.null(result$e0_params),
+        "Mig:", !is.null(result$mig_data), "MigParams:", !is.null(result$mig_params), "\n")
     
     return(result)
   }
@@ -811,6 +859,39 @@ app_server <- function(input, output, session) {
       custom_data_configs(list())
       modal_reset_trigger(modal_reset_trigger() + 1)
       cat("[PHASE8] No pop data/params present; cleared state to defaults (UN Data)\n")
+    }
+    
+    # Restore TFR if available; else leave NULL so reactive_tfr falls back to WPP
+    if (!is.null(loaded_data$tfr_data)) {
+      tfr_dt <- as.data.frame(loaded_data$tfr_data)
+      names(tfr_dt) <- c("year", "tfr")
+      committed_tfr_rv(tfr_dt)
+      cat("[PHASE8] Restored TFR data for simulation, rows:", nrow(tfr_dt), "\n")
+    } else {
+      committed_tfr_rv(NULL)
+      cat("[PHASE8] No TFR data found; will use WPP defaults\n")
+    }
+    
+    # Restore e0 if available; else leave NULL so reactive_e0 falls back to WPP
+    if (!is.null(loaded_data$e0_data)) {
+      e0_dt <- as.data.frame(loaded_data$e0_data)
+      names(e0_dt) <- c("year", "e0M", "e0F")
+      committed_e0_rv(e0_dt)
+      cat("[PHASE8] Restored e0 data for simulation, rows:", nrow(e0_dt), "\n")
+    } else {
+      committed_e0_rv(NULL)
+      cat("[PHASE8] No e0 data found; will use WPP defaults\n")
+    }
+    
+    # Restore migration if available; else leave NULL so reactive_mig falls back to WPP
+    if (!is.null(loaded_data$mig_data)) {
+      mig_dt <- as.data.frame(loaded_data$mig_data)
+      names(mig_dt) <- c("year", "mig")
+      committed_mig_rv(mig_dt)
+      cat("[PHASE8] Restored migration data for simulation, rows:", nrow(mig_dt), "\n")
+    } else {
+      committed_mig_rv(NULL)
+      cat("[PHASE8] No migration data found; will use WPP defaults\n")
     }
     
     cat("[PHASE8] State restoration complete\n")
@@ -1187,12 +1268,15 @@ app_server <- function(input, output, session) {
     user_data <- committed_tfr_rv()
     if (!is.null(user_data)) {
       names(user_data) <- c("year", "tfr")
+      # Ensure correct types
+      suppressWarnings({ user_data$year <- as.numeric(user_data$year) })
+      suppressWarnings({ user_data$tfr  <- as.numeric(user_data$tfr) })
       data_source$tfr <- "custom" # Indicate data is from modal commit
-      return(user_data)
+      return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_tfr(input$wpp_country)
       data_source$tfr <- "downloaded" # Default WPP data
-      return(res)
+      return(data.table::as.data.table(res))
     }
   })
 
@@ -1200,12 +1284,15 @@ app_server <- function(input, output, session) {
     user_data <- committed_e0_rv()
     if (!is.null(user_data)) {
       names(user_data) <- c("year", "e0M", "e0F")
+      suppressWarnings({ user_data$year <- as.numeric(user_data$year) })
+      suppressWarnings({ user_data$e0M <- as.numeric(user_data$e0M) })
+      suppressWarnings({ user_data$e0F <- as.numeric(user_data$e0F) })
       data_source$e0 <- "custom" # Indicate data is from modal commit
-      return(user_data)
+      return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_e0(input$wpp_country)
       data_source$e0 <- "downloaded" # Default WPP data
-      return(res)
+      return(data.table::as.data.table(res))
     }
   })
 
@@ -1213,12 +1300,14 @@ app_server <- function(input, output, session) {
     user_data <- committed_mig_rv()
     if (!is.null(user_data)) {
       names(user_data) <- c("year", "mig")
+      suppressWarnings({ user_data$year <- as.numeric(user_data$year) })
+      suppressWarnings({ user_data$mig  <- as.numeric(user_data$mig) })
       data_source$mig <- "custom" # Indicate data is from modal commit
-      return(user_data)
+      return(data.table::as.data.table(user_data))
     } else {
       res <- get_wpp_mig(input$wpp_country)
       data_source$mig <- "downloaded" # Default WPP data
-      return(res)
+      return(data.table::as.data.table(res))
     }
   })
 
