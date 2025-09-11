@@ -120,6 +120,9 @@ app_server <- function(input, output, session) {
   
   i18n <- usei18n_local()
 
+  # Sidebar should not be visible on landing page
+  shinyjs::hide("left_menu")
+
   # --- Phase 2: Temp directory + simulations reactive ---
   # Phase 3 base directory (matching plans): /tmp/hasdaney213
   sim_base_dir <- "/tmp/hasdaney213"
@@ -923,6 +926,7 @@ app_server <- function(input, output, session) {
     
     # Show input page
     shinyjs::show("input_page")
+    shinyjs::show("left_menu")
     current_tab("input_page")
     
     cat("[PHASE7] Navigated to input page for new simulation\n")

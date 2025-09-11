@@ -22,7 +22,7 @@ app_ui <- function(request) {
 
         /* Left menu layout */
         .dd-layout { display: flex; min-height: 100vh; padding-left: 12px; }
-        #left_menu { width: 210px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) / 4); z-index: 2; }
+        #left_menu { width: 210px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.18); z-index: 2; }
         #left_menu .menu-inner {
           position: sticky;
           top: var(--app-top-offset);
@@ -222,10 +222,11 @@ app_ui <- function(request) {
       class = "dd-app",
       div(
         class = "dd-layout",
-        # Left menu (always visible; shows empty state until first simulation)
-        div(
-          id = "left_menu",
-          div(class = "menu-inner",
+        # Left menu (initially hidden; shown from server after leaving landing page)
+        shinyjs::hidden(
+          div(
+            id = "left_menu",
+            div(class = "menu-inner",
               uiOutput("sim_header"),
               uiOutput("new_sim_inline"),
               uiOutput("sim_switcher_ui"),
@@ -244,6 +245,7 @@ app_ui <- function(request) {
                 tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Migration"))),
                 tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Forecast")))
               )
+            )
           )
         ),
         

@@ -1456,6 +1456,7 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
   observeEvent(input$start_analysis, {
     hide("landing_page")
     show("input_page")
+    show("left_menu")
     current_tab("input_page")
   })
 
@@ -1463,6 +1464,7 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
   observeEvent(input$back_to_landing, {
     hide("input_page")
     show("landing_page")
+    hide("left_menu")
     current_tab("landing_page")
   })
 
