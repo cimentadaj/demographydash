@@ -122,6 +122,8 @@ app_server <- function(input, output, session) {
   
   # Track the current visible page
   current_tab <- reactiveVal()
+  # Track whether user completed the Input step by clicking Next
+  input_next_clicked <- reactiveVal(FALSE)
   
   # Store a desired page when navigating from contexts where current_tab may
   # not yet be initialized
@@ -624,6 +626,8 @@ app_server <- function(input, output, session) {
       desired_page <- tryCatch({ loaded_data$metadata$current_page }, error = function(e) NULL)
       if (is.null(desired_page) || !nzchar(desired_page)) desired_page <- "input_page"
       go_to_page(desired_page)
+      # Mark input step completion based on restored page
+      input_next_clicked(!identical(desired_page, "input_page"))
       # If last page is forecast, ensure UI is set up and results are loaded from disk
       if (identical(desired_page, "forecast_page")) {
         begin_forecast(
@@ -1051,6 +1055,7 @@ app_server <- function(input, output, session) {
     
     # Reset all reactive values for fresh start
     reset_simulation_state()
+    input_next_clicked(FALSE)
     
     # Set flag to prevent restoration logic when simulation switcher is updated
     creating_new_sim(TRUE)
@@ -1103,6 +1108,7 @@ app_server <- function(input, output, session) {
     save_sim_metadata(trigger = "forward_pop_page")
     # Also snapshot population at this transition (in case user didn't customize)
     save_population_files(trigger = "forward_pop_page")
+    input_next_clicked(TRUE)
   }, ignoreInit = TRUE)
 
   observeEvent(input$forward_tfr_page, {
@@ -1127,6 +1133,11 @@ app_server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 
   # Persist current page to metadata on navigation button clicks (inside server)
+  observeEvent(input$nav_input, { save_current_page("input_page") })
+  observeEvent(input$nav_pop, { save_current_page("pop_page") })
+  observeEvent(input$nav_tfr, { save_current_page("tfr_page") })
+  observeEvent(input$nav_e0, { save_current_page("e0_page") })
+  observeEvent(input$nav_mig, { save_current_page("mig_page") })
   observeEvent(input$start_analysis, { save_current_page("input_page") })
   observeEvent(input$back_to_landing, { save_current_page("landing_page") })
   observeEvent(input$back_to_input_page, { save_current_page("input_page") })
@@ -1449,6 +1460,7 @@ app_server <- function(input, output, session) {
     wpp_starting_year = wpp_starting_year,
     wpp_ending_year = wpp_ending_year,
     current_tab = current_tab,
+    input_next_completed = input_next_clicked,
     input = input,
     output = output,
     i18n = i18n

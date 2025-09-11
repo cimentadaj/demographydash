@@ -1449,7 +1449,7 @@ handle_customize_data <- function(
 #' @importFrom utils write.csv
 #' @export
 #'
-handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, reactive_e0, reactive_mig, pop_data_source, wpp_starting_year, wpp_ending_year, current_tab, input, output, i18n = NULL) {
+handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, reactive_e0, reactive_mig, pop_data_source, wpp_starting_year, wpp_ending_year, current_tab, input_next_completed, input, output, i18n = NULL) {
 
   processing <- reactiveVal(TRUE)
   show_tfr_modal <- reactiveVal(TRUE)
@@ -1473,6 +1473,68 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     hide("pop_page")
     show("input_page")
     current_tab("input_page")
+  })
+
+  # Sidebar navigation
+  observeEvent(input$nav_input, {
+    hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    show("input_page")
+    current_tab("input_page")
+  })
+
+  observeEvent(input$nav_pop, {
+    if (!isTRUE(input_next_completed())) {
+      showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
+      return()
+    }
+    hide("input_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    show("pop_page")
+    current_tab("pop_page")
+    output$show_pop_results_ui <- renderUI({
+      create_pop_pyramid_plot(
+        reactive_pop(),
+        country = input$wpp_country,
+        input_year = wpp_starting_year(),
+        i18n = i18n
+      )
+
+      res <- show_pop_results_ui(data_source = pop_data_source(), i18n = i18n)
+      processing(FALSE)
+      res
+    })
+  })
+
+  observeEvent(input$nav_tfr, {
+    if (!isTRUE(input_next_completed())) {
+      showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
+      return()
+    }
+    hide("input_page"); hide("pop_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    show("tfr_page")
+    current_tab("tfr_page")
+    show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
+  })
+
+  observeEvent(input$nav_e0, {
+    if (!isTRUE(input_next_completed())) {
+      showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
+      return()
+    }
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page")
+    show("e0_page")
+    current_tab("e0_page")
+    show_e0(reactive_e0, wpp_ending_year, input, output, i18n)
+  })
+
+  observeEvent(input$nav_mig, {
+    if (!isTRUE(input_next_completed())) {
+      showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
+      return()
+    }
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("forecast_page")
+    show("mig_page")
+    current_tab("mig_page")
+    show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
   })
 
   observeEvent(input$back_to_pop_page, {

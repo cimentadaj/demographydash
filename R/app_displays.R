@@ -1142,7 +1142,7 @@ prepare_pop_agegroups_table <- function(wpp_dt, i18n) {
   summary_table$population_formatted <- ifelse(
     summary_table$population >= 1000,
     paste0(round(summary_table$population / 1000, 1), "M"),
-    paste0(summary_table$population, "K")
+    paste0(round(summary_table$population, 1), "K")
   )
 
   # Calculate percentage

@@ -52,6 +52,10 @@ app_ui <- function(request) {
         #left_menu .ui.list .item { display: flex; align-items: center; gap: 6px; }
         #left_menu .ui.list { margin-left: 0; }
         #left_menu .ui.list .item .icon { margin: 0 6px 0 0; }
+        /* Make nav list items look clickable */
+        #left_menu .ui.list .item.nav-link { cursor: pointer; }
+        #left_menu .ui.list .item.nav-link span { color: #1e70bf; text-decoration: underline; }
+        #left_menu .ui.list .item.nav-link:hover span { color: #1678c2; }
 
         /* Space below simulations header */
         #left_menu .sim-header { margin-bottom: 8px; }
@@ -238,12 +242,36 @@ app_ui <- function(request) {
               tags$div(class = "ui divider"),
               tags$div(class = "ui small header", i18n$translate("Navigation")),
               tags$div(class = "ui list",
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Input"))),
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Population"))),
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("TFR"))),
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Life Expectancy"))),
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Migration"))),
-                tags$div(class = "item nav-link", tags$i(class = "angle right icon"), tags$span(i18n$t("Forecast")))
+                tags$div(
+                  class = "item nav-link",
+                  onclick = "Shiny.setInputValue('nav_input', Math.random(), {priority: 'event'})",
+                  tags$i(class = "angle right icon"),
+                  tags$span(i18n$t("Input"))
+                ),
+                tags$div(
+                  class = "item nav-link",
+                  onclick = "Shiny.setInputValue('nav_pop', Math.random(), {priority: 'event'})",
+                  tags$i(class = "angle right icon"),
+                  tags$span(i18n$t("Population"))
+                ),
+                tags$div(
+                  class = "item nav-link",
+                  onclick = "Shiny.setInputValue('nav_tfr', Math.random(), {priority: 'event'})",
+                  tags$i(class = "angle right icon"),
+                  tags$span(i18n$t("TFR"))
+                ),
+                tags$div(
+                  class = "item nav-link",
+                  onclick = "Shiny.setInputValue('nav_e0', Math.random(), {priority: 'event'})",
+                  tags$i(class = "angle right icon"),
+                  tags$span(i18n$t("Life Expectancy"))
+                ),
+                tags$div(
+                  class = "item nav-link",
+                  onclick = "Shiny.setInputValue('nav_mig', Math.random(), {priority: 'event'})",
+                  tags$i(class = "angle right icon"),
+                  tags$span(i18n$t("Migration"))
+                )
               )
             )
           )
