@@ -137,6 +137,63 @@ app_server <- function(input, output, session) {
   # --- Phase 3: helpers to save metadata ---
   `%||%` <- function(x, y) if (is.null(x) || length(x) == 0) y else x
 
+  # Process population data through transformation pipeline (reusing Apply button logic)
+  process_population_data <- function(raw_data, params, country, ref_year) {
+    if (is.null(raw_data) || is.null(params)) return(raw_data)
+    
+    data_source <- params$data_source %||% "UN Data"
+    
+    if (data_source == "UN Data") {
+      # UN Data mode - same logic as Apply button
+      un_age_type <- params$age_type %||% "Single Ages"
+      
+      if (un_age_type == "Single Ages") {
+        # Already single ages - use as-is
+        final_data <- raw_data
+      } else {
+        # 5-year groups - transform to single ages for downstream use
+        final_data <- tryCatch({
+          transform_5yr_to_single(
+            raw_data,
+            country = country,
+            ref_year = ref_year
+          )
+        }, error = function(e) {
+          cat("[PROCESS_DATA] Error in transform_5yr_to_single:", e$message, "\n")
+          # Fallback: return raw data
+          raw_data
+        })
+      }
+    } else {
+      # Custom Data mode - same logic as Apply button
+      current_age_type <- params$age_type %||% "Single Ages"
+      current_oag <- params$open_age %||% 100
+      selected_method <- params$interp_method %||% "beers(ord)"
+      
+      # Transform to canonical format (single ages, OAG 100) for downstream processing
+      if (current_age_type != "Single Ages" || current_oag != 100) {
+        final_data <- tryCatch({
+          transform_to_canonical(
+            raw_data,
+            from_type = current_age_type,
+            from_oag = current_oag,
+            method = selected_method,
+            country = country,
+            ref_year = ref_year
+          )
+        }, error = function(e) {
+          cat("[PROCESS_DATA] Error in transform_to_canonical:", e$message, "\n")
+          # Fallback: return raw data
+          raw_data
+        })
+      } else {
+        final_data <- raw_data
+      }
+    }
+    
+    return(final_data)
+  }
+
   ensure_sim_dirs <- function(base_dir, sim_name) {
     sim_dir <- file.path(base_dir, sim_name)
     inputs_dir <- file.path(sim_dir, "inputs")
@@ -488,23 +545,51 @@ app_server <- function(input, output, session) {
   })
 
   # Update URL when simulation changes (preserve other params)
+  # Add flag to track when we're creating a new simulation to avoid restore logic
+  creating_new_sim <- reactiveVal(FALSE)
+
   observeEvent(input$sim_switcher, ignoreInit = TRUE, {
-    # Keep current selection in memory
-    simulations$current <- input$sim_switcher
-    cat("[PHASE2] Simulations dropdown updated:", length(names(simulations$data)), "\\n")
+    # Skip restoration if we're creating a new simulation
+    if (isTRUE(creating_new_sim())) {
+      cat("[PHASE8] Skipping restoration - creating new simulation\n")
+      creating_new_sim(FALSE)  # Reset flag
+      simulations$current <- input$sim_switcher
+      return()
+    }
+    
+    # Phase 8: Complete simulation switching with data restoration
+    selected_sim <- input$sim_switcher
+    cat("[PHASE8] Loading simulation:", selected_sim, "\n")
+    
+    # Update current selection in memory
+    simulations$current <- selected_sim
+    
+    # Load simulation data from disk
+    loaded_data <- load_simulation_data(selected_sim)
+    
+    if (!is.null(loaded_data)) {
+      cat("[PHASE8] Data restored from simulation directory\n")
+      
+      # Restore all reactive values and inputs
+      restore_simulation_state(loaded_data)
+    } else {
+      cat("[PHASE8] No saved data found for simulation:", selected_sim, "\n")
+    }
+    
+    # Update URL (keeping existing logic)
     qry <- isolate(session$clientData$url_search)
     params <- list()
     if (!is.null(qry) && nzchar(qry)) {
       params <- shiny::parseQueryString(sub("^\\?", "", qry))
     }
-    params$sim <- input$sim_switcher
+    params$sim <- selected_sim
     if (length(params)) {
       kv <- vapply(names(params), function(k){
         paste(utils::URLencode(k, reserved = TRUE), utils::URLencode(as.character(params[[k]]), reserved = TRUE), sep = "=")
       }, character(1))
       new_qs <- paste0("?", paste(kv, collapse = "&"))
     } else {
-      new_qs <- paste0("?sim=", utils::URLencode(input$sim_switcher, reserved = TRUE))
+      new_qs <- paste0("?sim=", utils::URLencode(selected_sim, reserved = TRUE))
     }
     shiny::updateQueryString(new_qs, mode = "push", session = session)
   })
@@ -535,19 +620,232 @@ app_server <- function(input, output, session) {
 
   observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
 
+  # Central widget management functions
+  reset_modal_widgets <- function(session) {
+    cat("[WIDGET_RESET] Resetting all modal widgets to defaults\n")
+    updateSelectInput(session, "modal_population_un_age_type", selected = "Single Ages")
+    updateSelectInput(session, "modal_population_age_type", selected = "Single Ages")
+    updateNumericInput(session, "modal_population_oag", value = 100)
+    updateSelectInput(session, "modal_population_interp_method", selected = "beers(ord)")
+    # Note: modal_population_source is handled by the modal tab system, not directly
+  }
+  
+  restore_modal_widgets <- function(session, pop_params) {
+    if (is.null(pop_params)) return()
+    
+    cat("[WIDGET_RESTORE] Restoring modal widgets from saved parameters\n")
+    
+    # Restore age type for both UN and Custom data tabs
+    if (!is.null(pop_params$age_type)) {
+      updateSelectInput(session, "modal_population_un_age_type", selected = pop_params$age_type)
+      updateSelectInput(session, "modal_population_age_type", selected = pop_params$age_type)
+      cat("[WIDGET_RESTORE] Age type set to:", pop_params$age_type, "\n")
+    }
+    
+    # Restore OAG if it exists and is valid
+    if (!is.null(pop_params$open_age) && length(pop_params$open_age) > 0 && 
+        !is.list(pop_params$open_age)) {  # Skip empty list {}
+      updateNumericInput(session, "modal_population_oag", value = pop_params$open_age)
+      cat("[WIDGET_RESTORE] OAG set to:", pop_params$open_age, "\n")
+    }
+    
+    # Restore interpolation method if it exists
+    if (!is.null(pop_params$interp_method) && length(pop_params$interp_method) > 0 &&
+        !is.list(pop_params$interp_method)) {  # Skip empty list {}
+      updateSelectInput(session, "modal_population_interp_method", selected = pop_params$interp_method)
+      cat("[WIDGET_RESTORE] Interp method set to:", pop_params$interp_method, "\n")
+    }
+  }
+
+  # Load simulation data from disk
+  load_simulation_data <- function(sim_name) {
+    if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
+    
+    sim_dir <- file.path(sim_base_dir, sim_name)
+    inputs_dir <- file.path(sim_dir, "inputs")
+    
+    if (!dir.exists(sim_dir) || !dir.exists(inputs_dir)) {
+      cat("[PHASE8] No data directory found for simulation:", sim_name, "\n")
+      return(NULL)
+    }
+    
+    result <- list(
+      metadata = NULL,
+      pop_data = NULL,
+      pop_params = NULL
+    )
+    
+    # Load metadata
+    meta_path <- file.path(sim_dir, "metadata.json")
+    if (file.exists(meta_path)) {
+      result$metadata <- tryCatch({
+        jsonlite::read_json(meta_path, simplifyVector = TRUE)
+      }, error = function(e) NULL)
+    }
+    
+    # Load population data and parameters
+    pop_path <- file.path(inputs_dir, "pop.csv")
+    pop_params_path <- file.path(inputs_dir, "pop_params.json")
+    
+    if (file.exists(pop_path)) {
+      result$pop_data <- tryCatch({
+        data.table::fread(pop_path)
+      }, error = function(e) NULL)
+    }
+    
+    if (file.exists(pop_params_path)) {
+      result$pop_params <- tryCatch({
+        jsonlite::read_json(pop_params_path, simplifyVector = TRUE)
+      }, error = function(e) NULL)
+    }
+    
+    cat("[PHASE8] Loaded data - Meta:", !is.null(result$metadata), "Pop:", !is.null(result$pop_data), "PopParams:", !is.null(result$pop_params), "\n")
+    
+    return(result)
+  }
+
+  # Restore simulation state from loaded data
+  restore_simulation_state <- function(loaded_data) {
+    if (is.null(loaded_data)) return()
+    
+    cat("[PHASE8] Starting state restoration...\n")
+    
+    # Restore metadata (input fields)
+    if (!is.null(loaded_data$metadata)) {
+      if (!is.null(loaded_data$metadata$country)) {
+        updateSelectInput(session, "wpp_country", selected = loaded_data$metadata$country)
+      }
+      if (!is.null(loaded_data$metadata$start_year)) {
+        updateNumericInput(session, "wpp_starting_year", value = loaded_data$metadata$start_year)
+      }
+      if (!is.null(loaded_data$metadata$end_year)) {
+        updateNumericInput(session, "wpp_ending_year", value = loaded_data$metadata$end_year)
+      }
+      cat("[PHASE8] Input fields updated successfully\n")
+    }
+    
+    # Restore population data through the transformation pipeline
+    if (!is.null(loaded_data$pop_data) && !is.null(loaded_data$pop_params)) {
+      cat("[PHASE8] Restoring population data with params:", jsonlite::toJSON(loaded_data$pop_params, auto_unbox = TRUE), "\n")
+      cat("[PHASE8] Raw pop data dimensions:", nrow(loaded_data$pop_data), "x", ncol(loaded_data$pop_data), "\n")
+      
+      # 1. Store raw data for modal (exactly as saved - 5-year or single ages)
+      modal_raw_pop_data(loaded_data$pop_data)
+      modal_pop_params(loaded_data$pop_params)
+      
+      # 2. Restore modal widget values to match saved state
+      restore_modal_widgets(session, loaded_data$pop_params)
+      
+      # 3. Transform data for plotting (always to single ages for pyramid)
+      country <- loaded_data$metadata$country %||% "Afghanistan"
+      ref_year <- loaded_data$metadata$start_year %||% 2024
+      
+      transformed_data <- process_population_data(
+        loaded_data$pop_data,      # Raw data (could be 5-year or single)
+        loaded_data$pop_params,     # Contains age_type info
+        country,
+        ref_year
+      )
+      
+      cat("[PHASE8] Transformed pop data dimensions:", if(!is.null(transformed_data)) paste(nrow(transformed_data), "x", ncol(transformed_data)) else "NULL", "\n")
+      
+      # 4. Store transformed data for pyramid plot
+      committed_pop_rv(transformed_data)
+      
+      # 5. Restore data source flag
+      pop_data_source(loaded_data$pop_params$data_source %||% "UN Data")
+      
+      # 6. If Custom Data, repopulate the custom_data_configs
+      if (loaded_data$pop_params$data_source == "Custom Data") {
+        # Create config key from saved params
+        age_type <- loaded_data$pop_params$age_type %||% "Single Ages"
+        oag <- loaded_data$pop_params$open_age %||% 100
+        interp_method <- loaded_data$pop_params$interp_method %||% "beers(ord)"
+        
+        config_key <- paste0(age_type, "_", oag)
+        
+        # Store the raw data in custom_data_configs
+        all_configs <- list()
+        all_configs[[config_key]] <- list(
+          data = loaded_data$pop_data,
+          interp_method = interp_method
+        )
+        custom_data_configs(all_configs)
+        
+        # Set flag to prevent auto-saving after restoration
+        # This will be cleared when user actually interacts with the modal
+        just_restored_data(TRUE)
+        
+        cat("[CONFIG_TRACE] RESTORATION: Restored config", config_key, "with", nrow(loaded_data$pop_data), "rows\n")
+        cat("[PHASE8] Restored custom data configs for key:", config_key, "\n")
+        cat("[CUSTOM_RESTORE_DEBUG] Loaded raw data preview:\n")
+        print(head(loaded_data$pop_data, 5))
+      }
+      
+      cat("[PHASE8] Population data restored and processed through pipeline\n")
+    }
+    
+    cat("[PHASE8] State restoration complete\n")
+  }
+
+  # Reset trigger for modal configurations
+  modal_reset_trigger <- reactiveVal(0)
+  
+  # Custom Data configurations - moved to main scope for proper clearing
+  custom_data_configs <- reactiveVal(list())
+  
+  # Track last active modal tab - moved to main scope for proper resetting
+  last_active_modal_tab <- reactiveVal("UN Data")
+  
+  # Flag to prevent saving custom configs during simulation reset
+  resetting_simulation <- reactiveVal(FALSE)
+  
+  # Flag to prevent auto-saving after restoration
+  just_restored_data <- reactiveVal(FALSE)
+  
+  # Flag to differentiate automatic vs user-initiated tab switches
+  opening_modal <- reactiveVal(FALSE)
+
   # Phase 7: Reset simulation state function
   reset_simulation_state <- function() {
+    # Set flag to prevent auto-saving during reset
+    resetting_simulation(TRUE)
+    
+    # Log state before reset
+    cat("[RESET_DEBUG] BEFORE RESET - Data source:", pop_data_source(), ", Last active tab:", last_active_modal_tab(), "\n")
+    cat("[RESET_DEBUG] BEFORE RESET - Custom configs count:", length(custom_data_configs()), ", keys:", paste(names(custom_data_configs()), collapse=", "), "\n")
+    
     # Clear all committed reactive values
     committed_pop_rv(NULL)
     committed_tfr_rv(NULL)
     committed_e0_rv(NULL)
     committed_mig_rv(NULL)
     
+    # Clear modal raw data
+    modal_raw_pop_data(NULL)
+    modal_pop_params(NULL)
+    
+    # Reset modal widgets to defaults
+    reset_modal_widgets(session)
+    
+    # Reset modal tab to default
+    last_active_modal_tab("UN Data")
+    
+    # Log state after reset
+    cat("[RESET_DEBUG] AFTER RESET - Data source:", pop_data_source(), ", Last active tab:", last_active_modal_tab(), "\n")
+    cat("[RESET_DEBUG] AFTER RESET - Custom configs count:", length(custom_data_configs()), ", keys:", paste(names(custom_data_configs()), collapse=", "), "\n")
+    
+    # Trigger modal configuration reset
+    modal_reset_trigger(modal_reset_trigger() + 1)
+    
     # Reset data source flags
     pop_data_source("UN Data")
     data_source$tfr <- "downloaded"
     data_source$e0 <- "downloaded"
     data_source$mig <- "downloaded"
+    
+    # Clear the resetting flag after reset is complete
+    resetting_simulation(FALSE)
     
     # Log the reset
     cat("[PHASE7] Reactive values cleared for new simulation\n")
@@ -577,6 +875,9 @@ app_server <- function(input, output, session) {
     
     # Reset all reactive values for fresh start
     reset_simulation_state()
+    
+    # Set flag to prevent restoration logic when simulation switcher is updated
+    creating_new_sim(TRUE)
     
     # Hide the inline form
     new_sim_form_visible(FALSE)
@@ -798,6 +1099,10 @@ app_server <- function(input, output, session) {
   committed_e0_rv  <- reactiveVal(NULL)
   committed_mig_rv <- reactiveVal(NULL)
   
+  # Store raw data for modal display (exactly as saved)
+  modal_raw_pop_data <- reactiveVal(NULL)
+  modal_pop_params <- reactiveVal(NULL)
+  
   # Track data source for population (UN Data or Custom Data)
   pop_data_source <- reactiveVal("UN Data")
 
@@ -953,7 +1258,16 @@ app_server <- function(input, output, session) {
     save_population_files = save_population_files,
     save_tfr_files = save_tfr_files,
     save_e0_files = save_e0_files,
-    save_mig_files = save_mig_files
+    save_mig_files = save_mig_files,
+    modal_raw_pop_data = modal_raw_pop_data,
+    modal_pop_params = modal_pop_params,
+    process_population_data = process_population_data,
+    modal_reset_trigger = modal_reset_trigger,
+    custom_data_configs = custom_data_configs,
+    last_active_modal_tab = last_active_modal_tab,
+    resetting_simulation = resetting_simulation,
+    just_restored_data = just_restored_data,
+    opening_modal = opening_modal
   )
 
 

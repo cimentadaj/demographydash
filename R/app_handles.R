@@ -558,14 +558,48 @@ handle_customize_data <- function(
     save_population_files = NULL,
     save_tfr_files = NULL,
     save_e0_files = NULL,
-    save_mig_files = NULL
+    save_mig_files = NULL,
+    modal_raw_pop_data = NULL,
+    modal_pop_params = NULL,
+    process_population_data = NULL,
+    modal_reset_trigger = NULL,
+    custom_data_configs = NULL,
+    last_active_modal_tab = NULL,
+    resetting_simulation = NULL,
+    just_restored_data = NULL,
+    opening_modal = NULL
 ) {
   output$location_selector <- renderUI(location_selector_ui(input, i18n))
 
   observeEvent(input$customize_pop, {
     show_modal("modal_population")
     current_tab("modal_pop")
-    previous_modal_tab(last_active_modal_tab())  # Set to last active tab instead of always UN Data
+    
+    # Set tab based on current simulation's data source
+    current_data_source <- pop_data_source() %||% "UN Data"
+    cat("[MODAL_OPEN_DEBUG] Data source:", current_data_source, ", Setting modal tab to:", current_data_source, "\n")
+    
+    # Use JavaScript to actually switch the tab after modal opens
+    if (current_data_source == "Custom Data") {
+      opening_modal(TRUE)  # Set flag before automatic tab switch
+      shinyjs::runjs("setTimeout(function() { $('#modal_population_source_custom').click(); }, 100);")
+      shinyjs::runjs("setTimeout(function() { Shiny.setInputValue('opening_modal_complete', Math.random()); }, 200);")
+      cat("[MODAL_OPEN_DEBUG] Opening Custom Data tab - preserving existing configs\n")
+    } else {
+      opening_modal(TRUE)  # Set flag before automatic tab switch
+      shinyjs::runjs("setTimeout(function() { $('#modal_population_source_un').click(); }, 100);")
+      shinyjs::runjs("setTimeout(function() { Shiny.setInputValue('opening_modal_complete', Math.random()); }, 200);")
+      # Clear custom configs aggressively for UN Data simulations
+      custom_data_configs(list())
+      # Reset Custom Data widgets to defaults
+      updateSelectInput(session, "modal_population_age_type", selected = "Single Ages")
+      updateNumericInput(session, "modal_population_oag", value = 100)
+      updateSelectInput(session, "modal_population_interp_method", selected = "beers(ord)")
+      cat("[CONFIG_TRACE] MODAL_OPEN: Cleared all configs for UN Data simulation\n")
+      cat("[MODAL_OPEN_DEBUG] Aggressively cleared custom configs and reset widgets for UN Data simulation\n")
+    }
+    
+    previous_modal_tab(current_data_source)
     
     # Fetch both UN data types upfront if not already cached
     ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
@@ -603,18 +637,26 @@ handle_customize_data <- function(
   
   # Custom Data tab state - stores independent configurations
   # Each configuration is stored by its key: "age_type_oag" (e.g., "Single Ages_100", "5-Year Groups_85")
-  custom_data_configs <- reactiveVal(list(
-    # Structure: list(
-    #   "Single Ages_100" = list(data = data.frame(...), interp_method = "beers(ord)"),
-    #   "5-Year Groups_85" = list(data = data.frame(...), interp_method = "un")
-    # )
-  ))
+  # Note: custom_data_configs is now passed as parameter from main server scope
   
   # UI state
   accordion_state <- reactiveVal(list(data_config = FALSE))  # Track accordion state
   previous_modal_tab <- reactiveVal(NULL)  # Track previous tab for auto-saving
-  last_active_modal_tab <- reactiveVal("UN Data")  # Track which tab was last active when modal closed
+  # Note: last_active_modal_tab is now passed as parameter from main server scope
   un_data_reset_trigger <- reactiveVal(0)  # Trigger to force table re-render on reset
+  
+  # Clear custom data configurations when switching simulations
+  observeEvent(modal_reset_trigger(), {
+    if (!is.null(modal_reset_trigger())) {
+      current_configs <- custom_data_configs()
+      cat("[MODAL_RESET] Before clearing - configs count:", length(current_configs), "keys:", paste(names(current_configs), collapse=", "), "\n")
+      custom_data_configs(list())  # Clear all custom configurations
+      un_data_single_cache(NULL)   # Clear UN data caches
+      un_data_5yr_cache(NULL)
+      cat("[MODAL_RESET] After clearing - configs count:", length(custom_data_configs()), "\n")
+    }
+  }, ignoreInit = TRUE)
+  
   
   # State tracking for Custom Data tab (simplified)
   
@@ -749,6 +791,15 @@ handle_customize_data <- function(
   
   # Re-initialize popups and restore config when switching between data sources
   observeEvent(input$modal_population_source, {
+    # Skip if this is an automatic tab switch during modal opening
+    if (opening_modal()) {
+      cat("[TAB_SWITCH_DEBUG] Skipping automatic tab switch during modal opening\n")
+      return()
+    }
+    
+    # Clear the restoration flag when user manually changes tabs
+    just_restored_data(FALSE)
+    
     # First, save current table data from the tab we're leaving
     if (!is.null(previous_modal_tab()) && !is.null(input$tmp_pop_dt)) {
       tryCatch({
@@ -784,13 +835,18 @@ handle_customize_data <- function(
           # Create configuration key and save directly (no transformation)
           config_key <- get_config_key(current_age_type, current_oag)
           
-          # Update configurations with current data
-          all_configs <- custom_data_configs()
-          all_configs[[config_key]] <- list(
-            data = current_data[, c("age", "popM", "popF")],
-            interp_method = current_method
-          )
-          custom_data_configs(all_configs)
+          # Update configurations with current data (skip during reset and just after restoration)
+          if (!isTRUE(resetting_simulation()) && !isTRUE(just_restored_data())) {
+            all_configs <- custom_data_configs()
+            all_configs[[config_key]] <- list(
+              data = current_data[, c("age", "popM", "popF")],
+              interp_method = current_method
+            )
+            custom_data_configs(all_configs)
+            cat("[CONFIG_TRACE] TAB_SWITCH: Saved config", config_key, "with", nrow(current_data), "rows\n")
+          } else {
+            cat("[CONFIG_TRACE] TAB_SWITCH: Skipped saving (resetting:", isTRUE(resetting_simulation()), ", just_restored:", isTRUE(just_restored_data()), ")\n")
+          }
         }
       }, error = function(e) {
         # Silently handle any errors during auto-save
@@ -855,28 +911,54 @@ handle_customize_data <- function(
       
       # Get all configurations
       all_configs <- custom_data_configs()
+      cat("[CONFIG_TRACE] LOOKUP: Checking configs for", config_key, "- Available:", paste(names(all_configs), collapse=", "), "\n")
+      cat("[CUSTOM_DATA_LOOKUP] Looking for config_key:", config_key, ", Available configs:", paste(names(all_configs), collapse=", "), "\n")
       
       # Check if we have data for this configuration
       if (config_key %in% names(all_configs)) {
         # Use stored data for this configuration
         config_data <- all_configs[[config_key]]
         res <- config_data$data
+        cat("[CUSTOM_DATA_DEBUG] WIDGETS - Age:", age_type_input, ", OAG:", display_oag, ", Method:", interp_input, "\n")
+        cat("[CUSTOM_DATA_DEBUG] DATA - Using stored data, rows:", nrow(res), ", config_key:", config_key, "\n")
+        cat("[CUSTOM_TABLE_DEBUG] Actual data being shown in rhandsontable:\n")
+        print(head(res, 5))
       } else {
         # No data for this configuration - create empty template
         res <- generate_empty_template(age_type_input, display_oag)
+        cat("[CUSTOM_DATA_DEBUG] WIDGETS - Age:", age_type_input, ", OAG:", display_oag, ", Method:", interp_input, "\n")
+        cat("[CUSTOM_DATA_DEBUG] DATA - Creating empty template, rows:", nrow(res), ", config_key:", config_key, "\n")
       }
       
     } else {
-      # UN Data handling - use appropriate cache directly (NO transformation)
+      # UN Data handling - simplified approach using stored raw data
       un_display_type <- input$modal_population_un_age_type %||% "Single Ages"
       
-      # Use the appropriate cache based on display type
-      if (un_display_type == "Single Ages") {
-        res <- un_data_single_cache()
-      } else {
-        res <- un_data_5yr_cache()
-      }
+      # Check if we have restored data that matches current settings
+      raw_data <- tryCatch({ modal_raw_pop_data() }, error = function(e) NULL)
+      params <- tryCatch({ modal_pop_params() }, error = function(e) NULL)
       
+      if (!is.null(raw_data) && !is.null(params) && 
+          params$data_source == "UN Data" &&
+          params$age_type == un_display_type) {
+        # Use restored raw data (it matches what user expects to see)
+        res <- raw_data
+        cat("[MODAL_RENDER] Using restored UN data:", nrow(raw_data), "x", ncol(raw_data), "\n")
+      } else {
+        # Fetch fresh UN data with current age type
+        ref_year <- extract_reference_year(input$modal_population_ref_date, wpp_starting_year())
+        
+        if (un_display_type == "Single Ages") {
+          res <- get_wpp_pop(input$wpp_country, year = ref_year, n = 1)
+        } else {
+          res <- get_wpp_pop(input$wpp_country, year = ref_year, n = 5)
+        }
+        
+        # Ensure standard column order
+        res <- ensure_standard_columns(res)
+        
+        cat("[MODAL_RENDER] Fetched fresh UN data:", nrow(res), "x", ncol(res), "for", un_display_type, "\n")
+      }
     }
     
     # Check if we have valid result data
@@ -1032,7 +1114,16 @@ handle_customize_data <- function(
   })
 
   # ADD observeEvent blocks for the new "Ok" buttons
+  # Observer to clear opening_modal flag after modal opening is complete
+  observeEvent(input$opening_modal_complete, {
+    opening_modal(FALSE)
+    cat("[MODAL_OPEN_DEBUG] Modal opening complete - clearing opening_modal flag\n")
+  })
+
   observeEvent(input$modal_population_ok_btn, {
+    # Clear the restoration flag when user clicks Apply
+    just_restored_data(FALSE)
+    
     req(input$tmp_pop_dt)
     
     
@@ -1052,53 +1143,62 @@ handle_customize_data <- function(
       
       data_source <- input$modal_population_source %||% "UN Data"
       
+      # Create params object to match the reusable transformation function
+      params <- list(
+        data_source = data_source,
+        age_type = if (data_source == "UN Data") {
+          input$modal_population_un_age_type %||% "Single Ages"
+        } else {
+          input$modal_population_age_type %||% "Single Ages"
+        },
+        open_age = if (data_source == "Custom Data") {
+          input$modal_population_oag %||% 100
+        } else {
+          NULL
+        },
+        interp_method = if (data_source == "Custom Data") {
+          input$modal_population_interp_method %||% "beers(ord)"
+        } else {
+          NULL
+        }
+      )
+      
       if (data_source == "UN Data") {
-        # UN Data mode - use current view's data and save to both caches
-        un_age_type <- input$modal_population_un_age_type %||% "Single Ages"
+        # UN Data mode - save to appropriate cache, then transform for downstream use
+        un_age_type <- params$age_type
         
         # Save the current data to the appropriate cache
         if (un_age_type == "Single Ages") {
-          # Save to single age cache
           un_data_single_cache(data)
-          final_data <- data
         } else {
-          # Save to 5-year cache, then transform for downstream use
           un_data_5yr_cache(data)
-          final_data <- transform_5yr_to_single(
-            data,
-            country = input$wpp_country,
-            ref_year = ref_year
-          )
         }
       } else {
-        # Custom Data mode - save current config and transform for downstream
-        current_age_type <- input$modal_population_age_type %||% "Single Ages"
-        current_oag <- input$modal_population_oag %||% 100
-        selected_method <- input$modal_population_interp_method %||% "beers(ord)"
+        # Custom Data mode - save current config
+        current_age_type <- params$age_type
+        current_oag <- params$open_age
+        selected_method <- params$interp_method
         
-        # Save current data to the specific configuration
-        config_key <- get_config_key(current_age_type, current_oag)
-        all_configs <- custom_data_configs()
-        all_configs[[config_key]] <- list(
-          data = data,
-          interp_method = selected_method
-        )
-        custom_data_configs(all_configs)
-        
-        # Transform to canonical format (single ages, OAG 100) for downstream processing
-        if (current_age_type != "Single Ages" || current_oag != 100) {
-          final_data <- transform_to_canonical(
-            data,
-            from_type = current_age_type,
-            from_oag = current_oag,
-            method = selected_method,
-            country = input$wpp_country,
-            ref_year = ref_year
+        # Save current data to the specific configuration (skip during reset)
+        if (!isTRUE(resetting_simulation())) {
+          config_key <- get_config_key(current_age_type, current_oag)
+          all_configs <- custom_data_configs()
+          all_configs[[config_key]] <- list(
+            data = data,
+            interp_method = selected_method
           )
-        } else {
-          final_data <- data
+          custom_data_configs(all_configs)
+          cat("[CONFIG_TRACE] APPLY_BUTTON: Saved config", config_key, "with", nrow(data), "rows\n")
         }
       }
+      
+      # Use the reusable transformation function
+      final_data <- process_population_data(
+        data,
+        params,
+        country = input$wpp_country,
+        ref_year = ref_year
+      )
       
       # Update reactive value (this is the final data used by the app)
       pop_to_commit_rv(final_data)
