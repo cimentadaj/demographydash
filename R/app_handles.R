@@ -760,6 +760,36 @@ handle_customize_data <- function(
     # Update the previous value for next comparison
     previous_un_age_type(input$modal_population_un_age_type)
   })
+
+  # Keep table data when changing interpolation method in Custom tab only
+  observeEvent(input$modal_population_interp_method, {
+    current_source <- input$modal_population_source %||% "UN Data"
+    if (current_source != "Custom Data") return()
+    if (isTRUE(resetting_simulation()) || isTRUE(just_restored_data())) return()
+    if (is.null(input$tmp_pop_dt)) return()
+
+    # Save current grid to the current Custom config (same age type + OAG)
+    tryCatch({
+      current_data <- rhandsontable::hot_to_r(input$tmp_pop_dt)
+      current_data <- map_column_names(current_data, i18n)
+      # Ensure expected columns and order
+      current_data <- ensure_standard_columns(current_data)
+
+      age_type <- input$modal_population_age_type %||% "Single Ages"
+      oag_val  <- input$modal_population_oag %||% 100
+      config_key <- get_config_key(age_type, oag_val)
+
+      all_configs <- custom_data_configs()
+      all_configs[[config_key]] <- list(
+        data = current_data[, c("age", "popM", "popF")],
+        interp_method = input$modal_population_interp_method %||% "beers(ord)"
+      )
+      custom_data_configs(all_configs)
+      cat("[CONFIG_TRACE] INTERP_CHANGED: Preserved current grid under key", config_key, "rows:", nrow(current_data), "\n")
+    }, error = function(e){
+      # No-op on errors; do not disrupt user typing
+    })
+  })
   
   # Helper function to create configuration key
   get_config_key <- function(age_type, oag) {
