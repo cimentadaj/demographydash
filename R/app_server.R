@@ -142,6 +142,8 @@ app_server <- function(input, output, session) {
     }
     # Defer setting current_tab until it's initialized
     pending_page(page_id)
+    # Persist the page choice for this simulation
+    save_current_page(page_id)
   }
 
   # Sidebar should not be visible on landing page
@@ -622,6 +624,24 @@ app_server <- function(input, output, session) {
       desired_page <- tryCatch({ loaded_data$metadata$current_page }, error = function(e) NULL)
       if (is.null(desired_page) || !nzchar(desired_page)) desired_page <- "input_page"
       go_to_page(desired_page)
+      # If last page is forecast, ensure UI is set up and results are loaded from disk
+      if (identical(desired_page, "forecast_page")) {
+        begin_forecast(
+          reactive_pop = reactive_pop,
+          reactive_tfr = reactive_tfr,
+          reactive_e0 = reactive_e0,
+          reactive_mig = reactive_mig,
+          wpp_starting_year = wpp_starting_year,
+          wpp_ending_year = wpp_ending_year,
+          input = input,
+          output = output,
+          simulation_results = simulation_results,
+          i18n = i18n,
+          results_dir = file.path("/tmp/hasdaney213", simulations$current, "results"),
+          force = FALSE,
+          is_active = reactive({ current_tab() == "forecast_page" })
+        )
+      }
     } else {
       cat("[PHASE8] No saved data found for simulation:", selected_sim, "\n")
       go_to_page("input_page")
@@ -1119,6 +1139,7 @@ app_server <- function(input, output, session) {
   observeEvent(input$forward_e0_page, { save_current_page("e0_page") })
   observeEvent(input$forward_mig_page, { save_current_page("mig_page") })
   observeEvent(input$begin, { save_current_page("forecast_page") })
+  observeEvent(input$pass_source_btn, { save_current_page("forecast_page") })
 
   # Population data is now saved directly in the Apply button handler
   # to capture raw input data before transformations
@@ -1478,6 +1499,7 @@ app_server <- function(input, output, session) {
     current_tab("forecast_page") # Assuming current_tab is defined in server
 
     # Begin forecast. This can take a up to a minute of calculation
+    my_sim <- simulations$current
     begin_forecast(
       reactive_pop = reactive_pop,
       reactive_tfr = reactive_tfr,
@@ -1488,7 +1510,12 @@ app_server <- function(input, output, session) {
       input = input,
       output = output,
       simulation_results = simulation_results,
-      i18n = i18n
+      i18n = i18n,
+      results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+      force = TRUE,
+      is_active = reactive({ current_tab() == "forecast_page" }),
+      sim_name = my_sim,
+      is_current_sim = reactive({ simulations$current == my_sim })
     )
 
   })

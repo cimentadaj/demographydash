@@ -19,12 +19,54 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n, results_dir, force = FALSE, is_active = NULL, sim_name = NULL, is_current_sim = NULL) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
   # temporary directories.
   forecast_res <- reactive({
+    # Ensure per-simulation results directory exists
+    if (!dir.exists(results_dir)) {
+      dir.create(results_dir, recursive = TRUE, showWarnings = FALSE)
+    }
+
+    results_rds <- file.path(results_dir, "results.rds")
+
+    # If not active (e.g., not on forecast page), never compute; just load if exists
+    if (!is.null(is_active)) {
+      active_now <- tryCatch({ isTRUE(is_active()) }, error = function(e) FALSE)
+      if (!active_now) {
+        if (file.exists(results_rds)) {
+          cat("[PHASE9] Inactive context; loading saved results from:", results_rds, "\n")
+          return(readRDS(results_rds))
+        } else {
+          cat("[PHASE9] Inactive context; no saved results. Skipping forecast.\n")
+          return(NULL)
+        }
+      }
+    }
+
+    # If this instance does not belong to the currently selected simulation, never compute
+    if (!is.null(is_current_sim)) {
+      current_flag <- tryCatch({ isTRUE(is_current_sim()) }, error = function(e) FALSE)
+      if (!current_flag) {
+        if (file.exists(results_rds)) {
+          cat("[PHASE9] Not current sim; skipping compute. (sim=", sim_name, ")\n", sep = "")
+          return(readRDS(results_rds))
+        } else {
+          cat("[PHASE9] Not current sim and no results; skipping. (sim=", sim_name, ")\n", sep = "")
+          return(NULL)
+        }
+      }
+    }
+
+    # If saved results exist and not forcing a recompute, load them and return
+    if (!isTRUE(force) && file.exists(results_rds)) {
+      cat("[PHASE9] Loading saved forecast results from:", results_rds, "\n")
+      res <- tryCatch({ readRDS(results_rds) }, error = function(e) NULL)
+      if (!is.null(res)) return(res)
+      cat("[PHASE9] Saved results unreadable; re-running forecast\n")
+    }
 
     # Here we check the each of these in case the user did NOT upload the data
     # because if they didn't, we provide a NULL a value so that Hana downloads
@@ -36,11 +78,12 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     mig <- check_data("mig", reactive_mig)
 
     # Call the run_forecast function with the processed data
+    cat("[PHASE9] Running forecast into results_dir:", results_dir, "\n")
     res <- run_forecast(
       country = input$wpp_country,
       start_year = wpp_starting_year(),
       end_year = wpp_ending_year(),
-      output_dir = "/tmp/hasdaney213/",
+      output_dir = results_dir,
       pop = pop,
       tfr = tfr,
       e0 = e0,
@@ -63,6 +106,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
         x[x$year != 2101]
       }
     )
+    # Save results for reuse on sim switch
+    try({ saveRDS(res, results_rds) }, silent = TRUE)
+    cat("[PHASE9] Forecast results saved to:", results_rds, "\n")
     res
   })
 

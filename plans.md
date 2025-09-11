@@ -223,62 +223,34 @@ cat("[PHASE6] Migration data source:", src, "\n")
 
 ---
 
-## Phase 7: Implement Plus Button for New Simulation ⏳ PENDING
+## Phase 7: Implement Plus Button for New Simulation ✅ COMPLETED
 
 **Goal**: Allow users to start new simulations while keeping existing ones.
 
-### Planned Changes:
-1. **Plus button functionality to reset to input page**
-2. **Clear reactive values for new simulation**
-3. **Keep all simulations listed in sidebar**
-4. **Proper state management for multiple simulations**
+### Changes Made:
+1. Plus button creates/selects a new simulation and resets state
+2. Input page is reset to defaults (years, region toggle, country)
+3. Sidebar hidden on landing; visible elsewhere (no flash)
+4. Proper state management and directory scaffolding
 
-### Files to Modify:
-- Sidebar UI with plus button
-- New simulation creation logic
-- State reset functions
-
-### Logging to Add:
-```r
-cat("[PHASE7] Plus button clicked - starting new simulation\n")
-cat("[PHASE7] Reactive values cleared\n")
-cat("[PHASE7] Total simulations:", length(simulations$data), "\n")
-```
-
-### Expected Outcome:
-- Users can create multiple simulations
-- Each simulation maintains independent state
-- Sidebar shows all created simulations
+### Outcome:
+- Multiple simulations with clean starts on the input page; sidebar behavior refined
 
 ---
 
-## Phase 8: Implement Simulation Switching ⏳ PENDING
+## Phase 8: Implement Simulation Switching ✅ COMPLETED
 
 **Goal**: Allow switching between simulations and restore their complete state.
 
-### Planned Changes:
-1. **Click simulation name to load its data**
-2. **Restore all inputs and customizations**
-3. **Navigate to appropriate page based on progress**
-4. **Complete state restoration from disk**
+### Changes Made:
+1. Hard reset in-memory state before restore; load pop/TFR/e0/mig per sim
+2. UN vs Custom isolation in modal state; rHandsontable re-render on reset
+3. UN modal logs the head of the shown data for debugging
+4. Interpolation change preserves Custom grid values (no wipe)
+5. Save last page on nav; restore page on sim switch
 
-### Files to Modify:
-- Sidebar click handlers
-- Data restoration functions
-- Navigation logic based on simulation progress
-- All reactive expressions to use selected simulation
-
-### Logging to Add:
-```r
-cat("[PHASE8] Loading simulation:", selected_sim, "\n")
-cat("[PHASE8] Data restored from:", sim_dir, "\n")
-cat("[PHASE8] Navigation to page:", current_page, "\n")
-```
-
-### Expected Outcome:
-- Seamless switching between simulations
-- Complete state restoration
-- Proper navigation to last active page
+### Outcome:
+- Seamless switching, complete state restoration, and return to last page per sim
 
 ---
 
@@ -403,9 +375,9 @@ simulations$data[["sim_name"]] <- list(
 | Phase 4 | ✅ COMPLETED | 2 files | Population data saving with raw input preservation |
 | Phase 5 | ✅ COMPLETED | 2 files | TFR data saving |
 | Phase 6 | ✅ COMPLETED | 2 files | e0 and migration data saving |
-| Phase 7 | ⏳ PENDING | - | New simulation creation via plus button |
-| Phase 8 | ⏳ PENDING | - | Simulation switching and state restoration |
+| Phase 7 | ✅ COMPLETED | 3 files | New simulation creation, input reset, sidebar behavior |
+| Phase 8 | ✅ COMPLETED | 3 files | State restoration + last page restore |
 | Phase 9 | ⏳ PENDING | - | Results management |
 | Phase 10 | ⏳ PENDING | - | Polish and error handling |
 
-**Current Status**: Phases 1-6 completed. All input data saving implemented. Ready for Phase 7 upon approval.
+**Current Status**: Phases 1–8 completed. Inputs saved/restored per sim; UI isolation and last-page persistence implemented. Ready for Phase 9.

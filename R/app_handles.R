@@ -1586,16 +1586,19 @@ handle_navigation <- function(simulation_results, reactive_pop, reactive_tfr, re
     compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
 
     begin_forecast(
-      reactive_pop,
-      reactive_tfr,
-      reactive_e0,
-      reactive_mig,
-      wpp_starting_year,
-      wpp_ending_year,
-      input,
-      output,
-      simulation_results,
-      i18n
+      reactive_pop = reactive_pop,
+      reactive_tfr = reactive_tfr,
+      reactive_e0 = reactive_e0,
+      reactive_mig = reactive_mig,
+      wpp_starting_year = wpp_starting_year,
+      wpp_ending_year = wpp_ending_year,
+      input = input,
+      output = output,
+      simulation_results = simulation_results,
+      i18n = i18n,
+      results_dir = file.path("/tmp/hasdaney213", input$sim_switcher, "results"),
+      force = TRUE,
+      is_active = reactive({ current_tab() == "forecast_page" })
     )
   })
 
