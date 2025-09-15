@@ -19,7 +19,7 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n, results_dir, force = FALSE, is_active = NULL, sim_name = NULL, is_current_sim = NULL) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n, results_dir, force = FALSE, is_active = NULL, sim_name = NULL, is_current_sim = NULL, prefer_saved = FALSE, allow_compute = NULL) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
@@ -38,6 +38,28 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
     results_rds <- file.path(results_dir, "results.rds")
 
+    # Respect an explicit allow/deny compute gate if provided
+    if (!is.null(allow_compute)) {
+      ok <- tryCatch({ isTRUE(allow_compute()) }, error = function(e) FALSE)
+      if (!ok) {
+        if (file.exists(results_rds)) {
+          cat("[PHASE9] Loading saved forecast results from:", results_rds, "\n")
+          return(readRDS(results_rds))
+        } else {
+          return(NULL)
+        }
+      }
+    }
+
+    # Always prefer saved results when requested (e.g., during restore)
+    if (isTRUE(prefer_saved)) {
+      if (file.exists(results_rds)) {
+        cat("[PHASE9] Loading saved forecast results from:", results_rds, "\n")
+        return(readRDS(results_rds))
+      }
+      # Fall through to normal logic if no saved results
+    }
+
     # If not active (e.g., not on forecast page), never compute; just load if exists
     if (!is.null(is_active)) {
       active_now <- tryCatch({ isTRUE(is_active()) }, error = function(e) FALSE)
@@ -46,7 +68,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
           cat("[PHASE9] Inactive context; loading saved results from:", results_rds, "\n")
           return(readRDS(results_rds))
         } else {
-          cat("[PHASE9] Inactive context; no saved results. Skipping forecast.\n")
           return(NULL)
         }
       }
