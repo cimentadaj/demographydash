@@ -1872,6 +1872,11 @@ handle_navigation <- function(
     compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
     compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
 
+    my_sim <- simulations$current
+    cat("[PASS_SOURCE_BTN] User clicked WPP shortcut for sim:", my_sim, "\n")
+
+    # Use begin_forecast directly with compute mode
+    # Since this handler might not have access to setup_forecast_ui
     begin_forecast(
       reactive_pop = reactive_pop,
       reactive_tfr = reactive_tfr,
@@ -1883,11 +1888,13 @@ handle_navigation <- function(
       output = output,
       simulation_results = simulation_results,
       i18n = i18n,
-      results_dir = file.path("/tmp/hasdaney213", input$sim_switcher, "results"),
-      force = TRUE,
+      results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+      force = TRUE,  # Force compute
       is_active = reactive({ current_tab() == "forecast_page" }),
-      sim_name = input$sim_switcher,
-      is_current_sim = reactive({ input$sim_switcher == input$sim_switcher })
+      sim_name = my_sim,
+      is_current_sim = reactive({ simulations$current == my_sim }),
+      prefer_saved = FALSE,
+      allow_compute = reactive(TRUE)
     )
   })
 

@@ -141,10 +141,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
   # Generates the tabset UI where all plots are rendered
   output$show_forecast_results_ui <- renderUI({
-    simulation_results(forecast_res())
-    div(
-      show_forecast_results_ui(input, i18n)
-    )
+    res <- forecast_res()
+    shiny::req(res)
+    simulation_results(res)
+    div(show_forecast_results_ui(input, i18n))
   })
 
   output$forecast_help_ui <- renderUI({
