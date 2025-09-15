@@ -267,6 +267,7 @@ app_server <- function(input, output, session) {
   }
   sim_saved_signature <- reactiveVal(NULL)
   sim_progressed <- reactiveVal(FALSE)
+  results_invalidated <- reactiveVal(0)  # Trigger to force nav_forecast_ui refresh
 
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
@@ -622,6 +623,7 @@ app_server <- function(input, output, session) {
 
   # Conditionally render a 'Projection Results' nav link when results exist for current sim
   output$nav_forecast_ui <- shiny::renderUI({
+    results_invalidated()  # Create dependency on invalidation trigger
     sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
     if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
     results_rds <- file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")
@@ -1294,6 +1296,23 @@ app_server <- function(input, output, session) {
     }
   })
 
+  # Show "Projection Results" menu immediately when forecast results are generated
+  # Track previous state to only trigger when results go from NULL to available
+  prev_results_state <- reactiveVal(NULL)
+  observe({
+    res <- simulation_results()
+    prev_state <- prev_results_state()
+
+    # Only trigger when results go from NULL/empty to available (forecast completion)
+    if (is.null(prev_state) && !is.null(res)) {
+      # Trigger nav_forecast_ui refresh to show menu immediately when results are available
+      results_invalidated(results_invalidated() + 1)
+    }
+
+    # Update previous state
+    prev_results_state(if (is.null(res)) NULL else "available")
+  })
+
   # --- Phase 3: Save metadata on each Next action to keep it up to date ---
   observeEvent(input$forward_pop_page, {
     # Before proceeding, if core inputs changed vs last saved signature, clear sim contents
@@ -1321,6 +1340,9 @@ app_server <- function(input, output, session) {
           modal_raw_pop_data(NULL); modal_pop_params(NULL)
           pop_data_source("UN Data"); data_source$tfr <- "downloaded"; data_source$e0 <- "downloaded"; data_source$mig <- "downloaded"
           cat("[SIM_RESET] Cleared disk contents and in-memory commits for:", sim_name, "\n")
+
+          # Trigger nav_forecast_ui refresh to hide menu immediately
+          results_invalidated(results_invalidated() + 1)
         }
       }
     }, silent = TRUE)
