@@ -19,12 +19,21 @@
 #' @importFrom OPPPserver run_forecast
 #' @export
 #'
-begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n, results_dir, force = FALSE, is_active = NULL, sim_name = NULL, is_current_sim = NULL, prefer_saved = FALSE, allow_compute = NULL) {
+begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, simulation_results, i18n, results_dir, force = FALSE, is_active = NULL, sim_name = NULL, is_current_sim = NULL, prefer_saved = FALSE, allow_compute = NULL, restoring_inputs = NULL) {
   # Fixed output directory to /tmp/hasdaney213/ because run_forecast removes the temporary directory
   # automatically after runs and since plotly uses the temporary directory this
   # raises error. By fixing the output directory run_forecast and plotly use different
   # temporary directories.
   forecast_res <- reactive({
+    # CRITICAL: Skip all evaluation during restore to prevent double computation
+    if (!is.null(restoring_inputs)) {
+      if (isTRUE(tryCatch({ restoring_inputs() }, error = function(e) FALSE))) {
+        cat("[FORECAST_RESTORE_GUARD] Skipping forecast evaluation during restore for sim:",
+            if (is.null(sim_name)) "<unknown>" else sim_name, "\n")
+        return(NULL)
+      }
+    }
+
     try({
       cat("[FORECAST_INPUT_DEBUG] sim=", if (is.null(sim_name)) "<unknown>" else sim_name,
           " country=", input$wpp_country,

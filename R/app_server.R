@@ -1532,7 +1532,8 @@ observeEvent(input$nav_forecast, {
       sim_name = sim_name,
       is_current_sim = reactive({ simulations$current == sim_name }),
       prefer_saved = (mode == "load"),  # Prefer saved when in load mode
-      allow_compute = reactive(mode == "compute")  # Only allow compute in compute mode
+      allow_compute = reactive(mode == "compute"),  # Only allow compute in compute mode
+      restoring_inputs = restoring_inputs  # Pass restore guard to prevent computation during restore
     )
 
     cat("[FORECAST_UI] Forecast UI setup complete for sim:", sim_name, "\n")

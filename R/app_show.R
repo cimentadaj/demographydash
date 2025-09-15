@@ -33,7 +33,7 @@ location_selector_ui <- function(input, i18n, selected_value = NULL, force_mode 
   if (!is.null(force_mode)) {
     is_region <- identical(force_mode, i18n$translate("Region")) || identical(force_mode, "Region")
   } else {
-    is_region <- length(input$toggle_region != 0) && input$toggle_region == i18n$translate("Region")
+    is_region <- length(input$toggle_region) != 0 && input$toggle_region == i18n$translate("Region")
   }
   choices <- if (is_region) OPPPserver::get_wpp_regions() else OPPPserver::get_wpp_countries()
   label <- if (is_region) i18n$translate("Select a region") else i18n$translate("Select a country")
