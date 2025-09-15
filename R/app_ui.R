@@ -22,11 +22,11 @@ app_ui <- function(request) {
 
         /* Left menu layout */
         .dd-layout { display: flex; min-height: 100vh; padding-left: 12px; }
-        #left_menu { width: 210px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.18); z-index: 2; }
+        #left_menu { width: 255px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.18); z-index: 2; }
         #left_menu .menu-inner {
           position: sticky;
           top: var(--app-top-offset);
-          height: calc((100vh - var(--app-top-offset)) / 2);
+          height: calc((100vh - var(--app-top-offset)) * 0.54);
           overflow: auto;
           padding: 8px;
           background: #ffffff;
@@ -272,16 +272,15 @@ app_ui <- function(request) {
                   onclick = "Shiny.setInputValue('nav_mig', Math.random(), {priority: 'event'})",
                   tags$i(class = "angle right icon"),
                   tags$span(i18n$t("Migration"))
-                )
+                ),
+                # Conditionally show Projection Results link when results exist
+                uiOutput("nav_forecast_ui")
               )
               ,
               tags$div(class = "ui divider"),
               div(class = "menu-actions",
                   shiny.semantic::action_button("nav_run_projection", i18n$t("Run Projection"), class = "ui primary button")
               )
-              ,
-              # Conditionally show Projection Results link when results exist
-              uiOutput("nav_forecast_ui")
             )
           )
         ),

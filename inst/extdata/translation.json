@@ -775,10 +775,6 @@
         "fr": "Année"
       },
       {
-        "en": "TFR",
-        "fr": "TFR"
-      },
-      {
         "en": "Males",
         "fr": "Hommes"
     },
@@ -1329,6 +1325,42 @@
       {
         "en": "Starting population data from custom source. Use 'Customize' to modify or switch back to UN data.",
         "fr": "Données de population de départ provenant d'une source personnalisée. Utilisez 'Personnaliser' pour modifier ou revenir aux données ONU."
+      },
+      {
+        "en": "Add a new simulation",
+        "fr": "Ajouter une nouvelle simulation"
+      },
+      {
+        "en": "Current simulation:",
+        "fr": "Simulation actuelle:"
+      },
+      {
+        "en": "No simulations yet. Click 'Add a new simulation' to begin.",
+        "fr": "Aucune simulation pour le moment. Cliquez sur 'Ajouter une nouvelle simulation' pour commencer."
+      },
+      {
+        "en": "Please first select an input and click Next",
+        "fr": "Veuillez d'abord sélectionner une entrée et cliquer sur Suivant"
+      },
+      {
+        "en": "Please add and select a simulation first (use '+ Add a new simulation')",
+        "fr": "Veuillez d'abord ajouter et sélectionner une simulation (utilisez '+ Ajouter une nouvelle simulation')"
+      },
+      {
+        "en": "Input",
+        "fr": "Entrée"
+      },
+      {
+        "en": "TFR",
+        "fr": "ISF"
+      },
+      {
+        "en": "Projection Results",
+        "fr": "Résultats de projection"
+      },
+      {
+        "en": "Simulations",
+        "fr": "Simulations"
       }
     ]
 }

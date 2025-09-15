@@ -628,11 +628,11 @@ app_server <- function(input, output, session) {
     if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
     results_rds <- file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")
     if (!file.exists(results_rds)) return(NULL)
-    shiny::tags$div(
+    tags$div(
       class = "item nav-link",
       onclick = "Shiny.setInputValue('nav_forecast', Math.random(), {priority: 'event'})",
-      shiny.semantic::icon("angle right"),
-      shiny::tags$span(i18n$translate("Projection Results"))
+      tags$i(class = "angle right icon"),
+      tags$span(i18n$t("Projection Results"))
     )
   })
 
