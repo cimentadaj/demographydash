@@ -699,6 +699,10 @@ app_server <- function(input, output, session) {
     }
 
     current_page <- tryCatch({ current_tab() }, error = function(e) NULL)
+    if (!is.null(current_page) && grepl("^modal_", current_page)) {
+      base <- sub("^modal_", "", current_page)
+      current_page <- paste0(base, "_page")
+    }
     if (is.null(current_page) || !nzchar(current_page)) {
       current_page <- nav_items[[1]]$page
     }
