@@ -1526,7 +1526,6 @@ handle_navigation <- function(
 ) {
 
   processing <- reactiveVal(TRUE)
-  show_tfr_modal <- reactiveVal(TRUE)
 
   observeEvent(input$start_analysis, {
     hide("landing_page")
@@ -1633,15 +1632,6 @@ handle_navigation <- function(
         }
       }
     }, silent = TRUE)
-    if (isTRUE(show_tfr_modal())) {
-      show_modal("modal_passtfr")
-    } else {
-      show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
-    }
-    show_tfr_modal(FALSE)
-  })
-
-  observeEvent(input$change_source_btn, {
     show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
   })
 
@@ -1655,7 +1645,6 @@ handle_navigation <- function(
     hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page")
     show("e0_page")
     current_tab("e0_page")
-    hide_modal("modal_passtfr")
     # Rehydrate e0 if missing
     try({
       if (!is.null(e0_to_commit_rv) && is.null(e0_to_commit_rv())) {
@@ -1823,67 +1812,6 @@ handle_navigation <- function(
     },
     ignoreInit = TRUE
   )
-
-  observeEvent(input$pass_source_btn, {
-    hide_modal("modal_passtfr")
-    hide("pop_page")
-    show("forecast_page")
-    current_tab("forecast_page")
-
-    # Compute in the background because sincer we're
-    # jumping the actual TFR (jumping the traditional TFR page
-    # which calculates the TFR), we need to compute the TFR
-    # before the simulation.
-    compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
-    compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
-    compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
-
-    my_sim <- simulations$current
-    cat("[PASS_SOURCE_BTN] User clicked WPP shortcut for sim:", my_sim, "\n")
-
-    # Use begin_forecast directly with compute mode
-    # Since this handler might not have access to setup_forecast_ui
-    begin_forecast(
-      reactive_pop = reactive_pop,
-      reactive_tfr = reactive_tfr,
-      reactive_e0 = reactive_e0,
-      reactive_mig = reactive_mig,
-      wpp_starting_year = wpp_starting_year,
-      wpp_ending_year = wpp_ending_year,
-      input = input,
-      output = output,
-      simulation_results = simulation_results,
-      i18n = i18n,
-      results_dir = file.path(sim_base_dir, my_sim, "results"),
-      force = TRUE,  # Force compute
-      is_active = reactive({ current_tab() == "forecast_page" }),
-      sim_name = my_sim,
-      is_current_sim = reactive({ simulations$current == my_sim }),
-      prefer_saved = FALSE,
-      allow_compute = reactive(TRUE)
-    )
-  })
-
-  output$pass_tfr <- renderUI({
-    modal(
-      id = "modal_passtfr",
-      content = list(
-        style = "font-size: 18px; font-weight: bold; padding: 10px; text-align: center; display: flex; justify-content: center; align-items: center;",
-        `data-custom` = "value",
-        i18n$t("Select TFR, Life Expectancy and Migration Source")
-      ),
-      footer = div(
-        style = "display: flex; gap: 2px; justify-content: center;",
-        div(
-          style = "display: flex; gap: 10px;", # 20px gap between buttons
-          action_button("change_source_btn", i18n$t("Enter Custom Values"), class = "ui grey button"),
-          action_button("pass_source_btn", i18n$t("Use WPP 2024 Median Values"), class = "ui blue button")
-        )
-      ),
-      class = "small"
-    )
-  })
-
 }
 
 #' Handle all validity checks from the app

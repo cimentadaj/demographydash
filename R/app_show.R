@@ -297,11 +297,9 @@ show_mig_results_ui <- function() {
 #' @param i18n The internationalization object for translations.
 #'
 #' @importFrom shinyjs hide show
-#' @importFrom shiny.semantic hide_modal
 #' @export
 #'
 show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
-  hide_modal("modal_passtfr")
   hide("pop_page")
   show("tfr_page")
   compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)

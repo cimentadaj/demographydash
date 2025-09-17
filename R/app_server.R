@@ -791,7 +791,7 @@ app_server <- function(input, output, session) {
       curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
       # Consider Next clicked if last_trigger indicates progression beyond input
       last_trig <- tryCatch({ saved_meta$last_trigger }, error = function(e) NULL)
-      progressed <- isTRUE(last_trig %in% c("forward_pop_page","forward_tfr_page","forward_e0_page","forward_mig_page","begin","pass_source_btn"))
+      progressed <- isTRUE(last_trig %in% c("forward_pop_page","forward_tfr_page","forward_e0_page","forward_mig_page","begin"))
       sim_saved_signature(saved_sig)
       sim_progressed(progressed)
       input_next_clicked(isTRUE(progressed) && !identical(saved_sig, NULL) && identical(saved_sig, curr_sig))
@@ -1578,7 +1578,6 @@ observeEvent(input$nav_forecast, {
   observeEvent(input$start_analysis, { save_current_page("input_page") })
   observeEvent(input$forward_pop_page, { save_current_page("pop_page") })
   observeEvent(input$begin, { save_current_page("forecast_page") })
-  observeEvent(input$pass_source_btn, { save_current_page("forecast_page") })
   observeEvent(input$nav_forecast, { save_current_page("forecast_page") })
 
   # Population data is now saved directly in the Apply button handler

@@ -363,7 +363,6 @@ app_ui <- function(request) {
             )
           ),
           uiOutput("popup_pop"),
-          uiOutput("pass_tfr"),
           br(),
           withSpinner(uiOutput("show_pop_results_ui"))
         )
