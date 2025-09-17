@@ -229,7 +229,7 @@ show_pop_results_ui <- function(data_source = "UN Data", i18n = NULL) {
       style = "display: flex; align-items: flex-start; gap: 10px",
       div(
         style = "flex: 2;",
-        plotlyOutput("plot_pop", height = "600px", width = "100%")
+        plotlyOutput("plot_pop", height = "540px", width = "100%")
       ),
       div(
         style = "flex: 1;",

@@ -445,7 +445,9 @@ app_ui <- function(request) {
         }
         function setTopOffset(){
           var h = computeTopOffset();
-          document.documentElement.style.setProperty("--app-top-offset", h+"px");
+          var reduction = 80; // pixels to pull content upward
+          var offset = Math.max(h - reduction, 0);
+          document.documentElement.style.setProperty("--app-top-offset", offset + "px");
         }
         function getSimFromSearch(){
           var p = new URLSearchParams(window.location.search);
