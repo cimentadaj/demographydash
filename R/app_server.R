@@ -146,7 +146,7 @@ app_server <- function(input, output, session) {
     if (identical(page_id, "input_page")) {
       sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
       has_results <- tryCatch({
-        if (!is.null(sim_name)) file.exists(file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")) else FALSE
+        if (!is.null(sim_name)) file.exists(file.path(sim_base_dir, sim_name, "results", "results.rds")) else FALSE
       }, error = function(e) FALSE)
       next_clicked <- tryCatch({ isTRUE(input_next_clicked()) }, error = function(e) FALSE)
       restoring <- tryCatch({ isTRUE(restoring_inputs()) }, error = function(e) FALSE)
@@ -169,13 +169,10 @@ app_server <- function(input, output, session) {
   # Sidebar should not be visible on landing page
   shinyjs::hide("left_menu")
 
-  # --- Phase 2: Temp directory + simulations reactive ---
-  # Phase 3 base directory (matching plans): /tmp/hasdaney213
-  sim_base_dir <- "/tmp/hasdaney213"
-  if (!dir.exists(sim_base_dir)) {
-    dir.create(sim_base_dir, recursive = TRUE, showWarnings = FALSE)
-  }
-  cat("[PHASE2] Temp directory created:", dir.exists(sim_base_dir), "\n")
+  # --- Phase 2: Session-specific temp directory + simulations reactive ---
+  # Setup session-specific directory under /tmp/hasdaney213/{session_token}/
+  sim_base_dir <- setup_session_dir(session)
+  cat("[PHASE2] Session directory created:", dir.exists(sim_base_dir), "\n")
 
   simulations <- reactiveValues(
     current = NULL,
@@ -635,7 +632,7 @@ app_server <- function(input, output, session) {
     results_invalidated()  # Create dependency on invalidation trigger
     sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
     if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
-    results_rds <- file.path("/tmp/hasdaney213", sim_name, "results", "results.rds")
+    results_rds <- file.path(sim_base_dir, sim_name, "results", "results.rds")
     if (!file.exists(results_rds)) return(NULL)
     tags$div(
       class = "item nav-link",
@@ -1147,7 +1144,7 @@ app_server <- function(input, output, session) {
       restoring_inputs(FALSE)
       current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
       if (!is.null(current_sim)) {
-        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        has_results <- file.exists(file.path(sim_base_dir, current_sim, "results", "results.rds"))
         if (has_results) input_next_clicked(TRUE)
       }
     }
@@ -1479,7 +1476,7 @@ observeEvent(input$nav_forecast, {
       switching_sims(FALSE)
       current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
       if (!is.null(current_sim)) {
-        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        has_results <- file.exists(file.path(sim_base_dir, current_sim, "results", "results.rds"))
         if (has_results) input_next_clicked(TRUE)
       }
     }
@@ -1525,7 +1522,7 @@ observeEvent(input$nav_forecast, {
       }
       current_sim <- tryCatch({ simulations$current }, error = function(e) NULL)
       if (!is.null(current_sim)) {
-        has_results <- file.exists(file.path("/tmp/hasdaney213", current_sim, "results", "results.rds"))
+        has_results <- file.exists(file.path(sim_base_dir, current_sim, "results", "results.rds"))
         if (has_results) input_next_clicked(TRUE)
       }
     }
@@ -1566,7 +1563,7 @@ observeEvent(input$nav_forecast, {
       output = output,
       simulation_results = simulation_results,
       i18n = i18n,
-      results_dir = file.path("/tmp/hasdaney213", sim_name, "results"),
+      results_dir = file.path(sim_base_dir, sim_name, "results"),
       force = (mode == "compute"),  # Only force compute when explicitly requested
       is_active = reactive({ current_tab() == "forecast_page" }),
       sim_name = sim_name,
@@ -1910,7 +1907,8 @@ observeEvent(input$nav_forecast, {
     wpp_ending_year,
     input,
     output,
-    i18n
+    i18n,
+    sim_base_dir = sim_base_dir
   )
 
   # Handle navigation between steps
@@ -1973,7 +1971,8 @@ observeEvent(input$nav_forecast, {
     opening_modal = opening_modal,
     restored_location = restored_location,
     restored_aggregation = restored_aggregation,
-    restoring_inputs = restoring_inputs
+    restoring_inputs = restoring_inputs,
+    sim_base_dir = sim_base_dir
   )
 
 

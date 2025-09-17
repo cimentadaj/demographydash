@@ -21,7 +21,24 @@ handle_customize_data(
   input,
   output,
   session,
-  i18n = NULL
+  i18n = NULL,
+  save_population_files = NULL,
+  save_tfr_files = NULL,
+  save_e0_files = NULL,
+  save_mig_files = NULL,
+  modal_raw_pop_data = NULL,
+  modal_pop_params = NULL,
+  process_population_data = NULL,
+  modal_reset_trigger = NULL,
+  custom_data_configs = NULL,
+  last_active_modal_tab = NULL,
+  resetting_simulation = NULL,
+  just_restored_data = NULL,
+  opening_modal = NULL,
+  restored_location = NULL,
+  restored_aggregation = NULL,
+  restoring_inputs = NULL,
+  sim_base_dir = NULL
 )
 }
 \arguments{

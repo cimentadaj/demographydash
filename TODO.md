@@ -252,8 +252,8 @@ CBR and TFR
 
 - [ ] Remove next/previous button
 - [X] Ensure after clicking next, it goes directly to loading and not stop on the input page
-- [ ] Remove tmp directory after session is ended
+- [X] Remove tmp directory after session is ended
 - [ ] Ability to remove sims
-- [ ] Do we need to save user id in the tmp directory? So that sims with the same name across users are not shared? Unsure about this.
+- [X] Do we need to save user id in the tmp directory? So that sims with the same name across users are not shared? Unsure about this.
 - [X] After creating two country sims and creating a third region sim, the toggle region doesn't switch to regions
 - [ ] Create a sim only for Australia/New Zealand and it will return the error. Getting: RHS of == is length 2 which is not 1 or nrow (2249775). For robustness, no recycling is allowed (other than of length 1 RHS). Consider %in% instead.

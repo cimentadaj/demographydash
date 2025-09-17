@@ -13,7 +13,8 @@ handle_before_analysis_plots(
   wpp_ending_year,
   input,
   output,
-  i18n = NULL
+  i18n = NULL,
+  sim_base_dir = NULL
 )
 }
 \arguments{

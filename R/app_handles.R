@@ -120,7 +120,7 @@ create_landing_page <- function(i18n) {
 #' @importFrom plotly ggplotly renderPlotly
 #' @export
 #'
-handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, i18n = NULL) {
+handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig, wpp_starting_year, wpp_ending_year, input, output, i18n = NULL, sim_base_dir = NULL) {
   # Render plots for population pyramid and total fertility rate
   output$plot_pop <- renderPlotly(
     create_pop_pyramid_plot(
@@ -570,7 +570,8 @@ handle_customize_data <- function(
     opening_modal = NULL,
     restored_location = NULL,
     restored_aggregation = NULL,
-    restoring_inputs = NULL
+    restoring_inputs = NULL,
+    sim_base_dir = NULL
 ) {
   output$location_selector <- renderUI({
     # Add explicit dependency on toggle_region to force re-render
@@ -1633,7 +1634,7 @@ handle_navigation <- function(
     # Rehydrate TFR if missing: load from disk for this sim
     try({
       if (!is.null(tfr_to_commit_rv) && is.null(tfr_to_commit_rv())) {
-        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        sim_dir <- file.path(sim_base_dir, input$sim_switcher, "inputs")
         tfr_path <- file.path(sim_dir, "tfr.csv")
         if (file.exists(tfr_path)) {
           dt <- data.table::fread(tfr_path)
@@ -1663,7 +1664,7 @@ handle_navigation <- function(
     # Rehydrate e0 if missing
     try({
       if (!is.null(e0_to_commit_rv) && is.null(e0_to_commit_rv())) {
-        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        sim_dir <- file.path(sim_base_dir, input$sim_switcher, "inputs")
         e0_path <- file.path(sim_dir, "e0.csv")
         if (file.exists(e0_path)) {
           dt <- data.table::fread(e0_path)
@@ -1697,7 +1698,7 @@ handle_navigation <- function(
         if (!isTRUE(restoring_inputs())) {
           try({
             if (!is.null(mig_to_commit_rv) && is.null(mig_to_commit_rv())) {
-              sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+              sim_dir <- file.path(sim_base_dir, input$sim_switcher, "inputs")
               mig_path <- file.path(sim_dir, "mig.csv")
               if (file.exists(mig_path)) { dt <- data.table::fread(mig_path); if (nrow(dt)>0){ names(dt)<-c("year","mig"); suppressWarnings({dt$year<-as.numeric(dt$year)}); suppressWarnings({dt$mig<-as.numeric(dt$mig)}); mig_to_commit_rv(as.data.frame(dt)) } }
             }
@@ -1711,7 +1712,7 @@ handle_navigation <- function(
     # Rehydrate migration if missing
     try({
       if (!is.null(mig_to_commit_rv) && is.null(mig_to_commit_rv())) {
-        sim_dir <- file.path("/tmp/hasdaney213", input$sim_switcher, "inputs")
+        sim_dir <- file.path(sim_base_dir, input$sim_switcher, "inputs")
         mig_path <- file.path(sim_dir, "mig.csv")
         if (file.exists(mig_path)) {
           dt <- data.table::fread(mig_path)
@@ -1910,7 +1911,7 @@ handle_navigation <- function(
       output = output,
       simulation_results = simulation_results,
       i18n = i18n,
-      results_dir = file.path("/tmp/hasdaney213", my_sim, "results"),
+      results_dir = file.path(sim_base_dir, my_sim, "results"),
       force = TRUE,  # Force compute
       is_active = reactive({ current_tab() == "forecast_page" }),
       sim_name = my_sim,

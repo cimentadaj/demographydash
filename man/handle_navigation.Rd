@@ -14,9 +14,19 @@ handle_navigation(
   wpp_starting_year,
   wpp_ending_year,
   current_tab,
+  input_next_completed,
   input,
   output,
-  i18n = NULL
+  i18n = NULL,
+  pop_to_commit_rv = NULL,
+  modal_raw_pop_data = NULL,
+  modal_pop_params = NULL,
+  process_population_data = NULL,
+  tfr_to_commit_rv = NULL,
+  e0_to_commit_rv = NULL,
+  mig_to_commit_rv = NULL,
+  restoring_inputs = NULL,
+  save_population_files = NULL
 )
 }
 \arguments{

@@ -4,7 +4,14 @@
 \alias{handle_validity_checks}
 \title{Handle all validity checks from the app}
 \usage{
-handle_validity_checks(wpp_starting_year, wpp_ending_year, output, i18n = NULL)
+handle_validity_checks(
+  wpp_starting_year,
+  wpp_ending_year,
+  input,
+  output,
+  i18n = NULL,
+  has_simulation = NULL
+)
 }
 \arguments{
 \item{wpp_starting_year}{A reactive expression returning the starting year.}

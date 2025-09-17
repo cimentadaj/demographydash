@@ -4,7 +4,7 @@
 \alias{location_selector_ui}
 \title{Generate the location selector UI based on the toggle state}
 \usage{
-location_selector_ui(input, i18n)
+location_selector_ui(input, i18n, selected_value = NULL, force_mode = NULL)
 }
 \arguments{
 \item{input}{The input object from the Shiny server function}

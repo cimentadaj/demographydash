@@ -14,7 +14,15 @@ begin_forecast(
   input,
   output,
   simulation_results,
-  i18n
+  i18n,
+  results_dir,
+  force = FALSE,
+  is_active = NULL,
+  sim_name = NULL,
+  is_current_sim = NULL,
+  prefer_saved = FALSE,
+  allow_compute = NULL,
+  restoring_inputs = NULL
 )
 }
 \arguments{
