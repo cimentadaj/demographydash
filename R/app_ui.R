@@ -22,11 +22,11 @@ app_ui <- function(request) {
 
         /* Left menu layout */
         .dd-layout { display: flex; min-height: 100vh; padding-left: 12px; }
-        #left_menu { width: 255px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.18); z-index: 2; }
+        #left_menu { width: 255px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.234); z-index: 2; }
         #left_menu .menu-inner {
           position: sticky;
           top: var(--app-top-offset);
-          height: calc((100vh - var(--app-top-offset)) * 0.54);
+          height: calc((100vh - var(--app-top-offset)) * 0.432);
           overflow: auto;
           padding: 8px;
           background: #ffffff;
