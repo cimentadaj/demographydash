@@ -1359,11 +1359,6 @@ app_server <- function(input, output, session) {
     # Hide the inline form
     new_sim_form_visible(FALSE)
     
-    # Update sidebar header to show current simulation
-    output$current_sim_name <- shiny::renderUI({
-      shiny::tags$div(class = "ui small header", paste(i18n$translate("Current simulation:"), simulations$current))
-    })
-    
     # Navigate to input page for new simulation
     # Hide any currently visible page
     for (page in c("landing_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "results_page")) {
@@ -1386,17 +1381,6 @@ app_server <- function(input, output, session) {
     
     cat("[PHASE7] Navigated to input page for new simulation\n")
     cat("[PHASE7] Total simulations:", length(simulations$data), "\n")
-  })
-
-  # Keep current simulation header in sync
-  observe({
-    if (!is.null(simulations$current)) {
-      output$current_sim_name <- shiny::renderUI({
-        shiny::tags$div(class = "ui small header", paste(i18n$translate("Current simulation:"), simulations$current))
-      })
-    } else {
-      output$current_sim_name <- shiny::renderUI({ NULL })
-    }
   })
 
   # Show "Projection Results" menu immediately when forecast results are generated
