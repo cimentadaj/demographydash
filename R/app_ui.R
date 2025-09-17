@@ -52,11 +52,44 @@ app_ui <- function(request) {
         /* Navigation items: keep icon and text on one line */
         #left_menu .ui.list .item { display: flex; align-items: center; gap: 6px; }
         #left_menu .ui.list { margin-left: 0; }
+        #left_menu .ui.list .item { padding: 6px 8px; }
         #left_menu .ui.list .item .icon { margin: 0 6px 0 0; }
         /* Make nav list items look clickable */
-        #left_menu .ui.list .item.nav-link { cursor: pointer; }
-        #left_menu .ui.list .item.nav-link span { color: #1e70bf; text-decoration: underline; }
-        #left_menu .ui.list .item.nav-link:hover span { color: #1678c2; }
+        #left_menu .ui.list .item.nav-link {
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          border-radius: 6px;
+          transition: background-color 0.2s ease;
+        }
+        #left_menu .ui.list .item.nav-link span {
+          color: #1b1c1d;
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        #left_menu .ui.list .item.nav-link:hover {
+          background-color: rgba(27, 110, 194, 0.08);
+        }
+        #left_menu .ui.list .item.nav-link:hover span {
+          color: #1b6ec2;
+        }
+        #left_menu .ui.list .item.nav-link.active {
+          background-color: rgba(27, 110, 194, 0.12);
+        }
+        #left_menu .ui.list .item.nav-link.active span {
+          color: #1b6ec2;
+          font-weight: 600;
+        }
+        #left_menu .nav-status-icon {
+          font-size: 0.7rem;
+          color: #b6c0cc;
+          transition: color 0.2s ease, transform 0.2s ease;
+        }
+        #left_menu .nav-status-icon.active {
+          color: #1b6ec2;
+          transform: scale(1.1);
+        }
 
         /* Space below simulations header */
         #left_menu .sim-header { margin-bottom: 8px; }
@@ -288,40 +321,7 @@ app_ui <- function(request) {
               uiOutput("sim_switcher_ui"),
               uiOutput("sim_add_controls"),
               tags$div(class = "ui small header", i18n$translate("Navigation")),
-              tags$div(class = "ui list",
-                tags$div(
-                  class = "item nav-link",
-                  onclick = "Shiny.setInputValue('nav_input', Math.random(), {priority: 'event'})",
-                  tags$i(class = "angle right icon"),
-                  tags$span(i18n$t("Input"))
-                ),
-                tags$div(
-                  class = "item nav-link",
-                  onclick = "Shiny.setInputValue('nav_pop', Math.random(), {priority: 'event'})",
-                  tags$i(class = "angle right icon"),
-                  tags$span(i18n$t("Population"))
-                ),
-                tags$div(
-                  class = "item nav-link",
-                  onclick = "Shiny.setInputValue('nav_tfr', Math.random(), {priority: 'event'})",
-                  tags$i(class = "angle right icon"),
-                  tags$span(i18n$t("TFR"))
-                ),
-                tags$div(
-                  class = "item nav-link",
-                  onclick = "Shiny.setInputValue('nav_e0', Math.random(), {priority: 'event'})",
-                  tags$i(class = "angle right icon"),
-                  tags$span(i18n$t("Life Expectancy"))
-                ),
-                tags$div(
-                  class = "item nav-link",
-                  onclick = "Shiny.setInputValue('nav_mig', Math.random(), {priority: 'event'})",
-                  tags$i(class = "angle right icon"),
-                  tags$span(i18n$t("Migration"))
-                ),
-                # Conditionally show Projection Results link when results exist
-                uiOutput("nav_forecast_ui")
-              )
+              uiOutput("nav_list_ui")
               ,
               tags$div(class = "ui divider"),
               div(class = "menu-actions",

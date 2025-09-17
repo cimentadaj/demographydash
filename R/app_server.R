@@ -264,7 +264,7 @@ app_server <- function(input, output, session) {
   }
   sim_saved_signature <- reactiveVal(NULL)
   sim_progressed <- reactiveVal(FALSE)
-  results_invalidated <- reactiveVal(0)  # Trigger to force nav_forecast_ui refresh
+  results_invalidated <- reactiveVal(0)  # Trigger to force sidebar nav refresh
 
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
@@ -676,19 +676,45 @@ app_server <- function(input, output, session) {
     }
   })
 
-  # Conditionally render a 'Projection Results' nav link when results exist for current sim
-  output$nav_forecast_ui <- shiny::renderUI({
-    results_invalidated()  # Create dependency on invalidation trigger
-    sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
-    if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
-    results_rds <- file.path(sim_base_dir, sim_name, "results", "results.rds")
-    if (!file.exists(results_rds)) return(NULL)
-    tags$div(
-      class = "item nav-link",
-      onclick = "Shiny.setInputValue('nav_forecast', Math.random(), {priority: 'event'})",
-      tags$i(class = "angle right icon"),
-      tags$span(i18n$t("Projection Results"))
+  output$nav_list_ui <- shiny::renderUI({
+    nav_items <- list(
+      list(page = "input_page", trigger = "nav_input", label = i18n$translate("Input")),
+      list(page = "pop_page", trigger = "nav_pop", label = i18n$translate("Population")),
+      list(page = "tfr_page", trigger = "nav_tfr", label = i18n$translate("TFR")),
+      list(page = "e0_page", trigger = "nav_e0", label = i18n$translate("Life Expectancy")),
+      list(page = "mig_page", trigger = "nav_mig", label = i18n$translate("Migration"))
     )
+
+    results_invalidated()  # ensure reactive update when results are saved/cleared
+    sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
+    if (!is.null(sim_name) && nzchar(sim_name)) {
+      results_rds <- file.path(sim_base_dir, sim_name, "results", "results.rds")
+      if (file.exists(results_rds)) {
+        nav_items <- append(nav_items, list(list(
+          page = "forecast_page",
+          trigger = "nav_forecast",
+          label = i18n$translate("Projection Results")
+        )))
+      }
+    }
+
+    current_page <- tryCatch({ current_tab() }, error = function(e) NULL)
+    if (is.null(current_page) || !nzchar(current_page)) {
+      current_page <- nav_items[[1]]$page
+    }
+
+    nav_nodes <- lapply(nav_items, function(item) {
+      active <- identical(item$page, current_page)
+      indicator_class <- if (active) "dot circle icon nav-status-icon active" else "circle outline icon nav-status-icon"
+      shiny::tags$div(
+        class = paste(c("item nav-link", if (active) "active"), collapse = " "),
+        onclick = sprintf("Shiny.setInputValue('%s', Math.random(), {priority: 'event'})", item$trigger),
+        shiny::tags$i(class = indicator_class),
+        shiny::tags$span(item$label)
+      )
+    })
+
+    shiny::tags$div(class = "ui list", do.call(shiny::tagList, nav_nodes))
   })
 
   # Initialize sim from URL (if present)
@@ -1406,7 +1432,7 @@ app_server <- function(input, output, session) {
 
     # Only trigger when results go from NULL/empty to available (forecast completion)
     if (is.null(prev_state) && !is.null(res)) {
-      # Trigger nav_forecast_ui refresh to show menu immediately when results are available
+      # Trigger nav list refresh to surface the Projection Results link immediately
       results_invalidated(results_invalidated() + 1)
     }
 
@@ -1442,7 +1468,7 @@ app_server <- function(input, output, session) {
           pop_data_source("UN Data"); data_source$tfr <- "downloaded"; data_source$e0 <- "downloaded"; data_source$mig <- "downloaded"
           cat("[SIM_RESET] Cleared disk contents and in-memory commits for:", sim_name, "\n")
 
-          # Trigger nav_forecast_ui refresh to hide menu immediately
+          # Trigger nav list refresh to hide the Projection Results link immediately
           results_invalidated(results_invalidated() + 1)
         }
       }
@@ -1637,6 +1663,10 @@ observeEvent(input$nav_forecast, {
 
   # Define a reactiveVal to store simulation results
   simulation_results <- reactiveVal()
+  forecast_ready <- reactive({
+    res <- tryCatch({ simulation_results() }, error = function(e) NULL)
+    !isTRUE(restoring_inputs()) && !isTRUE(switching_sims()) && !is.null(res)
+  })
 
 
 

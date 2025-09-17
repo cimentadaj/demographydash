@@ -161,27 +161,37 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   output$all_pop_data <- shiny::downloadHandler(
     filename = function() paste0("all_data_pyramid_age_sex_", input$wpp_country, ".csv"),
     content = function(file) {
-      utils::write.csv(
-        simulation_results()$population_by_age_and_sex,
-        file,
-        row.names = FALSE
-      )
+      res <- simulation_results()
+      if (is.null(res) || is.null(res$population_by_age_and_sex)) {
+        stop("No forecast results available to export.")
+      }
+      utils::write.csv(res$population_by_age_and_sex, file, row.names = FALSE)
     }
   )
 
+  results_safe <- reactive({
+    res <- simulation_results()
+    req(!is.null(res))
+    res
+  })
+
   ##### Reactive Widgets calculatd based on the data #####
   age_pop_time <- reactive({
-    ages <- unique(simulation_results()$population_by_time$age)
-    return(ages)  # Explicitly return the ages
+    res <- results_safe()
+    pop_time <- res$population_by_time
+    req(!is.null(pop_time))
+    unique(pop_time$age)
   })
 
 
   output$age_pop_time_ui <- renderUI({
+    ages <- age_pop_time()
+    if (is.null(ages) || length(ages) == 0) return(NULL)
     selectInput(
       inputId = "age_pop_time",
       label = i18n$t("Select age group"),
-      choices = i18n$translate(age_pop_time()),
-      selected = i18n$translate(age_pop_time()[1])
+      choices = i18n$translate(ages),
+      selected = i18n$translate(ages[1])
     )
   })
 
@@ -202,15 +212,23 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
 
   pop_age_sex_years <- reactive({
-    unique(simulation_results()$population_by_age_and_sex$year)
+    res <- results_safe()
+    pop_age <- res$population_by_age_and_sex
+    if (is.null(pop_age) || !"year" %in% names(pop_age)) return(NULL)
+    sort(unique(pop_age$year))
   })
 
   output$pop_age_sex_years_ui <- renderUI({
+    years <- pop_age_sex_years()
+    if (is.null(years) || length(years) == 0) return(NULL)
+    default_year <- wpp_starting_year() + 1
+    selected_year <- if (default_year %in% years) default_year else years[[1]]
+
     selectInput(
       inputId = "pop_age_sex_years",
       label = i18n$t("Select year"),
-      choices = pop_age_sex_years(),
-      selected = wpp_starting_year() + 1
+      choices = years,
+      selected = selected_year
     )
   })
   ##### Reactive Widgets end #####
@@ -218,9 +236,12 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   ##### Reactive Plots from the analysis page #####
   pyramid_plot <- reactive({
     req(input$pop_age_sex_years)
+    res <- results_safe()
+    pop_age <- res$population_by_age_and_sex
+    req(!is.null(pop_age))
 
     create_pop_pyramid_plot(
-      simulation_results()$population_by_age_and_sex,
+      pop_age,
       country = input$wpp_country,
       input_year = input$pop_age_sex_years,
       i18n
@@ -229,6 +250,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
   age_group_plot <- reactive({
     req(input$radio_population_by_broad_age_group)
+    res <- results_safe()
+    req(!is.null(res$population_by_broad_age_group))
 
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Percent", "Absolute")
@@ -239,7 +262,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
 
     create_age_group_plot(
-      simulation_results()$population_by_broad_age_group,
+      res$population_by_broad_age_group,
       chosen_val,
       input$wpp_country,
       i18n
@@ -252,10 +275,13 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
 
     req(input$age_pop_time)
+    res <- results_safe()
+    pop_time <- res$population_by_time
+    req(!is.null(pop_time))
 
     # Get the data for the selected age group
     result <- create_pop_time_plot(
-      simulation_results()$population_by_time,
+      pop_time,
       input$age_pop_time,
       input$wpp_country,
       i18n
@@ -270,8 +296,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   tfr_projected_plot <- reactive({
+    res <- results_safe()
+    req(!is.null(res$tfr_by_time))
     create_tfr_projected_plot(
-      simulation_results()$tfr_by_time,
+      res$tfr_by_time,
       wpp_ending_year(),
       input$wpp_country,
       i18n
@@ -279,8 +307,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   annual_growth_plot <- reactive({
+    res <- results_safe()
+    req(!is.null(res$annual_growth_rate))
     create_annual_growth_plot(
-      simulation_results()$annual_growth_rate,
+      res$annual_growth_rate,
       wpp_ending_year(),
       input$wpp_country,
       i18n
@@ -289,6 +319,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
   deaths_births_plot <- reactive({
     req(input$radio_death_births)
+    res <- results_safe()
+    req(!is.null(res$births_counts_rates))
+    req(!is.null(res$deaths_counts_rates))
 
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")
@@ -303,8 +336,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     # each word for different labels.
     type_value <- tolower(strsplit(chosen_val, " ")[[1]])
     create_deaths_births_plot(
-      simulation_results()$births_counts_rates,
-      simulation_results()$deaths_counts_rates,
+      res$births_counts_rates,
+      res$deaths_counts_rates,
       type_value[1],
       type_value[2],
       wpp_ending_year(),
@@ -315,10 +348,13 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
   yadr_oadr_plot <- reactive({
     req(input$radio_yadr_oadr)
+    res <- results_safe()
+    req(!is.null(res$oadr))
+    req(!is.null(res$yadr))
     type_value <- tolower(input$radio_yadr_oadr)
     create_yadr_oadr_plot(
-      simulation_results()$oadr,
-      simulation_results()$yadr,
+      res$oadr,
+      res$yadr,
       type_value,
       wpp_ending_year(),
       input$wpp_country,
@@ -327,7 +363,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   pop_size_aging_plot <- reactive({
-    dt <- simulation_results()$pop_aging_and_pop_size
+    res <- results_safe()
+    dt <- res$pop_aging_and_pop_size
+    req(!is.null(dt))
     max_year <- max(dt$year)
     min_year <- min(dt$year)
     plt_title <- paste0(
@@ -354,7 +392,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   e0_by_cdr_plot <- reactive({
-    dt <- simulation_results()$cdr_by_e0
+    res <- results_safe()
+    dt <- res$cdr_by_e0
+    req(!is.null(dt))
     max_year <- max(dt$year)
     min_year <- min(dt$year)
     plt_title <- paste0(
@@ -379,7 +419,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   tfr_by_cdr_plot <- reactive({
-    dt <- simulation_results()$cbr_by_tfr
+    res <- results_safe()
+    dt <- res$cbr_by_tfr
+    req(!is.null(dt))
     max_year <- max(dt$year)
     min_year <- min(dt$year)
     plt_title <- paste0(
@@ -410,6 +452,8 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
 
     req(input$sex_e0_time)
+    res <- results_safe()
+    req(!is.null(res$e0_by_time))
 
     # Find which "Percent" or "Absolute" translates to the selected value
     ops_vals <- c("Total", "Male", "Female")
@@ -420,7 +464,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
 
     create_e0_projected_plot(
-      simulation_results()$e0_by_time,
+      res$e0_by_time,
       chosen_val,
       input$wpp_country,
       i18n
@@ -429,8 +473,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
 
 
   mig_by_time_plot <- reactive({
+    res <- results_safe()
+    req(!is.null(res$mig_by_time))
     create_mig_projected_plot(
-      simulation_results()$mig_by_time,
+      res$mig_by_time,
       wpp_ending_year(),
       input$wpp_country,
       i18n
@@ -441,6 +487,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   ##### Reactive Plots End #####
 
   cnt <- reactive({
+    req(input$wpp_country)
     tolower(gsub(" ", "", input$wpp_country))
   })
 
@@ -456,6 +503,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   filename_yadr_oadr <- reactive({
+    req(input$radio_yadr_oadr)
     paste0(
       tolower(input$radio_yadr_oadr),
       "_",
@@ -464,6 +512,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   filename_pop_over_time_agegroup <- reactive({
+    req(input$age_pop_time)
     paste0(
       "pop_over_time_agegroup_",
       tolower(input$age_pop_time),
@@ -473,6 +522,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   filename_pop_by_age <- reactive({
+    req(input$radio_population_by_broad_age_group)
     paste0(
       "pop_age_group_",
       tolower(input$radio_population_by_broad_age_group),
@@ -482,6 +532,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   filename_pop_pyramid <- reactive({
+    req(input$pop_age_sex_years)
     paste0(
       "pyramid_age_sex_",
       cnt(),
@@ -491,6 +542,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   })
 
   filename_e0_over_time_sex <- reactive({
+    req(input$sex_e0_time)
     paste0(
       "e0_sex_",
       cnt(),
