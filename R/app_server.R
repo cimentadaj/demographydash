@@ -650,6 +650,32 @@ app_server <- function(input, output, session) {
     )
   })
 
+  output$sim_add_controls <- shiny::renderUI({
+    total <- length(names(simulations$data))
+    if (total < 3) {
+      shiny::tagList(
+        shiny::div(
+          class = "menu-actions",
+          shiny.semantic::action_button(
+            "add_sim",
+            i18n$translate("Add a new simulation"),
+            icon = icon("plus"),
+            class = "ui primary button"
+          )
+        ),
+        shiny::tags$div(class = "ui divider")
+      )
+    } else {
+      shiny::tagList(
+        shiny::div(
+          class = "ui tiny info message",
+          i18n$translate("Only 3 sims are allowed")
+        ),
+        shiny::tags$div(class = "ui divider")
+      )
+    }
+  })
+
   # Conditionally render a 'Projection Results' nav link when results exist for current sim
   output$nav_forecast_ui <- shiny::renderUI({
     results_invalidated()  # Create dependency on invalidation trigger
@@ -866,12 +892,8 @@ app_server <- function(input, output, session) {
   observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
 
   observe({
-    total_sims <- length(names(simulations$data))
-    if (total_sims >= 3) {
-      shinyjs::disable("add_sim")
+    if (length(names(simulations$data)) >= 3) {
       new_sim_form_visible(FALSE)
-    } else {
-      shinyjs::enable("add_sim")
     }
   })
 

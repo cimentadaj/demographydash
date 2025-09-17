@@ -1331,6 +1331,10 @@
         "fr": "Ajouter une nouvelle simulation"
       },
       {
+        "en": "Only 3 sims are allowed",
+        "fr": "Seulement 3 simulations sont autorisées"
+      },
+      {
         "en": "Current simulation:",
         "fr": "Simulation actuelle:"
       },
