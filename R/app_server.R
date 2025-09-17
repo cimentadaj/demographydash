@@ -1522,6 +1522,15 @@ observeEvent(input$nav_forecast, {
     }
   }, ignoreInit = TRUE)
 
+  # Clear restoration values when user manually changes toggle (not during restore)
+  observeEvent(input$toggle_region, {
+    # Clear restoration values if user manually changes toggle (not during restore)
+    if (!isTRUE(restoring_inputs()) && !isTRUE(switching_sims())) {
+      restored_aggregation(NULL)
+      restored_location(NULL)
+    }
+  }, ignoreInit = TRUE)
+
   # At the top with other reactives
   selected_tab_index <- reactiveVal(1)  # Start with first tab
 
@@ -1953,7 +1962,8 @@ observeEvent(input$nav_forecast, {
     just_restored_data = just_restored_data,
     opening_modal = opening_modal,
     restored_location = restored_location,
-    restored_aggregation = restored_aggregation
+    restored_aggregation = restored_aggregation,
+    restoring_inputs = restoring_inputs
   )
 
 

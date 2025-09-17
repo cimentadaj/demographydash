@@ -569,17 +569,26 @@ handle_customize_data <- function(
     just_restored_data = NULL,
     opening_modal = NULL,
     restored_location = NULL,
-    restored_aggregation = NULL
+    restored_aggregation = NULL,
+    restoring_inputs = NULL
 ) {
   output$location_selector <- renderUI({
+    # Add explicit dependency on toggle_region to force re-render
+    req(input$toggle_region)
+
     sel <- NULL
-    if (!is.null(restored_location)) {
-      sel <- tryCatch({ restored_location() }, error = function(e) NULL)
-    }
     force_mode <- NULL
-    if (!is.null(restored_aggregation)) {
-      force_mode <- tryCatch({ restored_aggregation() }, error = function(e) NULL)
+
+    # Only use restoration values when actively restoring
+    if (!is.null(restoring_inputs) && isTRUE(restoring_inputs())) {
+      if (!is.null(restored_location)) {
+        sel <- tryCatch({ restored_location() }, error = function(e) NULL)
+      }
+      if (!is.null(restored_aggregation)) {
+        force_mode <- tryCatch({ restored_aggregation() }, error = function(e) NULL)
+      }
     }
+
     location_selector_ui(input, i18n, selected_value = sel, force_mode = force_mode)
   })
 
