@@ -355,9 +355,7 @@ app_ui <- function(request) {
         div(
           id = "pop_page",
           div(
-            style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_input_page", i18n$translate("< Previous"), class = "ui grey button"),
-            action_button("forward_tfr_page", i18n$translate("Next >"), class = "ui blue button"),
+            style = "display: flex; gap: 10px; align-items: center;",
             action_button("pop_help", i18n$translate("Instructions"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
@@ -374,13 +372,8 @@ app_ui <- function(request) {
         div(
           id = "tfr_page",
           div(
-            style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_pop_page", i18n$translate("< Previous"), class = "ui grey button"),
-            action_button("forward_e0_page", i18n$translate("Next >"), class = "ui blue button"),
-            div(
-              style = "margin-left: auto;",
-              action_button("customize_tfr", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
-            )
+            style = "display: flex; gap: 10px; justify-content: flex-end;",
+            action_button("customize_tfr", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
           ),
           uiOutput("popup_tfr"),
           br(),
@@ -391,13 +384,8 @@ app_ui <- function(request) {
         div(
           id = "e0_page",
           div(
-            style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_tfr_page", i18n$translate("< Previous"), class = "ui grey button"),
-            action_button("forward_mig_page", i18n$translate("Next >"), class = "ui blue button"),
-            div(
-              style = "margin-left: auto;",
-              action_button("customize_e0", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
-            )
+            style = "display: flex; gap: 10px; justify-content: flex-end;",
+            action_button("customize_e0", i18n$translate("Customize"), icon = icon("refresh"), class = "ui blue button")
           ),
           uiOutput("popup_e0"),
           br(),
@@ -408,8 +396,7 @@ app_ui <- function(request) {
         div(
           id = "mig_page",
           div(
-            style = "display: flex; gap: 10px;", # 20px gap between buttons
-            action_button("back_to_e0_page", i18n$translate("< Previous"), class = "ui grey button"),
+            style = "display: flex; gap: 10px; align-items: center;",
             action_button("begin", i18n$translate("Run Projection"), class = "ui blue button"),
             div(
               style = "margin-left: auto;",
@@ -426,11 +413,7 @@ app_ui <- function(request) {
           id = "forecast_page",
           div(
             style = "display: flex; gap: 20px;", # 20px gap between buttons
-            div(
-              style = "display: flex; gap: 5px;",
-              action_button("back_to_mig_page", i18n$translate("< Previous"), class = "ui grey button"),
-              uiOutput("forecast_help_ui")
-            ),
+            div(uiOutput("forecast_help_ui")),
             div(
               style = "margin-left: auto; display: flex; gap: 10px; align-items: center;",
               downloadButton("download_report", i18n$translate("Download Report"), class = "ui blue button"),

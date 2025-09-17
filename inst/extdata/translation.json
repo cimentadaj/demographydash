@@ -1335,6 +1335,10 @@
         "fr": "Seulement 3 simulations sont autorisées"
       },
       {
+        "en": "Use the sidebar navigation to move between steps.",
+        "fr": "Utilisez le menu latéral pour passer d'une étape à l'autre."
+      },
+      {
         "en": "Current simulation:",
         "fr": "Simulation actuelle:"
       },

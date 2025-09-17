@@ -1535,20 +1535,6 @@ handle_navigation <- function(
     current_tab("input_page")
   })
 
-  # In handle_navigation function, add this new observer:
-  observeEvent(input$back_to_landing, {
-    hide("input_page")
-    show("landing_page")
-    hide("left_menu")
-    current_tab("landing_page")
-  })
-
-  observeEvent(input$back_to_input_page, {
-    hide("pop_page")
-    show("input_page")
-    current_tab("input_page")
-  })
-
   # Sidebar navigation
   observeEvent(input$nav_input, {
     hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
@@ -1647,7 +1633,15 @@ handle_navigation <- function(
         }
       }
     }, silent = TRUE)
-    # Page compute debug
+    if (isTRUE(show_tfr_modal())) {
+      show_modal("modal_passtfr")
+    } else {
+      show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
+    }
+    show_tfr_modal(FALSE)
+  })
+
+  observeEvent(input$change_source_btn, {
     show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
   })
 
@@ -1661,6 +1655,7 @@ handle_navigation <- function(
     hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page")
     show("e0_page")
     current_tab("e0_page")
+    hide_modal("modal_passtfr")
     # Rehydrate e0 if missing
     try({
       if (!is.null(e0_to_commit_rv) && is.null(e0_to_commit_rv())) {
@@ -1728,30 +1723,6 @@ handle_navigation <- function(
     curr_sig <- paste0(input$toggle_region, "|", input$wpp_country, "|", input$wpp_starting_year, "|", input$wpp_ending_year)
     cat("[PAGE_COMPUTE_DEBUG] page=mig sim=", input$sim_switcher, " curr_sig=", curr_sig, "\n", sep = "")
     show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
-  })
-
-  observeEvent(input$back_to_pop_page, {
-    hide("tfr_page")
-    show("pop_page")
-    current_tab("pop_page")
-  })
-
-  observeEvent(input$back_to_tfr_page, {
-    hide("e0_page")
-    show("tfr_page")
-    current_tab("tfr_page")
-  })
-
-  observeEvent(input$back_to_e0_page, {
-    hide("mig_page")
-    show("e0_page")
-    current_tab("e0_page")
-  })
-
-  observeEvent(input$back_to_mig_page, {
-    hide("forecast_page")
-    show("mig_page")
-    current_tab("mig_page")
   })
 
   observeEvent(input$forward_pop_page, {
@@ -1852,34 +1823,6 @@ handle_navigation <- function(
     },
     ignoreInit = TRUE
   )
-
-  observeEvent(input$forward_tfr_page, {
-    if (show_tfr_modal()) {
-      show_modal("modal_passtfr")
-    } else {
-      show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
-    }
-
-    show_tfr_modal(FALSE)
-  })
-
-  observeEvent(input$change_source_btn, {
-    show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
-  })
-
-  observeEvent(input$forward_e0_page, {
-    hide_modal("modal_passtfr")
-    hide("tfr_page")
-    show("e0_page")
-    show_e0(reactive_e0, wpp_ending_year, input, output, i18n)
-  })
-
-  observeEvent(input$forward_mig_page, {
-    hide("e0_page")
-    show("mig_page")
-    show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
-  })
-
 
   observeEvent(input$pass_source_btn, {
     hide_modal("modal_passtfr")

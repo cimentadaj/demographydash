@@ -1488,16 +1488,18 @@ app_server <- function(input, output, session) {
     sim_progressed(TRUE)
   }, ignoreInit = TRUE)
 
-  observeEvent(input$forward_tfr_page, {
+  observeEvent(input$nav_tfr, {
+    if (!isTRUE(input_next_clicked())) return()
     save_sim_metadata(trigger = "forward_tfr_page")
     save_population_files(trigger = "forward_tfr_page")
     save_tfr_files(trigger = "forward_tfr_page")
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)
-  }, ignoreInit = TRUE)
+  }, ignoreNULL = TRUE)
 
-  observeEvent(input$forward_e0_page, {
+  observeEvent(input$nav_e0, {
+    if (!isTRUE(input_next_clicked())) return()
     save_sim_metadata(trigger = "forward_e0_page")
     save_population_files(trigger = "forward_e0_page")
     save_tfr_files(trigger = "forward_e0_page")
@@ -1505,9 +1507,10 @@ app_server <- function(input, output, session) {
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)
-  }, ignoreInit = TRUE)
+  }, ignoreNULL = TRUE)
 
-  observeEvent(input$forward_mig_page, {
+  observeEvent(input$nav_mig, {
+    if (!isTRUE(input_next_clicked())) return()
     save_sim_metadata(trigger = "forward_mig_page")
     save_population_files(trigger = "forward_mig_page")
     save_tfr_files(trigger = "forward_mig_page")
@@ -1516,7 +1519,7 @@ app_server <- function(input, output, session) {
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)
-  }, ignoreInit = TRUE)
+  }, ignoreNULL = TRUE)
 
   # Run Projection from sidebar (same behavior as migration page button)
   observeEvent(input$nav_run_projection, ignoreInit = TRUE, {
@@ -1573,16 +1576,7 @@ observeEvent(input$nav_forecast, {
   observeEvent(input$nav_e0, { save_current_page("e0_page") })
   observeEvent(input$nav_mig, { save_current_page("mig_page") })
   observeEvent(input$start_analysis, { save_current_page("input_page") })
-  observeEvent(input$back_to_landing, { save_current_page("landing_page") })
-  observeEvent(input$back_to_input_page, { save_current_page("input_page") })
-  observeEvent(input$back_to_pop_page, { save_current_page("pop_page") })
-  observeEvent(input$back_to_tfr_page, { save_current_page("tfr_page") })
-  observeEvent(input$back_to_e0_page, { save_current_page("e0_page") })
-  observeEvent(input$back_to_mig_page, { save_current_page("mig_page") })
   observeEvent(input$forward_pop_page, { save_current_page("pop_page") })
-  observeEvent(input$forward_tfr_page, { save_current_page("tfr_page") })
-  observeEvent(input$forward_e0_page, { save_current_page("e0_page") })
-  observeEvent(input$forward_mig_page, { save_current_page("mig_page") })
   observeEvent(input$begin, { save_current_page("forecast_page") })
   observeEvent(input$pass_source_btn, { save_current_page("forecast_page") })
   observeEvent(input$nav_forecast, { save_current_page("forecast_page") })
@@ -1787,11 +1781,11 @@ observeEvent(input$nav_forecast, {
     if (current_tab() == "pop_page") {
       rintrojs::introjs(session, options = list(
         steps = data.frame(
-          element = c("#customize_pop", "#show_pop_results_ui", "#forward_tfr_page"),
+          element = c("#customize_pop", "#show_pop_results_ui", "#left_menu"),
           intro = c(
             i18n$translate("Click here to upload your own data for the starting year of the chosen country"),
             i18n$translate("This is the current population values for the starting year of the chosen country"),
-            i18n$translate("When ready, click here to go to the next steps. If you want to upload your own data for other indicators, the interface will be similar to this one.")
+            i18n$translate("Use the sidebar navigation to move between steps.")
           )
         )
       ))
