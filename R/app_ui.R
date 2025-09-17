@@ -22,17 +22,17 @@ app_ui <- function(request) {
 
         /* Left menu layout */
         .dd-layout { display: flex; min-height: 100vh; padding-left: 12px; }
-        #left_menu { width: 255px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.234); z-index: 2; }
+        #left_menu { width: 255px; background: transparent; border: none; position: fixed; left: 12px; top: calc(var(--app-top-offset) + (100vh - var(--app-top-offset)) * 0.18); z-index: 2; }
         #left_menu .menu-inner {
           position: sticky;
           top: var(--app-top-offset);
-          height: calc((100vh - var(--app-top-offset)) * 0.432);
+          height: calc((100vh - var(--app-top-offset)) * 0.47);
           overflow: auto;
           padding: 8px;
           background: #ffffff;
           border: 2px solid rgba(0,0,0,0.3);
           border-radius: 10px;
-          overflow: hidden;
+          -webkit-overflow-scrolling: touch;
         }
         #main_content { flex: 1; padding: 0; }
 
