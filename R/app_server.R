@@ -665,14 +665,6 @@ app_server <- function(input, output, session) {
     )
   })
 
-  output$no_sims_state <- shiny::renderUI({
-    if (length(names(simulations$data)) == 0) {
-      shiny::div(class = "ui message", i18n$translate("No simulations yet. Click 'Add a new simulation' to begin."))
-    } else {
-      NULL
-    }
-  })
-
   # Initialize sim from URL (if present)
   observe({
     qry <- isolate(session$clientData$url_search)

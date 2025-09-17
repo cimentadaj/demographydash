@@ -286,7 +286,6 @@ app_ui <- function(request) {
               uiOutput("sim_header"),
               uiOutput("new_sim_inline"),
               uiOutput("sim_switcher_ui"),
-              uiOutput("no_sims_state"),
               div(class = "menu-actions", action_button("add_sim", i18n$translate("Add a new simulation"), icon = icon("plus"), class = "ui primary button")),
               tags$div(class = "ui small header", i18n$translate("Navigation")),
               tags$div(class = "ui list",
