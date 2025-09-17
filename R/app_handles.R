@@ -1519,7 +1519,9 @@ handle_navigation <- function(
   tfr_to_commit_rv = NULL,
   e0_to_commit_rv = NULL,
   mig_to_commit_rv = NULL,
-  restoring_inputs = NULL
+  restoring_inputs = NULL,
+  # Save functions
+  save_population_files = NULL
 ) {
 
   processing <- reactiveVal(TRUE)
@@ -1770,6 +1772,10 @@ handle_navigation <- function(
           }, silent = TRUE)
           output$show_pop_results_ui <- renderUI({
             create_pop_pyramid_plot(reactive_pop(), country = input$wpp_country, input_year = wpp_starting_year(), i18n = i18n)
+            # Save files now that data is loaded
+            if (!is.null(save_population_files)) {
+              try({ save_population_files(trigger = "pop_page_loaded") }, silent = TRUE)
+            }
             res <- show_pop_results_ui(data_source = pop_data_source(), i18n = i18n)
             processing(FALSE); res
           })
@@ -1807,6 +1813,13 @@ handle_navigation <- function(
         input_year = wpp_starting_year(),
         i18n = i18n
       )
+
+      # Save population files now that data is loaded
+      if (!is.null(save_population_files)) {
+        try({
+          save_population_files(trigger = "pop_page_loaded")
+        }, silent = TRUE)
+      }
 
       res <- show_pop_results_ui(data_source = pop_data_source(), i18n = i18n)
       processing(FALSE)

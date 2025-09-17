@@ -251,7 +251,7 @@ CBR and TFR
 ## 16th September 2025
 
 - [ ] Remove next/previous button
-- [ ] Ensure after clicking next, it goes directly to loading and not stop on the input page
+- [X] Ensure after clicking next, it goes directly to loading and not stop on the input page
 - [ ] Remove tmp directory after session is ended
 - [ ] Ability to remove sims
 - [ ] Do we need to save user id in the tmp directory? So that sims with the same name across users are not shared? Unsure about this.

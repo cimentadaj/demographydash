@@ -337,7 +337,16 @@ app_server <- function(input, output, session) {
     if (is.null(pop_dt)) {
       # If a committed dataset exists, use it; else use current reactive_pop()
       pop_dt <- tryCatch({ committed_pop_rv() }, error = function(e) NULL)
-      if (is.null(pop_dt)) pop_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+
+      # Skip calling reactive_pop() on forward_pop_page if no committed data exists
+      # This prevents blocking the UI during page transition
+      if (is.null(pop_dt)) {
+        if (!is.null(trigger) && trigger == "forward_pop_page") {
+          cat("[PHASE4] Skipping population file save on forward_pop_page - no data yet\n")
+          return(invisible(NULL))
+        }
+        pop_dt <- tryCatch({ reactive_pop() }, error = function(e) NULL)
+      }
     }
     if (is.null(pop_dt)) return(invisible(NULL))
 
@@ -1926,7 +1935,8 @@ observeEvent(input$nav_forecast, {
     tfr_to_commit_rv = committed_tfr_rv,
     e0_to_commit_rv = committed_e0_rv,
     mig_to_commit_rv = committed_mig_rv,
-    restoring_inputs = restoring_inputs
+    restoring_inputs = restoring_inputs,
+    save_population_files = save_population_files
   )
 
   # Handle all customize actions
