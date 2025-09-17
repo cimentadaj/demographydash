@@ -624,7 +624,30 @@ app_server <- function(input, output, session) {
     sim_names <- names(simulations$data)
     if (length(sim_names) == 0) return(NULL)
     selected <- if (!is.null(simulations$current) && simulations$current %in% sim_names) simulations$current else sim_names[[1]]
-    shiny::selectInput("sim_switcher", label = NULL, choices = sim_names, selected = selected, width = "100%")
+
+    pill_nodes <- lapply(sim_names, function(sim_name) {
+      classes <- c("sim-pill", if (identical(sim_name, selected)) "active" else NULL)
+      shiny::tags$div(
+        class = paste(classes, collapse = " "),
+        `data-sim` = sim_name,
+        onclick = "Shiny.setInputValue('sim_switcher_click', this.dataset.sim, {priority: 'event'})",
+        shiny::tags$span(sim_name),
+        shiny::tags$span(
+          class = "sim-pill-remove",
+          `data-sim` = sim_name,
+          onclick = "event.stopPropagation(); Shiny.setInputValue('remove_sim', this.dataset.sim, {priority: 'event'})",
+          "x"
+        )
+      )
+    })
+
+    shiny::tagList(
+      shiny::div(
+        class = "hidden-sim-select",
+        shiny::selectInput("sim_switcher", label = NULL, choices = sim_names, selected = selected)
+      ),
+      shiny::div(class = "sim-pill-container", do.call(shiny::tagList, pill_nodes))
+    )
   })
 
   # Conditionally render a 'Projection Results' nav link when results exist for current sim
@@ -656,7 +679,7 @@ app_server <- function(input, output, session) {
     if (!is.null(qry) && nzchar(qry)) {
       params <- shiny::parseQueryString(sub("^\\?", "", qry))
       if (!is.null(params$sim)) {
-        shiny::updateSelectInput(session, "sim_switcher", selected = params$sim)
+        shiny.semantic::updateSelectInput(session, "sim_switcher", selected = params$sim)
       }
     }
   })
@@ -664,6 +687,13 @@ app_server <- function(input, output, session) {
   # Update URL when simulation changes (preserve other params)
   # Add flag to track when we're creating a new simulation to avoid restore logic
   creating_new_sim <- reactiveVal(FALSE)
+
+  observeEvent(input$sim_switcher_click, {
+    clicked_sim <- input$sim_switcher_click
+    if (is.null(clicked_sim) || !nzchar(clicked_sim)) return()
+    if (!clicked_sim %in% names(simulations$data)) return()
+    shiny.semantic::updateSelectInput(session, "sim_switcher", selected = clicked_sim)
+  })
 
   observeEvent(input$sim_switcher, ignoreInit = TRUE, {
     switching_sims(TRUE)
@@ -765,15 +795,67 @@ app_server <- function(input, output, session) {
     cat("[SIM_SWITCH] ================================================\n")
   })
 
+  observeEvent(input$remove_sim, {
+    sim_to_remove <- input$remove_sim
+    if (is.null(sim_to_remove) || !nzchar(sim_to_remove)) return()
+
+    sim_names <- names(simulations$data)
+    if (!(sim_to_remove %in% sim_names)) return()
+
+    cat("[SIM_REMOVE] ================================================\n")
+    cat("[SIM_REMOVE] Removing simulation:", sim_to_remove, "\n")
+    cat("[SIM_REMOVE] Timestamp:", Sys.time(), "\n")
+
+    # Remove from reactive store
+    simulations$data[[sim_to_remove]] <- NULL
+
+    # Clean up simulation directory on disk
+    sim_dir <- file.path(sim_base_dir, sim_to_remove)
+    try({ unlink(sim_dir, recursive = TRUE, force = TRUE) }, silent = TRUE)
+
+    remaining <- names(simulations$data)
+    removing_current <- identical(simulations$current, sim_to_remove)
+
+    if (length(remaining) == 0) {
+      cat("[SIM_REMOVE] No simulations remain after removal.\n")
+      simulations$current <- NULL
+      reset_simulation_state()
+      shiny.semantic::updateSelectInput(session, "sim_switcher", choices = remaining, selected = NULL)
+      go_to_page("input_page")
+      cat("[SIM_REMOVE] ================================================\n")
+      return()
+    }
+
+    next_sim <- if (!removing_current && !is.null(simulations$current) && simulations$current %in% remaining) {
+      simulations$current
+    } else {
+      remaining[[1]]
+    }
+
+    simulations$current <- next_sim
+    shiny.semantic::updateSelectInput(session, "sim_switcher", choices = remaining, selected = next_sim)
+
+    cat("[SIM_REMOVE] Switched focus to:", next_sim, "\n")
+    cat("[SIM_REMOVE] Remaining simulations:", paste(remaining, collapse = ", "), "\n")
+    cat("[SIM_REMOVE] ================================================\n")
+  })
+
   # Respond to back/forward navigation updates from JS
   observeEvent(input$sim_from_url, {
     if (is.null(input$sim_from_url)) return()
-    shiny::updateSelectInput(session, "sim_switcher", selected = input$sim_from_url)
+    shiny.semantic::updateSelectInput(session, "sim_switcher", selected = input$sim_from_url)
   })
 
     # New Simulation inline flow (sidebar)
   new_sim_form_visible <- reactiveVal(FALSE)
-  observeEvent(input$add_sim, { new_sim_form_visible(TRUE) })
+  observeEvent(input$add_sim, {
+    if (length(names(simulations$data)) >= 3) {
+      shiny::showNotification(i18n$translate("You can only keep up to three simulations at a time"), type = "warning")
+      new_sim_form_visible(FALSE)
+      return()
+    }
+    new_sim_form_visible(TRUE)
+  })
 
   output$new_sim_inline <- shiny::renderUI({
     if (!isTRUE(new_sim_form_visible())) return(NULL)
@@ -790,6 +872,16 @@ app_server <- function(input, output, session) {
   })
 
   observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
+
+  observe({
+    total_sims <- length(names(simulations$data))
+    if (total_sims >= 3) {
+      shinyjs::disable("add_sim")
+      new_sim_form_visible(FALSE)
+    } else {
+      shinyjs::enable("add_sim")
+    }
+  })
 
   # Central widget management functions
   reset_modal_widgets <- function(session) {
@@ -1231,6 +1323,11 @@ app_server <- function(input, output, session) {
   }
 
   observeEvent(input$create_sim_confirm, {
+    if (length(names(simulations$data)) >= 3) {
+      shiny::showNotification(i18n$translate("You can only keep up to three simulations at a time"), type = "error")
+      new_sim_form_visible(FALSE)
+      return()
+    }
     nm <- input$new_sim_name
     if (is.null(nm) || !nzchar(trimws(nm))) {
       shiny::showNotification(i18n$translate("Please enter a simulation name"), type = "error")

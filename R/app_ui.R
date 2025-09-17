@@ -204,6 +204,57 @@ app_ui <- function(request) {
         box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
         background-color: #1678c2;
       }
+
+      /* Simulation pill styles */
+      .sim-pill-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      .sim-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        padding: 4px 10px;
+        background-color: #eef1f6;
+        color: #1b1c1d;
+        font-size: 0.9em;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .sim-pill:hover {
+        background-color: #dce6f5;
+      }
+
+      .sim-pill.active {
+        background-color: #1b6ec2;
+        color: #ffffff;
+      }
+
+      .sim-pill-remove {
+        margin-left: 8px;
+        font-size: 0.85em;
+        font-weight: 600;
+        color: inherit;
+        opacity: 0.7;
+      }
+
+      .sim-pill-remove:hover {
+        opacity: 1;
+        color: #f2711c;
+      }
+
+      .sim-pill.active .sim-pill-remove:hover {
+        color: #ffd7ba;
+      }
+
+      .hidden-sim-select {
+        display: none !important;
+      }
       
       /* Override untheme .content width constraint for modals */
       .ui.modal > .content {
