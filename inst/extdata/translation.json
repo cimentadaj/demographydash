@@ -1363,6 +1363,10 @@
         "fr": "Veuillez d'abord ajouter et sélectionner une simulation (utilisez '+ Ajouter une nouvelle simulation')"
       },
       {
+        "en": "Projection Settings",
+        "fr": "Paramètres de projection"
+      },
+      {
         "en": "Input",
         "fr": "Entrée"
       },

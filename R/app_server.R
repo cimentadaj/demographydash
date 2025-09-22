@@ -678,7 +678,7 @@ app_server <- function(input, output, session) {
 
   output$nav_list_ui <- shiny::renderUI({
     nav_items <- list(
-      list(page = "input_page", trigger = "nav_input", label = i18n$translate("Input")),
+      list(page = "input_page", trigger = "nav_input", label = i18n$translate("Projection Settings")),
       list(page = "pop_page", trigger = "nav_pop", label = i18n$translate("Population")),
       list(page = "tfr_page", trigger = "nav_tfr", label = i18n$translate("TFR")),
       list(page = "e0_page", trigger = "nav_e0", label = i18n$translate("Life Expectancy")),
