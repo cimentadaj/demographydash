@@ -179,6 +179,7 @@ app_server <- function(input, output, session) {
     data = list()
   )
   sim_draft_name <- reactiveVal(NULL)
+  pending_sim_removal <- reactiveVal(NULL)
 
   # Track last computed signature to invalidate results when inputs change
   last_computed_signature <- reactiveVal(NULL)
@@ -615,6 +616,28 @@ app_server <- function(input, output, session) {
   }
 
   # Dynamic header and dropdown for simulations (Phase 2)
+  output$confirm_remove_sim_modal <- shiny::renderUI({
+    shiny.semantic::modal(
+      id = "confirm_remove_sim",
+      header = shiny::div(class = "ui header", i18n$translate("Delete simulation?")),
+      shiny::div(shiny::textOutput("confirm_remove_sim_message")),
+      footer = shiny::div(
+        class = "actions",
+        shiny.semantic::action_button("confirm_remove_sim_btn", i18n$translate("Delete"), class = "ui red button")
+      ),
+      class = "small"
+    )
+  })
+
+  output$confirm_remove_sim_message <- shiny::renderText({
+    sim_name <- pending_sim_removal()
+    template <- i18n$translate("Are you sure you want to delete the simulation \"%s\"? This action cannot be undone.")
+    if (is.null(sim_name) || !nzchar(sim_name)) {
+      return("")
+    }
+    sprintf(template, sim_name)
+  })
+
   output$sim_header <- shiny::renderUI({
     n <- length(names(simulations$data))
     shiny::tags$h4(class = "ui header sim-header", paste0(i18n$translate("Simulations"), " (", n, ")"))
@@ -843,8 +866,7 @@ app_server <- function(input, output, session) {
     cat("[SIM_SWITCH] ================================================\n")
   })
 
-  observeEvent(input$remove_sim, {
-    sim_to_remove <- input$remove_sim
+  perform_sim_removal <- function(sim_to_remove) {
     if (is.null(sim_to_remove) || !nzchar(sim_to_remove)) return()
 
     sim_names <- names(simulations$data)
@@ -854,10 +876,8 @@ app_server <- function(input, output, session) {
     cat("[SIM_REMOVE] Removing simulation:", sim_to_remove, "\n")
     cat("[SIM_REMOVE] Timestamp:", Sys.time(), "\n")
 
-    # Remove from reactive store
     simulations$data[[sim_to_remove]] <- NULL
 
-    # Clean up simulation directory on disk
     sim_dir <- file.path(sim_base_dir, sim_to_remove)
     try({ unlink(sim_dir, recursive = TRUE, force = TRUE) }, silent = TRUE)
 
@@ -886,6 +906,24 @@ app_server <- function(input, output, session) {
     cat("[SIM_REMOVE] Switched focus to:", next_sim, "\n")
     cat("[SIM_REMOVE] Remaining simulations:", paste(remaining, collapse = ", "), "\n")
     cat("[SIM_REMOVE] ================================================\n")
+  }
+
+  observeEvent(input$remove_sim, {
+    sim_to_remove <- input$remove_sim
+    if (is.null(sim_to_remove) || !nzchar(sim_to_remove)) return()
+
+    sim_names <- names(simulations$data)
+    if (!(sim_to_remove %in% sim_names)) return()
+
+    pending_sim_removal(sim_to_remove)
+    shiny.semantic::show_modal("confirm_remove_sim")
+  })
+
+  observeEvent(input$confirm_remove_sim_btn, {
+    sim_to_remove <- pending_sim_removal()
+    pending_sim_removal(NULL)
+    shiny.semantic::hide_modal("confirm_remove_sim")
+    perform_sim_removal(sim_to_remove)
   })
 
   # Respond to back/forward navigation updates from JS

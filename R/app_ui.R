@@ -330,6 +330,8 @@ app_ui <- function(request) {
             )
           )
         ),
+
+        uiOutput("confirm_remove_sim_modal"),
         
         # Main content
         div(
