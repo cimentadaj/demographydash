@@ -882,9 +882,34 @@
       "es": "Estructura de datos"
     },
     {
+      "en": "The oldest age group that will aggregate all ages above it (e.g., 85+ means all people 85 and older)",
+      "fr": "Le groupe d'âge le plus élevé regroupera toutes les personnes plus âgées (par exemple, 85+ signifie toutes les personnes de 85 ans et plus)",
+      "es": "El grupo de edad más alto que agregará todas las edades superiores (p. ej., 85+ significa todas las personas de 85 años o más)"
+    },
+    {
+      "en": "UN Data reset to original",
+      "fr": "Données ONU réinitialisées",
+      "es": "Datos de la ONU restablecidos"
+    },
+    {
+      "en": "Population data updated successfully",
+      "fr": "Données de population mises à jour avec succès",
+      "es": "Datos de población actualizados correctamente"
+    },
+    {
+      "en": "Open Age Group",
+      "fr": "Groupe d'âge ouvert",
+      "es": "Grupo de edad abierto"
+    },
+    {
       "en": "Age Type",
       "fr": "Type d'âge",
       "es": "Tipo de edad"
+    },
+    {
+      "en": "Method to convert 5-year age groups into single ages. Beers Ordinary is recommended for demographic data",
+      "fr": "Méthode pour convertir des groupes d'âge de 5 ans en âges simples. La méthode Beers ordinaire est recommandée pour les données démographiques",
+      "es": "Método para convertir grupos de edad de 5 años en edades simples. Se recomienda Beers ordinario para datos demográficos"
     },
     {
       "en": "Single Ages",
@@ -897,9 +922,49 @@
       "es": "Grupos de 5 años"
     },
     {
+      "en": "Enter a simulation name",
+      "fr": "Entrez un nom de simulation",
+      "es": "Introduzca un nombre de simulación"
+    },
+    {
       "en": "Explore UN Estimates 🌐",
       "fr": "Explorer les estimations de l'ONU 🌐",
       "es": "Explore las estimaciones de la ONU 🌐"
+    },
+    {
+      "en": "No processing required for single ages with OAG 100+",
+      "fr": "Aucun traitement requis pour les âges simples avec OAG 100+",
+      "es": "No se requiere procesamiento para edades simples con OAG 100+"
+    },
+    {
+      "en": "No extrapolation needed for OAG 100+",
+      "fr": "Aucune extrapolation nécessaire pour un OAG de 100+",
+      "es": "No se requiere extrapolación para OAG 100+"
+    },
+    {
+      "en": "OAG will be automatically extended to 100+",
+      "fr": "L'OAG sera automatiquement étendu à 100+",
+      "es": "El OAG se extenderá automáticamente a 100+"
+    },
+    {
+      "en": "Reference Date",
+      "fr": "Date de référence",
+      "es": "Fecha de referencia"
+    },
+    {
+      "en": "The date your population data represents. Used to align projections to specific time points",
+      "fr": "La date à laquelle vos données de population se rapportent. Utilisée pour aligner les projections sur des points temporels spécifiques",
+      "es": "La fecha que representan sus datos de población. Se utiliza para alinear las proyecciones con momentos específicos"
+    },
+    {
+      "en": "Processing Methods",
+      "fr": "Méthodes de traitement",
+      "es": "Métodos de procesamiento"
+    },
+    {
+      "en": "Interpolation",
+      "fr": "Interpolation",
+      "es": "Interpolación"
     },
     {
       "en": "🔢 The data shown here are estimates from the United Nations<br/>\n🔄 Click 'Customize' to enter your own data<br/>\n🧮 Upload: starting population by sex and single year of age with an open age interval of 100+",
@@ -1437,9 +1502,19 @@
       "es": "Tasa bruta de natalidad y tasa global de fecundidad:"
     },
     {
+      "en": "Crude birth rate and total fertility rate",
+      "fr": "Taux brut de natalité et indice synthétique de fécondité",
+      "es": "Tasa bruta de natalidad y tasa global de fecundidad"
+    },
+    {
       "en": "Crude death rate and life expectancy at birth:",
       "fr": "Taux brut de mortalité et espérance de vie à la naissance:",
       "es": "Tasa bruta de mortalidad y esperanza de vida al nacer:"
+    },
+    {
+      "en": "Crude death rate and life expectancy at birth",
+      "fr": "Taux brut de mortalité et espérance de vie à la naissance",
+      "es": "Tasa bruta de mortalidad y esperanza de vida al nacer"
     },
     {
       "en": "% of population 65+",
@@ -1455,6 +1530,11 @@
       "en": "Population size and percent of population 65+:",
       "fr": "Taille de la population et pourcentage de la population âgée de 65+",
       "es": "Tamaño de la población y porcentaje de población de 65+:"
+    },
+    {
+      "en": "Population size and percent of population 65+",
+      "fr": "Taille de la population et pourcentage de la population âgée de 65+",
+      "es": "Tamaño de la población y porcentaje de población de 65+"
     },
     {
       "en": "year",

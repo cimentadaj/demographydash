@@ -302,7 +302,7 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                     c("Single Ages", "5-Year Groups"),
                     if (!is.null(i18n)) i18n$translate(c("Single Ages", "5-Year Groups")) else c("Single Ages", "5-Year Groups")
                   ),
-                  selected = if (!is.null(i18n)) i18n$translate("Single Ages") else "Single Ages",
+                  selected = "Single Ages",
                   width = "100%"
                 )
               ),
@@ -332,13 +332,16 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                     class = "field",
                     style = "margin-bottom: 0;",
                     tags$label(style = "font-size: 0.9em;", if (!is.null(i18n)) i18n$t("Age Type") else "Age Type"),
-                    selectInput(
-                      paste0(modal_id, "_age_type"),
-                      NULL,
-                      choices = c("Single Ages", "5-Year Groups"),
-                      selected = "Single Ages",
-                      width = "100%"
-                    )
+                selectInput(
+                  paste0(modal_id, "_age_type"),
+                  NULL,
+                  choices = setNames(
+                    c("Single Ages", "5-Year Groups"),
+                    if (!is.null(i18n)) i18n$translate(c("Single Ages", "5-Year Groups")) else c("Single Ages", "5-Year Groups")
+                  ),
+                  selected = "Single Ages",
+                  width = "100%"
+                )
                   ),
                   div(
                     class = "field",
