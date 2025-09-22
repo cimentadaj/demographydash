@@ -1168,11 +1168,14 @@ prepare_pop_agegroups_table <- function(wpp_dt, i18n) {
 
   summary_table$population <- NULL
   summary_table$percentage <- paste0(summary_table$percentage, "%")
-  names(summary_table) <- c(i18n$t("Age groups"), i18n$t("Population"), i18n$t("Percentage"))
+  names(summary_table) <- c("age_group", "population", "percentage")
   row.names(summary_table) <- NULL
+
+  display_names <- i18n$translate(c("Age groups", "Population", "Percentage"))
 
   DT::datatable(
     summary_table,
+    colnames = display_names,
     options = list(
       responsive = TRUE,
       paging = FALSE, # Disable pagination
