@@ -635,7 +635,7 @@ app_server <- function(input, output, session) {
     input$selected_language
 
     sim_name <- pending_sim_removal()
-    template <- i18n$translate("Are you sure you want to delete the simulation \"%s\"? This action cannot be undone.")
+    template <- i18n$translate("Are you sure you want to delete the simulation '%s'? This action cannot be undone.")
     if (is.null(sim_name) || !nzchar(sim_name)) {
       return("")
     }
