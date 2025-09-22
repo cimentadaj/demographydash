@@ -619,11 +619,11 @@ app_server <- function(input, output, session) {
   output$confirm_remove_sim_modal <- shiny::renderUI({
     shiny.semantic::modal(
       id = "confirm_remove_sim",
-      header = shiny::div(class = "ui header", i18n$translate("Delete simulation?")),
+      header = shiny::div(class = "ui header", i18n$t("Delete simulation?")),
       shiny::div(shiny::textOutput("confirm_remove_sim_message")),
       footer = shiny::div(
         class = "actions",
-        shiny.semantic::action_button("confirm_remove_sim_btn", i18n$translate("Delete"), class = "ui red button")
+        shiny.semantic::action_button("confirm_remove_sim_btn", i18n$t("Delete"), class = "ui red button")
       ),
       class = "small"
     )
