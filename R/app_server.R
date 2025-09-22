@@ -617,19 +617,23 @@ app_server <- function(input, output, session) {
 
   # Dynamic header and dropdown for simulations (Phase 2)
   output$confirm_remove_sim_modal <- shiny::renderUI({
+    input$selected_language
+
     shiny.semantic::modal(
       id = "confirm_remove_sim",
-      header = shiny::div(class = "ui header", i18n$t("Delete simulation?")),
+      header = shiny::div(class = "ui header", i18n$translate("Delete simulation?")),
       shiny::div(shiny::textOutput("confirm_remove_sim_message")),
       footer = shiny::div(
         class = "actions",
-        shiny.semantic::action_button("confirm_remove_sim_btn", i18n$t("Delete"), class = "ui red button")
+        shiny.semantic::action_button("confirm_remove_sim_btn", i18n$translate("Delete"), class = "ui red button")
       ),
       class = "small"
     )
   })
 
   output$confirm_remove_sim_message <- shiny::renderText({
+    input$selected_language
+
     sim_name <- pending_sim_removal()
     template <- i18n$translate("Are you sure you want to delete the simulation \"%s\"? This action cannot be undone.")
     if (is.null(sim_name) || !nzchar(sim_name)) {
