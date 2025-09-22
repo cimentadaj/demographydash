@@ -87,6 +87,10 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
   # Set factor levels to ensure Males appears first in legend
   males_label <- i18n$translate("Males")
   females_label <- i18n$translate("Females")
+  sex_colors <- stats::setNames(
+    c("#F8766D", "#00BFC4"),
+    c(females_label, males_label)
+  )
   tmp_dt$Sex <- factor(tmp_dt$Sex, levels = c(males_label, females_label))
   
   names(tmp_dt) <- i18n$translate(names(tmp_dt))
@@ -99,6 +103,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
       aes(x = .data[[cols_nm[1]]], y = .data[[cols_nm[2]]], fill = .data[[cols_nm[3]]])
     ) +
     geom_bar(alpha = 0.7, stat = "identity") +
+    scale_fill_manual(values = sex_colors) +
     scale_x_discrete(breaks = seq(0, 100, by = 5)) +
     scale_y_continuous(labels = function(x) paste0(abs(x))) +
     coord_flip() +
@@ -190,7 +195,10 @@ create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
   names(dt_long) <- i18n$translate(names(dt_long))
   col_nm <- names(dt_long)
 
-  cl_translate <- setNames(c("#F8766D", "#00BFC4"), c(i18n$translate("Male"), i18n$translate("Female")))
+  cl_translate <- setNames(
+    c("#F8766D", "#00BFC4"),
+    c(i18n$translate("Female"), i18n$translate("Male"))
+  )
 
   # Create ggplot
   plt <- ggplot(
