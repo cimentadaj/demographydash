@@ -1800,9 +1800,11 @@ handle_navigation <- function(
           text = tags$div(
             style = "text-align: left;",
             HTML(
-              i18n$t("\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>
-              \xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>
-              \xF0\x9F\xA7\xAE Upload: starting population by sex and single year of age with an open age interval of 100+")
+              i18n$t(paste0(
+                "\xF0\x9F\x94\xA2 The data shown here are estimates from the United Nations<br/>\n",
+                "\xF0\x9F\x94\x84 Click 'Customize' to enter your own data<br/>\n",
+                "\xF0\x9F\xA7\xAE Upload: starting population by sex and single year of age with an open age interval of 100+"
+              ))
             )
           ),
           type = "info",
