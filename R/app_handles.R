@@ -298,8 +298,11 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
                 selectInput(
                   paste0(modal_id, "_un_age_type"),
                   NULL,
-                  choices = c("Single Ages", "5-Year Groups"),
-                  selected = "Single Ages",
+                  choices = setNames(
+                    c("Single Ages", "5-Year Groups"),
+                    if (!is.null(i18n)) i18n$translate(c("Single Ages", "5-Year Groups")) else c("Single Ages", "5-Year Groups")
+                  ),
+                  selected = if (!is.null(i18n)) i18n$translate("Single Ages") else "Single Ages",
                   width = "100%"
                 )
               ),
@@ -477,9 +480,9 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
           div(
             style = "color: #6b7280; font-size: 14px; line-height: 1.5;",
             if (!is.null(i18n)) {
-              i18n$t("Values in thousands \u2022 Decimals allowed: 450.2251 = 450,225 people \u2022 Commas OK: 3,551.917 = 3.55 million people")
+              i18n$t("Values in thousands • Decimals allowed: 450.2251 = 450,225 people • Commas OK: 3,551.917 = 3.55 million people")
             } else {
-              "Values in thousands \u2022 Decimals allowed: 450.2251 = 450,225 people \u2022 Commas OK: 3,551.917 = 3.55 million people"
+              "Values in thousands • Decimals allowed: 450.2251 = 450,225 people • Commas OK: 3,551.917 = 3.55 million people"
             }
           )
         )

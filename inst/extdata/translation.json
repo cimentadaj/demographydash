@@ -222,6 +222,16 @@
       "es": "Opciones de descarga"
     },
     {
+      "en": "Important: Population values are in thousands",
+      "fr": "Important : les valeurs de population sont en milliers",
+      "es": "Importante: los valores de población están en miles"
+    },
+    {
+      "en": "Values in thousands • Decimals allowed: 450.2251 = 450,225 people • Commas OK: 3,551.917 = 3.55 million people",
+      "fr": "Valeurs en milliers • Décimales autorisées : 450,2251 = 450 225 personnes • Virgules acceptées : 3 551,917 = 3,55 millions de personnes",
+      "es": "Valores en miles • Decimales permitidos: 450.2251 = 450,225 personas • Comas permitidas: 3,551.917 = 3.55 millones de personas"
+    },
+    {
       "en": "Select an option:",
       "fr": "Sélectionnez une option :",
       "es": "Seleccione una opción:"
@@ -860,6 +870,31 @@
       "en": "Ending Year",
       "fr": "Année de fin",
       "es": "Año final"
+    },
+    {
+      "en": "Data Configuration",
+      "fr": "Configuration des données",
+      "es": "Configuración de datos"
+    },
+    {
+      "en": "Data Structure",
+      "fr": "Structure des données",
+      "es": "Estructura de datos"
+    },
+    {
+      "en": "Age Type",
+      "fr": "Type d'âge",
+      "es": "Tipo de edad"
+    },
+    {
+      "en": "Single Ages",
+      "fr": "Âges simples",
+      "es": "Edades simples"
+    },
+    {
+      "en": "5-Year Groups",
+      "fr": "Groupes de 5 ans",
+      "es": "Grupos de 5 años"
     },
     {
       "en": "Explore UN Estimates 🌐",
