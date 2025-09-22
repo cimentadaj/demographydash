@@ -159,8 +159,11 @@ handle_before_analysis_plots <- function(reactive_pop, reactive_tfr, reactive_e0
   )
 
 
-  # Render population table
-  output$table_pop <- renderDT(prepare_pop_agegroups_table(reactive_pop(), i18n))
+  # Render population table (recompute when language changes)
+  output$table_pop <- renderDT({
+    input$selected_language
+    prepare_pop_agegroups_table(reactive_pop(), i18n)
+  })
 }
 
 #' Create a Custom Modal UI for Shiny
