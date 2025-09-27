@@ -131,7 +131,7 @@ app_server <- function(input, output, session) {
 
   # Helper to navigate to a specific page and keep sidebar state consistent
   go_to_page <- function(page_id) {
-    all_pages <- c("landing_page", "input_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "results_page")
+    all_pages <- c("landing_page", "input_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "compare_page", "results_page")
     for (p in all_pages) {
       shinyjs::hide(p)
     }
@@ -259,6 +259,18 @@ app_server <- function(input, output, session) {
     sim_dir
   }
 
+  read_simulation_results <- function(sim_name) {
+    if (is.null(sim_name) || !nzchar(sim_name)) return(NULL)
+    res_path <- file.path(sim_base_dir, sim_name, "results", "results.rds")
+    if (!file.exists(res_path)) return(NULL)
+    tryCatch({
+      readRDS(res_path)
+    }, error = function(e) {
+      cat("[COMPARE] Failed to read results for sim:", sim_name, "|", e$message, "\n")
+      NULL
+    })
+  }
+
   # --- Signature tracking for gating ---
   compute_input_signature <- function(agg, loc, sy, ey) {
     paste0(agg %||% "", "|", loc %||% "", "|", sy %||% "", "|", ey %||% "")
@@ -266,6 +278,47 @@ app_server <- function(input, output, session) {
   sim_saved_signature <- reactiveVal(NULL)
   sim_progressed <- reactiveVal(FALSE)
   results_invalidated <- reactiveVal(0)  # Trigger to force sidebar nav refresh
+
+  sims_with_results <- reactive({
+    results_invalidated()
+    sim_names <- names(simulations$data)
+    if (length(sim_names) == 0) return(character(0))
+    has_results <- vapply(
+      sim_names,
+      function(sim) {
+        file.exists(file.path(sim_base_dir, sim, "results", "results.rds"))
+      },
+      logical(1)
+    )
+    sim_names[has_results]
+  })
+
+  compare_pop_time_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      pop_time <- tryCatch({ res$population_by_time }, error = function(e) NULL)
+      if (is.null(pop_time)) return(NULL)
+      dt <- data.table::as.data.table(pop_time)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "age", "pop", "un_pop_median", "un_pop_95low", "un_pop_95high", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
 
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
@@ -713,6 +766,7 @@ app_server <- function(input, output, session) {
     )
 
     results_invalidated()  # ensure reactive update when results are saved/cleared
+    available_results <- sims_with_results()
     sim_name <- tryCatch({ simulations$current }, error = function(e) NULL)
     if (!is.null(sim_name) && nzchar(sim_name)) {
       results_rds <- file.path(sim_base_dir, sim_name, "results", "results.rds")
@@ -723,6 +777,14 @@ app_server <- function(input, output, session) {
           label = i18n$translate("Projection Results")
         )))
       }
+    }
+
+    if (length(available_results) > 0) {
+      nav_items <- append(nav_items, list(list(
+        page = "compare_page",
+        trigger = "nav_compare",
+        label = i18n$translate("Compare Simulations")
+      )))
     }
 
     current_page <- tryCatch({ current_tab() }, error = function(e) NULL)
@@ -1447,7 +1509,7 @@ app_server <- function(input, output, session) {
     
     # Navigate to input page for new simulation
     # Hide any currently visible page
-    for (page in c("landing_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "results_page")) {
+    for (page in c("landing_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "compare_page", "results_page")) {
       shinyjs::hide(page)
     }
     
@@ -1572,7 +1634,7 @@ app_server <- function(input, output, session) {
       return()
     }
     # Move to forecast page and trigger compute for current simulation
-    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page")
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page"); hide("compare_page")
     show("forecast_page")
     current_tab("forecast_page")
     save_current_page("forecast_page")
@@ -1587,6 +1649,7 @@ app_server <- function(input, output, session) {
   # View Projection Results from sidebar (only when results exist)
 observeEvent(input$nav_forecast, {
   hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page")
+  hide("compare_page")
   show("forecast_page")
   current_tab("forecast_page")
   save_current_page("forecast_page")
@@ -1611,6 +1674,73 @@ observeEvent(input$nav_forecast, {
     }
 })
 
+  observeEvent(input$nav_compare, {
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("results_page"); hide("forecast_page")
+    show("compare_page")
+    current_tab("compare_page")
+    save_current_page("compare_page")
+  })
+
+  output$compare_pop_time_ui <- renderUI({
+    dataset <- compare_pop_time_data()
+
+    if (is.null(dataset) || nrow(dataset) == 0) {
+      return(div(
+        class = "ui info message",
+        i18n$translate("Run a projection to enable simulation comparisons.")
+      ))
+    }
+
+    age_options <- unique(i18n$translate(as.character(dataset$age)))
+    age_options <- age_options[!is.na(age_options) & nzchar(age_options)]
+    if (length(age_options) == 0) {
+      return(div(
+        class = "ui warning message",
+        i18n$translate("No age groups are available for comparison.")
+      ))
+    }
+
+    selected_age <- isolate(input$compare_age_pop_time)
+    if (is.null(selected_age) || !selected_age %in% age_options) {
+      selected_age <- age_options[[1]]
+    }
+
+    tagList(
+      div(
+        class = "ui form",
+        div(
+          class = "field",
+          selectInput(
+            "compare_age_pop_time",
+            i18n$translate("Select age group"),
+            choices = age_options,
+            selected = selected_age
+          )
+        )
+      ),
+      plotly::plotlyOutput("compare_pop_time_plot", height = "600px", width = "auto")
+    )
+  })
+
+  output$compare_pop_time_plot <- plotly::renderPlotly({
+    dataset <- compare_pop_time_data()
+    req(!is.null(dataset))
+
+    age_options <- unique(i18n$translate(as.character(dataset$age)))
+    age_options <- age_options[!is.na(age_options) & nzchar(age_options)]
+    req(length(age_options) > 0)
+
+    selected_age <- input$compare_age_pop_time
+    if (is.null(selected_age) || !selected_age %in% age_options) {
+      selected_age <- age_options[[1]]
+    }
+
+    plot_components <- create_pop_time_compare_plot(dataset, selected_age, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
   # Persist current page to metadata on navigation button clicks (inside server)
   observeEvent(input$nav_input, { save_current_page("input_page") })
   observeEvent(input$nav_pop, { save_current_page("pop_page") })
@@ -1621,6 +1751,7 @@ observeEvent(input$nav_forecast, {
   observeEvent(input$forward_pop_page, { save_current_page("pop_page") })
   observeEvent(input$begin, { save_current_page("forecast_page") })
   observeEvent(input$nav_forecast, { save_current_page("forecast_page") })
+  observeEvent(input$nav_compare, { save_current_page("compare_page") })
 
   # Population data is now saved directly in the Apply button handler
   

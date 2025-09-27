@@ -427,6 +427,18 @@ app_ui <- function(request) {
           withSpinner(uiOutput("show_forecast_results_ui"))
         )
       ),
+      hidden(
+        div(
+          id = "compare_page",
+          class = "ui raised very padded text container segment responsive-container",
+          div(
+            style = "display: flex; gap: 10px; align-items: center;",
+            tags$h2(class = "ui header", i18n$translate("Compare Simulations"))
+          ),
+          br(),
+          withSpinner(uiOutput("compare_pop_time_ui"))
+        )
+      ),
           hidden(
             numericInput("step", label = NULL, value = 1)
           ),

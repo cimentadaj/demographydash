@@ -236,6 +236,153 @@ create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
   )
 }
 
+#' Create Comparative Pop Time Plot
+#'
+#' Generates a population-over-time comparison plot across multiple simulations.
+#'
+#' @param dt Data table containing combined population data with a `simulation` column.
+#' @param input_age Translated age group selected in the UI.
+#' @param i18n The internationalization object for translations.
+#'
+#' @importFrom ggplot2 ggplot aes geom_line geom_ribbon scale_color_manual scale_fill_manual
+#'   scale_linetype_manual scale_y_continuous labs theme_minimal theme element_text expansion
+#' @importFrom plotly ggplotly
+#' @importFrom data.table melt as.data.table setkey
+#' @importFrom stats setNames
+#' @importFrom scales hue_pal label_number
+#'
+#' @return A named list containing the ggplot object and plotly widget.
+#' @export
+#'
+create_pop_time_compare_plot <- function(dt, input_age, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+
+  pop_dt <- data.table::as.data.table(dt)
+  data.table::setkey(pop_dt, NULL)
+  if (!"simulation" %in% names(pop_dt)) return(NULL)
+
+  pop_dt <-
+    data.table::melt(
+      pop_dt,
+      id.vars = c("year", "age", "simulation", "un_pop_95low", "un_pop_95high"),
+      measure.vars = c("pop", "un_pop_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  pop_dt[, age := i18n$translate(as.character(age))]
+  pop_dt <- pop_dt[age == input_age]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  pop_dt[type_value == "pop", type_value := "Projection"]
+  pop_dt[type_value == "un_pop_median", type_value := "UN Projection"]
+
+  pop_dt <- pop_dt[, .(
+    Year = year,
+    Age = age,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    `Population (000s)` = value,
+    `95% Lower bound PI` = un_pop_95low,
+    `95% Upper bound PI` = un_pop_95high
+  )]
+
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  numeric_cols <- c("Population (000s)", "95% Lower bound PI", "95% Upper bound PI")
+  pop_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  pop_dt[, Type := i18n$translate(as.character(Type))]
+  pop_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(pop_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  pop_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  value_data <- pop_dt[, ..numeric_cols]
+  min_y <- min(sapply(value_data, min, na.rm = TRUE))
+  min_y <- min_y - (min_y * 0.05)
+  max_y <- max(sapply(value_data, max, na.rm = TRUE))
+  max_y <- max_y + (max_y * 0.05)
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- pop_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  plt_title <- paste0(i18n$translate("Population Over Time"), " (", compare_label, ") - ", input_age)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    ggplot(
+      pop_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[["Population (000s)"]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = label_number(big.mark = "")
+    ) +
+    labs(title = plt_title) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  Year <- NULL
+  Simulation <- NULL
+  Type <- NULL
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE)
+  )
+}
+
 #' Create Migration Plot
 #'
 #' This function takes a data table to create a net migration plot.
