@@ -247,7 +247,7 @@ create_e0_plot <- function(dt, end_year, country, i18n = NULL) {
 #' @importFrom ggplot2 ggplot aes geom_line geom_ribbon scale_color_manual scale_fill_manual
 #'   scale_linetype_manual scale_y_continuous labs theme_minimal theme element_text expansion
 #' @importFrom plotly ggplotly
-#' @importFrom data.table melt as.data.table setkey
+#' @importFrom data.table melt as.data.table setkey copy
 #' @importFrom stats setNames
 #' @importFrom scales hue_pal label_number
 #'
@@ -377,9 +377,17 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
     layout(legend = PLOTLY_LEGEND_OPTS)
 
+  export_dt <- data.table::copy(pop_dt)
+  export_dt[, `:=`(
+    Age = as.character(Age),
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
   list(
     gg = plt,
-    plotly = config(plt_visible, displayModeBar = FALSE)
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
   )
 }
 

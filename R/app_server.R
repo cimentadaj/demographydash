@@ -323,6 +323,22 @@ app_server <- function(input, output, session) {
   compare_selected_tab_index <- reactiveVal(1)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
 
+  get_compare_age_options <- function(dataset) {
+    if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
+    opts <- unique(i18n$translate(as.character(dataset$age)))
+    opts[!is.na(opts) & nzchar(opts)]
+  }
+
+  get_active_compare_age <- function(dataset) {
+    opts <- get_compare_age_options(dataset)
+    if (length(opts) == 0) return(NULL)
+    selected_age <- input$compare_age_pop_time
+    if (is.null(selected_age) || !selected_age %in% opts) {
+      selected_age <- opts[[1]]
+    }
+    selected_age
+  }
+
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
     sim_name <- simulations$current
@@ -1728,7 +1744,14 @@ observeEvent(input$nav_forecast, {
     if (identical(selected_name, "Population Over Time")) {
       return(untheme::sidebar_layout_responsive(
         sidebar = div(
-          uiOutput("compare_age_selector_ui")
+          uiOutput("compare_age_selector_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_pop_time_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_pop_time_download_data", label = i18n$translate("Download Data"))
+          )
         ),
         main_panel = div(
           shinycssloaders::withSpinner(
@@ -1750,8 +1773,7 @@ observeEvent(input$nav_forecast, {
 
     if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
 
-    age_options <- unique(i18n$translate(as.character(dataset$age)))
-    age_options <- age_options[!is.na(age_options) & nzchar(age_options)]
+    age_options <- get_compare_age_options(dataset)
     if (length(age_options) == 0) {
       return(div(
         class = "ui warning message",
@@ -1759,10 +1781,7 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
-    selected_age <- isolate(input$compare_age_pop_time)
-    if (is.null(selected_age) || !selected_age %in% age_options) {
-      selected_age <- age_options[[1]]
-    }
+    selected_age <- get_active_compare_age(dataset)
 
     selectInput(
       "compare_age_pop_time",
@@ -1778,20 +1797,71 @@ observeEvent(input$nav_forecast, {
     dataset <- compare_pop_time_data()
     req(!is.null(dataset))
 
-    age_options <- unique(i18n$translate(as.character(dataset$age)))
-    age_options <- age_options[!is.na(age_options) & nzchar(age_options)]
+    age_options <- get_compare_age_options(dataset)
     req(length(age_options) > 0)
 
-    selected_age <- input$compare_age_pop_time
-    if (is.null(selected_age) || !selected_age %in% age_options) {
-      selected_age <- age_options[[1]]
-    }
+    selected_age <- get_active_compare_age(dataset)
+    req(!is.null(selected_age))
 
     plot_components <- create_pop_time_compare_plot(dataset, selected_age, i18n)
     req(!is.null(plot_components))
 
     plot_components$plotly
   })
+
+  output$compare_pop_time_download_plot <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_time_data()
+      req(!is.null(dataset))
+      age <- get_active_compare_age(dataset)
+      slug <- if (is.null(age)) "population_over_time" else gsub("[^A-Za-z0-9]+", "_", tolower(age))
+      slug <- gsub("_+", "_", slug)
+      slug <- gsub("^_|_$", "", slug)
+      if (!nzchar(slug)) slug <- "population_over_time"
+      paste0("population_over_time_compare_", slug, ".png")
+    },
+    content = function(file) {
+      dataset <- compare_pop_time_data()
+      req(!is.null(dataset))
+      age <- get_active_compare_age(dataset)
+      req(!is.null(age))
+      plot_components <- create_pop_time_compare_plot(dataset, age, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_pop_time_download_data <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_time_data()
+      req(!is.null(dataset))
+      age <- get_active_compare_age(dataset)
+      slug <- if (is.null(age)) "population_over_time" else gsub("[^A-Za-z0-9]+", "_", tolower(age))
+      slug <- gsub("_+", "_", slug)
+      slug <- gsub("^_|_$", "", slug)
+      if (!nzchar(slug)) slug <- "population_over_time"
+      paste0("population_over_time_compare_", slug, ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_pop_time_data()
+      req(!is.null(dataset))
+      age <- get_active_compare_age(dataset)
+      req(!is.null(age))
+      plot_components <- create_pop_time_compare_plot(dataset, age, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
 
   # Persist current page to metadata on navigation button clicks (inside server)
   observeEvent(input$nav_input, { save_current_page("input_page") })
