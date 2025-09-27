@@ -13,6 +13,10 @@ TAB_NAMES <- c(
   "Projected Net Migration"
 )
 
+COMPARE_TAB_NAMES <- c(
+  "Population Over Time"
+)
+
 # Font size of text from a plot
 DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
 

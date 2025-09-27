@@ -320,6 +320,9 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_selected_tab_index <- reactiveVal(1)
+  population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
+
   # Save only the current page into the simulation metadata
   save_current_page <- function(page_id) {
     sim_name <- simulations$current
@@ -1681,7 +1684,31 @@ observeEvent(input$nav_forecast, {
     save_current_page("compare_page")
   })
 
-  output$compare_pop_time_ui <- renderUI({
+  output$compare_help_ui <- renderUI({
+    action_button("compare_help", i18n$translate("Instructions"), class = "ui blue button")
+  })
+
+  output$compare_toolbar_ui <- renderUI(NULL)
+
+  output$compare_select_plot_tab <- renderUI({
+    input$selected_language
+    selectInput(
+      "compare_select_id",
+      i18n$translate("Results"),
+      choices = i18n$translate(COMPARE_TAB_NAMES),
+      selected = i18n$translate(COMPARE_TAB_NAMES[compare_selected_tab_index()])
+    )
+  })
+
+  observeEvent(input$compare_select_id, {
+    selected <- input$compare_select_id
+    translated_choices <- i18n$translate(COMPARE_TAB_NAMES)
+    idx <- which(translated_choices == selected)[1]
+    if (!is.na(idx) && length(idx) == 1) compare_selected_tab_index(idx)
+  }, ignoreNULL = TRUE)
+
+  output$compare_plot_container <- renderUI({
+    input$selected_language
     dataset <- compare_pop_time_data()
 
     if (is.null(dataset) || nrow(dataset) == 0) {
@@ -1690,6 +1717,38 @@ observeEvent(input$nav_forecast, {
         i18n$translate("Run a projection to enable simulation comparisons.")
       ))
     }
+
+    selected_idx <- compare_selected_tab_index()
+    if (is.na(selected_idx) || selected_idx < 1 || selected_idx > length(COMPARE_TAB_NAMES)) {
+      selected_idx <- 1
+      compare_selected_tab_index(selected_idx)
+    }
+    selected_name <- COMPARE_TAB_NAMES[[selected_idx]]
+
+    if (identical(selected_name, "Population Over Time")) {
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_age_selector_ui")
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_pop_time_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    div(
+      class = "ui warning message",
+      i18n$translate("This comparison view is not yet available.")
+    )
+  })
+
+  output$compare_age_selector_ui <- renderUI({
+    dataset <- compare_pop_time_data()
+    input$selected_language
+
+    if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
 
     age_options <- unique(i18n$translate(as.character(dataset$age)))
     age_options <- age_options[!is.na(age_options) & nzchar(age_options)]
@@ -1705,24 +1764,17 @@ observeEvent(input$nav_forecast, {
       selected_age <- age_options[[1]]
     }
 
-    tagList(
-      div(
-        class = "ui form",
-        div(
-          class = "field",
-          selectInput(
-            "compare_age_pop_time",
-            i18n$translate("Select age group"),
-            choices = age_options,
-            selected = selected_age
-          )
-        )
-      ),
-      plotly::plotlyOutput("compare_pop_time_plot", height = "600px", width = "auto")
+    selectInput(
+      "compare_age_pop_time",
+      i18n$translate("Select age group"),
+      choices = age_options,
+      selected = selected_age
     )
   })
 
   output$compare_pop_time_plot <- plotly::renderPlotly({
+    req(!is.na(population_compare_tab_idx))
+    req(compare_selected_tab_index() == population_compare_tab_idx)
     dataset <- compare_pop_time_data()
     req(!is.null(dataset))
 

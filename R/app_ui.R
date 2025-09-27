@@ -430,13 +430,18 @@ app_ui <- function(request) {
       hidden(
         div(
           id = "compare_page",
-          class = "ui raised very padded text container segment responsive-container",
           div(
-            style = "display: flex; gap: 10px; align-items: center;",
-            tags$h2(class = "ui header", i18n$translate("Compare Simulations"))
+            style = "display: flex; gap: 20px;",
+            div(uiOutput("compare_help_ui")),
+            div(
+              style = "margin-left: auto; display: flex; gap: 10px; align-items: center;",
+              uiOutput("compare_toolbar_ui")
+            )
           ),
           br(),
-          withSpinner(uiOutput("compare_pop_time_ui"))
+          uiOutput("compare_select_plot_tab"),
+          br(),
+          withSpinner(uiOutput("compare_plot_container"))
         )
       ),
           hidden(
