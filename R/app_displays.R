@@ -391,6 +391,145 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
   )
 }
 
+create_tfr_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+
+  tfr_dt <- data.table::as.data.table(dt)
+  data.table::setkey(tfr_dt, NULL)
+  if (!"simulation" %in% names(tfr_dt)) return(NULL)
+
+  tfr_dt <-
+    data.table::melt(
+      tfr_dt,
+      id.vars = c("year", "simulation", "un_tfr_95low", "un_tfr_95high"),
+      measure.vars = c("tfr", "un_tfr_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  tfr_dt[type_value == "tfr", type_value := "Projection"]
+  tfr_dt[type_value == "un_tfr_median", type_value := "UN Projection"]
+
+  tfr_dt <- tfr_dt[, .(
+    Year = year,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    `Births per woman` = value,
+    `95% Lower bound PI` = un_tfr_95low,
+    `95% Upper bound PI` = un_tfr_95high
+  )]
+
+  numeric_cols <- c("Births per woman", "95% Lower bound PI", "95% Upper bound PI")
+  tfr_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  tfr_dt[, Type := i18n$translate(as.character(Type))]
+  tfr_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(tfr_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  tfr_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  value_data <- tfr_dt[, ..numeric_cols]
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- min_vals[is.finite(min_vals)]
+  max_vals <- max_vals[is.finite(max_vals)]
+  if (!length(min_vals) || !length(max_vals)) return(NULL)
+  min_y <- min(min_vals)
+  max_y <- max(max_vals)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- tfr_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  plt_title <- paste0(i18n$translate("Projected Total Fertility Rate"), " (", compare_label, ")")
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    ggplot(
+      tfr_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[["Births per woman"]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = label_number(accuracy = 0.1)
+    ) +
+    labs(
+      title = plt_title,
+      y = i18n$translate("Births per woman")
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  Year <- NULL
+  Simulation <- NULL
+  Type <- NULL
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(tfr_dt)
+  export_dt[, `:=`(
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
 #' Create Migration Plot
 #'
 #' This function takes a data table to create a net migration plot.

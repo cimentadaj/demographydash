@@ -320,8 +320,36 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_tfr_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      tfr_time <- tryCatch({ res$tfr_by_time }, error = function(e) NULL)
+      if (is.null(tfr_time)) return(NULL)
+      dt <- data.table::as.data.table(tfr_time)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "tfr", "un_tfr_median", "un_tfr_95low", "un_tfr_95high", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_selected_tab_index <- reactiveVal(1)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
+  tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
 
   get_compare_age_options <- function(dataset) {
     if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
@@ -1725,9 +1753,9 @@ observeEvent(input$nav_forecast, {
 
   output$compare_plot_container <- renderUI({
     input$selected_language
-    dataset <- compare_pop_time_data()
+    sims <- sims_with_results()
 
-    if (is.null(dataset) || nrow(dataset) == 0) {
+    if (length(sims) == 0) {
       return(div(
         class = "ui info message",
         i18n$translate("Run a projection to enable simulation comparisons.")
@@ -1742,6 +1770,13 @@ observeEvent(input$nav_forecast, {
     selected_name <- COMPARE_TAB_NAMES[[selected_idx]]
 
     if (identical(selected_name, "Population Over Time")) {
+      dataset <- compare_pop_time_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
       return(untheme::sidebar_layout_responsive(
         sidebar = div(
           uiOutput("compare_age_selector_ui"),
@@ -1761,6 +1796,32 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
+    if (identical(selected_name, "Projected Total Fertility Rate")) {
+      dataset <- compare_tfr_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_tfr_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_tfr_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_tfr_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     div(
       class = "ui warning message",
       i18n$translate("This comparison view is not yet available.")
@@ -1768,6 +1829,10 @@ observeEvent(input$nav_forecast, {
   })
 
   output$compare_age_selector_ui <- renderUI({
+    if (is.na(population_compare_tab_idx) || compare_selected_tab_index() != population_compare_tab_idx) {
+      return(NULL)
+    }
+
     dataset <- compare_pop_time_data()
     input$selected_language
 
@@ -1856,6 +1921,54 @@ observeEvent(input$nav_forecast, {
       age <- get_active_compare_age(dataset)
       req(!is.null(age))
       plot_components <- create_pop_time_compare_plot(dataset, age, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_tfr_plot <- plotly::renderPlotly({
+    req(!is.na(tfr_compare_tab_idx))
+    req(compare_selected_tab_index() == tfr_compare_tab_idx)
+    dataset <- compare_tfr_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_tfr_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_tfr_download_plot <- downloadHandler(
+    filename = function() {
+      "projected_total_fertility_rate_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_tfr_data()
+      req(!is.null(dataset))
+      plot_components <- create_tfr_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_tfr_download_data <- downloadHandler(
+    filename = function() {
+      "projected_total_fertility_rate_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_tfr_data()
+      req(!is.null(dataset))
+      plot_components <- create_tfr_compare_plot(dataset, i18n)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)

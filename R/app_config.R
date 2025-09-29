@@ -14,7 +14,8 @@ TAB_NAMES <- c(
 )
 
 COMPARE_TAB_NAMES <- c(
-  "Population Over Time"
+  "Population Over Time",
+  "Projected Total Fertility Rate"
 )
 
 # Font size of text from a plot
