@@ -842,15 +842,18 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   data.table::setkey(dt, NULL)
   if (!"simulation" %in% names(dt)) return(NULL)
 
-  value_key <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
-
-  cols_to_keep <- unique(c("year", "simulation", grep(value_key, names(dt), value = TRUE)))
-  dt <- dt[, ..cols_to_keep]
+  type_key <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
+  cols_match <- grep(type_key, names(dt), value = TRUE)
+  if (length(cols_match) < 2) return(NULL)
 
   interval_cols <- grep("95(?:low|high)", names(dt), value = TRUE)
+  keep_cols <- unique(c("year", "simulation", cols_match, interval_cols))
+  dt <- dt[, ..keep_cols]
+
   id_vars <- unique(c("year", "simulation", interval_cols))
   measure_vars <- setdiff(names(dt), id_vars)
-  if (length(measure_vars) == 0) return(NULL)
+  if (length(measure_vars) < 2) return(NULL)
+  measure_vars <- measure_vars[seq_len(2)]
 
   melt_dt <- data.table::melt(
     dt,
@@ -862,10 +865,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   low_cols <- grep("95.*low", names(melt_dt), value = TRUE)
   high_cols <- grep("95.*high", names(melt_dt), value = TRUE)
-  if (length(low_cols) > 0) setnames(melt_dt, low_cols, rep("low", length(low_cols)))
-  if (length(high_cols) > 0) setnames(melt_dt, high_cols, rep("high", length(high_cols)))
+  if (length(low_cols) > 0) data.table::setnames(melt_dt, low_cols, rep("low", length(low_cols)))
+  if (length(high_cols) > 0) data.table::setnames(melt_dt, high_cols, rep("high", length(high_cols)))
 
-  melt_dt[type_value == value_key, type_value := "Projection"]
+  melt_dt[type_value == measure_vars[[1]], type_value := "Projection"]
   melt_dt[type_value != "Projection", type_value := "UN Projection"]
 
   var_name <- if (identical(value_type, "counts")) {
@@ -986,6 +989,7 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     data = as.data.frame(export_dt)
   )
 }
+
 
 create_dependency_compare_plot <- function(dt_list, option, i18n) {
   if (is.null(dt_list) || length(dt_list) == 0) return(NULL)
