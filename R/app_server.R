@@ -320,6 +320,33 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_pop_broad_age_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      pop_broad <- tryCatch({ res$population_by_broad_age_group }, error = function(e) NULL)
+      if (is.null(pop_broad)) return(NULL)
+      dt <- data.table::as.data.table(pop_broad)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "age", "pop", "pop_percent", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_tfr_data <- reactive({
     sims <- sims_with_results()
     if (length(sims) == 0) return(NULL)
@@ -410,6 +437,33 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_growth_age_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      growth <- tryCatch({ res$annual_growth_rate }, error = function(e) NULL)
+      if (is.null(growth)) return(NULL)
+      dt <- data.table::as.data.table(growth)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "age", "growth_rate", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_death_birth_data <- reactive({
     sims <- sims_with_results()
     if (length(sims) == 0) return(NULL)
@@ -493,7 +547,9 @@ app_server <- function(input, output, session) {
   })
 
   compare_selected_tab_index <- reactiveVal(1)
+  pop_broad_compare_tab_idx <- match("Population by Broad Age Groups", COMPARE_TAB_NAMES)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
+  growth_age_compare_tab_idx <- match("Population Growth Rate by Age", COMPARE_TAB_NAMES)
   tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
   e0_compare_tab_idx <- match("Life Expectancy Over Time", COMPARE_TAB_NAMES)
   mig_compare_tab_idx <- match("Projected Net Migration", COMPARE_TAB_NAMES)
@@ -514,6 +570,20 @@ app_server <- function(input, output, session) {
       selected_age <- opts[[1]]
     }
     selected_age
+  }
+
+  pop_broad_scale_labels <- function() {
+    i18n$translate(c("Percent", "Absolute"))
+  }
+
+  get_active_compare_pop_broad_scale <- function() {
+    labels <- pop_broad_scale_labels()
+    codes <- c("percent", "absolute")
+    selected_label <- input$compare_pop_broad_scale
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
+    codes[[match(selected_label, labels)]]
   }
 
   death_birth_choice_labels <- function() {
@@ -1996,6 +2066,33 @@ observeEvent(input$nav_forecast, {
     }
     selected_name <- COMPARE_TAB_NAMES[[selected_idx]]
 
+    if (identical(selected_name, "Population by Broad Age Groups")) {
+      dataset <- compare_pop_broad_age_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_pop_broad_scale_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_pop_broad_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_pop_broad_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_pop_broad_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     if (identical(selected_name, "Population Over Time")) {
       dataset <- compare_pop_time_data()
       if (is.null(dataset) || nrow(dataset) == 0) {
@@ -2018,6 +2115,32 @@ observeEvent(input$nav_forecast, {
         main_panel = div(
           shinycssloaders::withSpinner(
             plotly::plotlyOutput("compare_pop_time_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    if (identical(selected_name, "Population Growth Rate by Age")) {
+      dataset <- compare_growth_age_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_growth_age_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_growth_age_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_growth_age_plot", height = "600px", width = "auto")
           )
         )
       ))
@@ -2178,6 +2301,31 @@ observeEvent(input$nav_forecast, {
     )
   })
 
+  output$compare_pop_broad_scale_ui <- renderUI({
+    if (is.na(pop_broad_compare_tab_idx) || compare_selected_tab_index() != pop_broad_compare_tab_idx) {
+      return(NULL)
+    }
+
+    dataset <- compare_pop_broad_age_data()
+    input$selected_language
+
+    if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
+
+    labels <- pop_broad_scale_labels()
+    selected_label <- input$compare_pop_broad_scale
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
+
+    multiple_radio(
+      input_id = "compare_pop_broad_scale",
+      label = i18n$translate("Scale Type"),
+      choices = labels,
+      selected = selected_label,
+      type = "inline"
+    )
+  })
+
   output$compare_age_selector_ui <- renderUI({
     if (is.na(population_compare_tab_idx) || compare_selected_tab_index() != population_compare_tab_idx) {
       return(NULL)
@@ -2302,6 +2450,21 @@ observeEvent(input$nav_forecast, {
     )
   })
 
+  output$compare_pop_broad_plot <- plotly::renderPlotly({
+    req(!is.na(pop_broad_compare_tab_idx))
+    req(compare_selected_tab_index() == pop_broad_compare_tab_idx)
+    dataset <- compare_pop_broad_age_data()
+    req(!is.null(dataset))
+
+    scale_code <- get_active_compare_pop_broad_scale()
+    req(!is.null(scale_code))
+
+    plot_components <- create_pop_broad_age_compare_plot(dataset, scale_code, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
   output$compare_pop_time_plot <- plotly::renderPlotly({
     req(!is.na(population_compare_tab_idx))
     req(compare_selected_tab_index() == population_compare_tab_idx)
@@ -2319,6 +2482,66 @@ observeEvent(input$nav_forecast, {
 
     plot_components$plotly
   })
+
+  output$compare_growth_age_plot <- plotly::renderPlotly({
+    req(!is.na(growth_age_compare_tab_idx))
+    req(compare_selected_tab_index() == growth_age_compare_tab_idx)
+    dataset <- compare_growth_age_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_growth_rate_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_pop_broad_download_plot <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_broad_age_data()
+      req(!is.null(dataset))
+      scale_code <- get_active_compare_pop_broad_scale()
+      suffix <- if (identical(scale_code, "percent")) "percent" else "absolute"
+      paste0("population_broad_age_compare_", suffix, ".png")
+    },
+    content = function(file) {
+      dataset <- compare_pop_broad_age_data()
+      req(!is.null(dataset))
+      scale_code <- get_active_compare_pop_broad_scale()
+      req(!is.null(scale_code))
+      plot_components <- create_pop_broad_age_compare_plot(dataset, scale_code, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_pop_broad_download_data <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_broad_age_data()
+      req(!is.null(dataset))
+      scale_code <- get_active_compare_pop_broad_scale()
+      suffix <- if (identical(scale_code, "percent")) "percent" else "absolute"
+      paste0("population_broad_age_compare_", suffix, ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_pop_broad_age_data()
+      req(!is.null(dataset))
+      scale_code <- get_active_compare_pop_broad_scale()
+      req(!is.null(scale_code))
+      plot_components <- create_pop_broad_age_compare_plot(dataset, scale_code, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
 
   output$compare_pop_time_download_plot <- downloadHandler(
     filename = function() {
@@ -2367,6 +2590,42 @@ observeEvent(input$nav_forecast, {
       age <- get_active_compare_age(dataset)
       req(!is.null(age))
       plot_components <- create_pop_time_compare_plot(dataset, age, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_growth_age_download_plot <- downloadHandler(
+    filename = function() {
+      "population_growth_rate_age_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_growth_age_data()
+      req(!is.null(dataset))
+      plot_components <- create_growth_rate_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_growth_age_download_data <- downloadHandler(
+    filename = function() {
+      "population_growth_rate_age_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_growth_age_data()
+      req(!is.null(dataset))
+      plot_components <- create_growth_rate_compare_plot(dataset, i18n)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)

@@ -299,6 +299,7 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
   sim_levels <- unique(pop_dt$Simulation)
   if (length(sim_levels) == 0) return(NULL)
   pop_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+  pop_dt[, AgeRaw := NULL]
 
   value_data <- pop_dt[, ..numeric_cols]
   min_y <- min(sapply(value_data, min, na.rm = TRUE))
@@ -383,6 +384,220 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
     Age = as.character(Age),
     Simulation = as.character(Simulation),
     Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
+create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  if (!scale_type %in% c("percent", "absolute")) return(NULL)
+
+  pop_dt <- data.table::as.data.table(dt)
+  data.table::setkey(pop_dt, NULL)
+  if (!"simulation" %in% names(pop_dt)) return(NULL)
+
+  value_col <- if (identical(scale_type, "percent")) "pop_percent" else "pop"
+  if (!value_col %in% names(pop_dt)) return(NULL)
+
+  pop_dt <- pop_dt[!is.na(get(value_col))]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  pop_dt <- pop_dt[, .(
+    Year = year,
+    AgeRaw = as.character(age),
+    Simulation = as.character(simulation),
+    Value = as.numeric(get(value_col))
+  )]
+
+  age_levels_raw <- unique(pop_dt$AgeRaw)
+  translated_levels <- i18n$translate(age_levels_raw)
+  fallback_idx <- is.na(translated_levels) | !nzchar(translated_levels)
+  if (any(fallback_idx)) translated_levels[fallback_idx] <- age_levels_raw[fallback_idx]
+  age_lookup <- stats::setNames(translated_levels, age_levels_raw)
+  pop_dt[, Age := age_lookup[AgeRaw]]
+  pop_dt[, Age := factor(Age, levels = unique(translated_levels))]
+
+  sim_levels <- unique(pop_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  pop_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  axis_suffix <- if (identical(scale_type, "percent")) {
+    i18n$translate("(Percent)")
+  } else {
+    i18n$translate("(000s)")
+  }
+  value_label <- paste(i18n$translate("Population"), axis_suffix)
+
+  pop_dt[, Value := round(Value, 3)]
+  data.table::setnames(pop_dt, "Value", value_label)
+
+  numeric_vals <- pop_dt[[value_label]]
+  min_y <- suppressWarnings(min(numeric_vals, na.rm = TRUE))
+  max_y <- suppressWarnings(max(numeric_vals, na.rm = TRUE))
+  if (!is.finite(min_y) || !is.finite(max_y)) return(NULL)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_options <- c("solid", "longdash", "dotdash", "twodash", "dotted", "longdashdot")
+  age_levels_factor <- levels(pop_dt$Age)
+  linetype_values <- stats::setNames(rep(linetype_options, length.out = length(age_levels_factor)), age_levels_factor)
+
+  compare_label <- i18n$translate("Comparison")
+  scale_label <- if (identical(scale_type, "percent")) i18n$translate("Percent") else i18n$translate("Absolute")
+  plt_title <- paste0(i18n$translate("Population by Broad Age Groups"), " (", compare_label, ") - ", scale_label)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <- ggplot(
+    pop_dt,
+    aes(
+      x = .data[["Year"]],
+      y = .data[[value_label]],
+      color = .data[["Simulation"]],
+      group = interaction(.data[["Simulation"]], .data[["Age"]])
+    )
+  ) +
+    geom_line(aes(linetype = .data[["Age"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = if (identical(scale_type, "percent")) label_number(accuracy = 0.1) else label_number(big.mark = "")
+    ) +
+    labs(
+      title = plt_title,
+      y = value_label
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(pop_dt)
+  export_dt[, `:=`(
+    Age = as.character(Age),
+    Simulation = as.character(Simulation)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
+create_growth_rate_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+
+  growth_dt <- data.table::as.data.table(dt)
+  data.table::setkey(growth_dt, NULL)
+  if (!"simulation" %in% names(growth_dt)) return(NULL)
+
+  required_cols <- c("year", "age", "growth_rate")
+  if (!all(required_cols %in% names(growth_dt))) return(NULL)
+
+  growth_dt <- growth_dt[age != "Total"]
+  growth_dt <- growth_dt[!is.na(growth_rate)]
+  if (nrow(growth_dt) == 0) return(NULL)
+
+  growth_dt <- growth_dt[, .(
+    Year = year,
+    AgeRaw = as.character(age),
+    Simulation = as.character(simulation),
+    `Population Growth Rate` = as.numeric(growth_rate)
+  )]
+
+  age_levels_raw <- unique(growth_dt$AgeRaw)
+  translated_levels <- i18n$translate(age_levels_raw)
+  fallback_idx <- is.na(translated_levels) | !nzchar(translated_levels)
+  if (any(fallback_idx)) translated_levels[fallback_idx] <- age_levels_raw[fallback_idx]
+  age_lookup <- stats::setNames(translated_levels, age_levels_raw)
+  growth_dt[, Age := age_lookup[AgeRaw]]
+  growth_dt[, Age := factor(Age, levels = unique(translated_levels))]
+
+  sim_levels <- unique(growth_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  growth_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+  growth_dt[, AgeRaw := NULL]
+
+  growth_dt[, `Population Growth Rate` := round(`Population Growth Rate`, 3)]
+
+  numeric_vals <- growth_dt[["Population Growth Rate"]]
+  min_y <- suppressWarnings(min(numeric_vals, na.rm = TRUE))
+  max_y <- suppressWarnings(max(numeric_vals, na.rm = TRUE))
+  if (!is.finite(min_y) || !is.finite(max_y)) return(NULL)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_options <- c("solid", "longdash", "dotdash", "twodash", "dotted", "longdashdot")
+  age_levels_factor <- levels(growth_dt$Age)
+  linetype_values <- stats::setNames(rep(linetype_options, length.out = length(age_levels_factor)), age_levels_factor)
+
+  compare_label <- i18n$translate("Comparison")
+  plt_title <- paste0(i18n$translate("Population Growth Rate by Age"), " (", compare_label, ")")
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <- ggplot(
+    growth_dt,
+    aes(
+      x = .data[["Year"]],
+      y = .data[["Population Growth Rate"]],
+      color = .data[["Simulation"]],
+      group = interaction(.data[["Simulation"]], .data[["Age"]])
+    )
+  ) +
+    geom_line(aes(linetype = .data[["Age"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = 0)) +
+    labs(
+      title = plt_title,
+      y = i18n$translate("Population Growth Rate")
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(growth_dt)
+  export_dt[, `:=`(
+    Age = as.character(Age),
+    Simulation = as.character(Simulation)
   )]
 
   list(

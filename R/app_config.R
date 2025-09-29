@@ -14,7 +14,9 @@ TAB_NAMES <- c(
 )
 
 COMPARE_TAB_NAMES <- c(
+  "Population by Broad Age Groups",
   "Population Over Time",
+  "Population Growth Rate by Age",
   "Projected Total Fertility Rate",
   "Life Expectancy Over Time",
   "Projected Net Migration",
