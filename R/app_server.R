@@ -464,6 +464,87 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_pop_size_aging_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      psa <- tryCatch({ res$pop_aging_and_pop_size }, error = function(e) NULL)
+      if (is.null(psa)) return(NULL)
+      dt <- data.table::as.data.table(psa)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
+  compare_cdr_e0_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      cdr_e0 <- tryCatch({ res$cdr_by_e0 }, error = function(e) NULL)
+      if (is.null(cdr_e0)) return(NULL)
+      dt <- data.table::as.data.table(cdr_e0)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
+  compare_cbr_tfr_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      cbr_tfr <- tryCatch({ res$cbr_by_tfr }, error = function(e) NULL)
+      if (is.null(cbr_tfr)) return(NULL)
+      dt <- data.table::as.data.table(cbr_tfr)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_death_birth_data <- reactive({
     sims <- sims_with_results()
     if (length(sims) == 0) return(NULL)
@@ -550,6 +631,9 @@ app_server <- function(input, output, session) {
   pop_broad_compare_tab_idx <- match("Population by Broad Age Groups", COMPARE_TAB_NAMES)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
   growth_age_compare_tab_idx <- match("Population Growth Rate by Age", COMPARE_TAB_NAMES)
+  pop_size_aging_compare_tab_idx <- match("Population Size and Aging", COMPARE_TAB_NAMES)
+  cdr_e0_compare_tab_idx <- match("CDR and Life Expectancy", COMPARE_TAB_NAMES)
+  cbr_tfr_compare_tab_idx <- match("CBR and TFR", COMPARE_TAB_NAMES)
   tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
   e0_compare_tab_idx <- match("Life Expectancy Over Time", COMPARE_TAB_NAMES)
   mig_compare_tab_idx <- match("Projected Net Migration", COMPARE_TAB_NAMES)
@@ -2146,6 +2230,84 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
+    if (identical(selected_name, "Population Size and Aging")) {
+      dataset <- compare_pop_size_aging_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_pop_size_aging_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_pop_size_aging_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_pop_size_aging_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    if (identical(selected_name, "CDR and Life Expectancy")) {
+      dataset <- compare_cdr_e0_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_cdr_e0_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_cdr_e0_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_cdr_e0_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    if (identical(selected_name, "CBR and TFR")) {
+      dataset <- compare_cbr_tfr_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_cbr_tfr_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_cbr_tfr_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_cbr_tfr_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     if (identical(selected_name, "Projected Total Fertility Rate")) {
       dataset <- compare_tfr_data()
       if (is.null(dataset) || nrow(dataset) == 0) {
@@ -2495,6 +2657,42 @@ observeEvent(input$nav_forecast, {
     plot_components$plotly
   })
 
+  output$compare_pop_size_aging_plot <- plotly::renderPlotly({
+    req(!is.na(pop_size_aging_compare_tab_idx))
+    req(compare_selected_tab_index() == pop_size_aging_compare_tab_idx)
+    dataset <- compare_pop_size_aging_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_pop_size_aging_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_cdr_e0_plot <- plotly::renderPlotly({
+    req(!is.na(cdr_e0_compare_tab_idx))
+    req(compare_selected_tab_index() == cdr_e0_compare_tab_idx)
+    dataset <- compare_cdr_e0_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_cdr_e0_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_cbr_tfr_plot <- plotly::renderPlotly({
+    req(!is.na(cbr_tfr_compare_tab_idx))
+    req(compare_selected_tab_index() == cbr_tfr_compare_tab_idx)
+    dataset <- compare_cbr_tfr_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_cbr_tfr_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
   output$compare_pop_broad_download_plot <- downloadHandler(
     filename = function() {
       dataset <- compare_pop_broad_age_data()
@@ -2626,6 +2824,114 @@ observeEvent(input$nav_forecast, {
       dataset <- compare_growth_age_data()
       req(!is.null(dataset))
       plot_components <- create_growth_rate_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_pop_size_aging_download_plot <- downloadHandler(
+    filename = function() {
+      "population_size_aging_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_pop_size_aging_data()
+      req(!is.null(dataset))
+      plot_components <- create_pop_size_aging_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_pop_size_aging_download_data <- downloadHandler(
+    filename = function() {
+      "population_size_aging_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_pop_size_aging_data()
+      req(!is.null(dataset))
+      plot_components <- create_pop_size_aging_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_cdr_e0_download_plot <- downloadHandler(
+    filename = function() {
+      "cdr_life_expectancy_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_cdr_e0_data()
+      req(!is.null(dataset))
+      plot_components <- create_cdr_e0_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_cdr_e0_download_data <- downloadHandler(
+    filename = function() {
+      "cdr_life_expectancy_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_cdr_e0_data()
+      req(!is.null(dataset))
+      plot_components <- create_cdr_e0_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_cbr_tfr_download_plot <- downloadHandler(
+    filename = function() {
+      "cbr_tfr_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_cbr_tfr_data()
+      req(!is.null(dataset))
+      plot_components <- create_cbr_tfr_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_cbr_tfr_download_data <- downloadHandler(
+    filename = function() {
+      "cbr_tfr_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_cbr_tfr_data()
+      req(!is.null(dataset))
+      plot_components <- create_cbr_tfr_compare_plot(dataset, i18n)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)

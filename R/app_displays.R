@@ -2771,6 +2771,194 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
   )
 }
 
+create_un_projection_compare_plot <- function(dt, axis_mappings, percent_x = FALSE, plot_title, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  if (length(axis_mappings) < 2) return(NULL)
+
+  comp_dt <- data.table::as.data.table(dt)
+  data.table::setkey(comp_dt, NULL)
+  if (!all(c("year", "simulation") %in% names(comp_dt))) return(NULL)
+
+  non_id_cols <- setdiff(names(comp_dt), c("year", "simulation"))
+  if (!length(non_id_cols)) return(NULL)
+  base_proj_cols <- non_id_cols[!grepl("^un_", non_id_cols)]
+  un_cols_available <- non_id_cols[grepl("^un_", non_id_cols)]
+
+  # Prefer median/mean UN columns and ignore interval bounds unless no alternative
+  preferred_un_cols <- un_cols_available[!grepl("_95(low|high)", un_cols_available)]
+  if (length(preferred_un_cols)) {
+    un_cols_available <- preferred_un_cols
+  }
+
+  required_proj <- names(axis_mappings)
+  if (!all(required_proj %in% base_proj_cols)) return(NULL)
+
+  normalize_un_base <- function(col) {
+    base <- sub("^un_", "", col)
+    base <- sub("_median$", "", base)
+    base <- sub("_mean$", "", base)
+    base <- sub("_med$", "", base)
+    base
+  }
+
+  base_from_un <- vapply(un_cols_available, normalize_un_base, character(1))
+  un_match_idx <- match(required_proj, base_from_un)
+  if (any(is.na(un_match_idx))) {
+    # Fallback: allow direct prefix match even if suffixes remain
+    fallback_idx <- vapply(required_proj, function(col) {
+      cand <- which(startsWith(base_from_un, paste0(col, "_")))
+      if (length(cand)) cand[[1]] else NA_integer_
+    }, integer(1))
+    un_match_idx[is.na(un_match_idx)] <- fallback_idx[is.na(un_match_idx)]
+  }
+  if (any(is.na(un_match_idx))) return(NULL)
+  un_cols_ordered <- un_cols_available[un_match_idx]
+  if (anyNA(un_cols_ordered)) return(NULL)
+
+  proj_cols <- required_proj
+
+  numeric_cols <- unique(c(proj_cols, un_cols_ordered))
+  comp_dt[, (numeric_cols) := lapply(.SD, as.numeric), .SDcols = numeric_cols]
+
+  proj_data <- comp_dt[, c("year", "simulation", proj_cols), with = FALSE]
+  proj_data[, Type := "Projection"]
+
+  un_data <- comp_dt[, c("year", "simulation", un_cols_ordered), with = FALSE]
+  data.table::setnames(un_data, un_cols_ordered, proj_cols)
+  un_data[, Type := "UN Projection"]
+
+  cat("[UN_COMPARE] Projection columns:", toString(colnames(proj_data)), "\n")
+  cat("[UN_COMPARE] UN columns renamed:", toString(colnames(un_data)), "\n")
+  suppressWarnings(print(utils::head(proj_data, 3)))
+  suppressWarnings(print(utils::head(un_data, 3)))
+
+  combined_data <- data.table::rbindlist(list(proj_data, un_data), use.names = TRUE, fill = TRUE)
+
+  cat("[UN_COMPARE] Combined columns:", toString(colnames(combined_data)), "\n")
+  suppressWarnings(print(utils::head(combined_data, 6)))
+
+  for (col in proj_cols) {
+    data.table::setnames(combined_data, col, axis_mappings[[col]])
+  }
+
+  axis_labels <- unname(axis_mappings)
+  if (length(axis_labels) < 2) return(NULL)
+  x_label <- axis_labels[[1]]
+  y_label <- axis_labels[[2]]
+
+  combined_data[, (axis_labels) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = axis_labels]
+
+  data.table::setnames(combined_data, c("year", "simulation"), c("Year", "Simulation"))
+
+  type_levels <- i18n$translate(c("Projection", "UN Projection"))
+  combined_data[, Type := i18n$translate(Type)]
+  combined_data[, Type := factor(Type, levels = type_levels)]
+
+  sim_levels <- unique(combined_data$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  combined_data[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  combined_data[, Tooltip := paste(i18n$translate("Year:"), Year)]
+
+  plot_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plot_title)
+
+  cat("[UN_COMPARE] Ready to plot with columns:", toString(colnames(combined_data)), "\n")
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  shape_vals <- stats::setNames(c(3, 16), type_levels)
+
+  plt <- ggplot(
+    combined_data,
+    aes(
+      x = .data[[x_label]],
+      y = .data[[y_label]],
+      color = .data[["Simulation"]],
+      shape = .data[["Type"]],
+      text = .data[["Tooltip"]]
+    )
+  ) +
+    geom_point() +
+    scale_color_manual(values = color_palette, name = i18n$translate("Simulation")) +
+    scale_shape_manual(values = shape_vals, name = i18n$translate("Type")) +
+    labs(title = plot_title) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (percent_x) {
+    plt <- plt + scale_x_continuous(labels = scales::label_percent(scale = 1))
+  } else if (grepl("Population", x_label, fixed = TRUE)) {
+    plt <- plt + scale_x_continuous(labels = label_number(big.mark = ""))
+  }
+
+  if (grepl("%", y_label, fixed = TRUE)) {
+    plt <- plt + scale_y_continuous(labels = scales::label_percent(scale = 1))
+  } else if (grepl("Population", y_label, fixed = TRUE)) {
+    plt <- plt + scale_y_continuous(labels = label_number(big.mark = ""))
+  }
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plot_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plot_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("text", "colour", "shape")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(combined_data)
+  export_dt[, `:=`(
+    Simulation = as.character(Simulation),
+    Type = as.character(Type),
+    Tooltip = NULL
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
+create_pop_size_aging_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  compare_label <- i18n$translate("Comparison")
+  title <- paste0(i18n$t("Population size and percent of population 65+"), " (", compare_label, ")")
+  axis_map <- c(
+    percent65 = i18n$translate("% of population 65+"),
+    pop = i18n$translate("Population per 1000 persons")
+  )
+  create_un_projection_compare_plot(dt, axis_map, percent_x = TRUE, plot_title = title, i18n = i18n)
+}
+
+create_cdr_e0_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  compare_label <- i18n$translate("Comparison")
+  base_title <- sub(":$", "", i18n$t("Crude death rate and life expectancy at birth:"))
+  title <- paste0(base_title, " (", compare_label, ")")
+  axis_map <- c(
+    cdr = i18n$translate("Crude Death Rate"),
+    e0 = i18n$translate("Life Expectancy")
+  )
+  create_un_projection_compare_plot(dt, axis_map, percent_x = FALSE, plot_title = title, i18n = i18n)
+}
+
+create_cbr_tfr_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  compare_label <- i18n$translate("Comparison")
+  base_title <- sub(":$", "", i18n$t("Crude birth rate and total fertility rate:"))
+  title <- paste0(base_title, " (", compare_label, ")")
+  axis_map <- c(
+    cbr = i18n$translate("Crude Birth Rate"),
+    tfr = i18n$translate("Total Fertility Rate")
+  )
+  create_un_projection_compare_plot(dt, axis_map, percent_x = FALSE, plot_title = title, i18n = i18n)
+}
+
 #' Create All Report Plots
 #'
 #' This function generates non-reactive versions of all plots that appear in the forecast page.
