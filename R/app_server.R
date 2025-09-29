@@ -347,9 +347,74 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  normalize_compare_sex <- function(x) {
+    vals <- as.character(x)
+    vals[vals %in% c("B", "Both", "Total")] <- "B"
+    vals[vals %in% c("M", "Male")] <- "M"
+    vals[vals %in% c("F", "Female")] <- "F"
+    vals
+  }
+
+  compare_e0_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      e0_time <- tryCatch({ res$e0_by_time }, error = function(e) NULL)
+      if (is.null(e0_time)) return(NULL)
+      dt <- data.table::as.data.table(e0_time)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt[, sex := normalize_compare_sex(sex)]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "sex", "e0", "un_e0_median", "un_e0_95low", "un_e0_95high", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
+  compare_mig_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      mig_time <- tryCatch({ res$mig_by_time }, error = function(e) NULL)
+      if (is.null(mig_time)) return(NULL)
+      dt <- data.table::as.data.table(mig_time)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "mig", "un_mig_median", "un_mig_95low", "un_mig_95high", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_selected_tab_index <- reactiveVal(1)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
   tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
+  e0_compare_tab_idx <- match("Life Expectancy Over Time", COMPARE_TAB_NAMES)
+  mig_compare_tab_idx <- match("Projected Net Migration", COMPARE_TAB_NAMES)
 
   get_compare_age_options <- function(dataset) {
     if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
@@ -365,6 +430,37 @@ app_server <- function(input, output, session) {
       selected_age <- opts[[1]]
     }
     selected_age
+  }
+
+  map_compare_sex_label <- function(code, translate = TRUE) {
+    code_chr <- as.character(code)
+    base <- code_chr
+    base[code_chr == "B"] <- "Total"
+    base[code_chr == "M"] <- "Male"
+    base[code_chr == "F"] <- "Female"
+    if (translate) i18n$translate(base) else base
+  }
+
+  get_compare_e0_options <- function(dataset) {
+    if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
+    codes <- unique(as.character(dataset$sex))
+    codes <- codes[!is.na(codes) & nzchar(codes)]
+    preferred_order <- c("B", "M", "F")
+    ordered_codes <- preferred_order[preferred_order %in% codes]
+    extras <- setdiff(codes, ordered_codes)
+    codes <- c(ordered_codes, sort(extras))
+    labels <- map_compare_sex_label(codes)
+    stats::setNames(codes, labels)
+  }
+
+  get_active_compare_e0_sex <- function(dataset) {
+    opts <- get_compare_e0_options(dataset)
+    if (length(opts) == 0) return(NULL)
+    selected_sex <- input$compare_sex_e0
+    if (is.null(selected_sex) || !selected_sex %in% opts) {
+      selected_sex <- opts[[1]]
+    }
+    selected_sex
   }
 
   # Save only the current page into the simulation metadata
@@ -1839,6 +1935,59 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
+    if (identical(selected_name, "Life Expectancy Over Time")) {
+      dataset <- compare_e0_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_e0_selector_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_e0_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_e0_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_e0_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    if (identical(selected_name, "Projected Net Migration")) {
+      dataset <- compare_mig_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_mig_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_mig_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_mig_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     div(
       class = "ui warning message",
       i18n$translate("This comparison view is not yet available.")
@@ -1870,6 +2019,34 @@ observeEvent(input$nav_forecast, {
       i18n$translate("Select age group"),
       choices = age_options,
       selected = selected_age
+    )
+  })
+
+  output$compare_e0_selector_ui <- renderUI({
+    if (is.na(e0_compare_tab_idx) || compare_selected_tab_index() != e0_compare_tab_idx) {
+      return(NULL)
+    }
+
+    dataset <- compare_e0_data()
+    input$selected_language
+
+    if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
+
+    sex_options <- get_compare_e0_options(dataset)
+    if (length(sex_options) == 0) {
+      return(div(
+        class = "ui warning message",
+        i18n$translate("No sex groups are available for comparison.")
+      ))
+    }
+
+    selected_sex <- get_active_compare_e0_sex(dataset)
+
+    selectInput(
+      "compare_sex_e0",
+      i18n$translate("Select sex"),
+      choices = sex_options,
+      selected = selected_sex
     )
   })
 
@@ -1957,6 +2134,33 @@ observeEvent(input$nav_forecast, {
     plot_components$plotly
   })
 
+  output$compare_e0_plot <- plotly::renderPlotly({
+    req(!is.na(e0_compare_tab_idx))
+    req(compare_selected_tab_index() == e0_compare_tab_idx)
+    dataset <- compare_e0_data()
+    req(!is.null(dataset))
+
+    selected_sex <- get_active_compare_e0_sex(dataset)
+    req(!is.null(selected_sex))
+
+    plot_components <- create_e0_compare_plot(dataset, selected_sex, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_mig_plot <- plotly::renderPlotly({
+    req(!is.na(mig_compare_tab_idx))
+    req(compare_selected_tab_index() == mig_compare_tab_idx)
+    dataset <- compare_mig_data()
+    req(!is.null(dataset))
+
+    plot_components <- create_mig_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
   output$compare_tfr_download_plot <- downloadHandler(
     filename = function() {
       "projected_total_fertility_rate_compare.png"
@@ -1986,6 +2190,100 @@ observeEvent(input$nav_forecast, {
       dataset <- compare_tfr_data()
       req(!is.null(dataset))
       plot_components <- create_tfr_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_e0_download_plot <- downloadHandler(
+    filename = function() {
+      dataset <- compare_e0_data()
+      req(!is.null(dataset))
+      sex_code <- get_active_compare_e0_sex(dataset)
+      req(!is.null(sex_code))
+      label <- map_compare_sex_label(sex_code, translate = FALSE)
+      slug <- gsub("[^A-Za-z0-9]+", "_", tolower(label))
+      slug <- gsub("_+", "_", slug)
+      slug <- gsub("^_|_$", "", slug)
+      if (!nzchar(slug)) slug <- "life_expectancy"
+      paste0("life_expectancy_compare_", slug, ".png")
+    },
+    content = function(file) {
+      dataset <- compare_e0_data()
+      req(!is.null(dataset))
+      sex_code <- get_active_compare_e0_sex(dataset)
+      req(!is.null(sex_code))
+      plot_components <- create_e0_compare_plot(dataset, sex_code, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_e0_download_data <- downloadHandler(
+    filename = function() {
+      dataset <- compare_e0_data()
+      req(!is.null(dataset))
+      sex_code <- get_active_compare_e0_sex(dataset)
+      req(!is.null(sex_code))
+      label <- map_compare_sex_label(sex_code, translate = FALSE)
+      slug <- gsub("[^A-Za-z0-9]+", "_", tolower(label))
+      slug <- gsub("_+", "_", slug)
+      slug <- gsub("^_|_$", "", slug)
+      if (!nzchar(slug)) slug <- "life_expectancy"
+      paste0("life_expectancy_compare_", slug, ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_e0_data()
+      req(!is.null(dataset))
+      sex_code <- get_active_compare_e0_sex(dataset)
+      req(!is.null(sex_code))
+      plot_components <- create_e0_compare_plot(dataset, sex_code, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_mig_download_plot <- downloadHandler(
+    filename = function() {
+      "projected_net_migration_compare.png"
+    },
+    content = function(file) {
+      dataset <- compare_mig_data()
+      req(!is.null(dataset))
+      plot_components <- create_mig_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_mig_download_data <- downloadHandler(
+    filename = function() {
+      "projected_net_migration_compare.csv"
+    },
+    content = function(file) {
+      dataset <- compare_mig_data()
+      req(!is.null(dataset))
+      plot_components <- create_mig_compare_plot(dataset, i18n)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)

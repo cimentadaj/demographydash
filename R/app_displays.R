@@ -530,6 +530,300 @@ create_tfr_compare_plot <- function(dt, i18n) {
   )
 }
 
+create_e0_compare_plot <- function(dt, selected_sex, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  if (is.null(selected_sex) || !nzchar(selected_sex)) return(NULL)
+
+  e0_dt <- data.table::as.data.table(dt)
+  data.table::setkey(e0_dt, NULL)
+  required_cols <- c("year", "sex", "e0", "un_e0_median", "un_e0_95low", "un_e0_95high", "simulation")
+  if (!all(required_cols %in% names(e0_dt))) return(NULL)
+
+  e0_dt[, sex := as.character(sex)]
+  e0_dt <- e0_dt[sex == selected_sex]
+  if (nrow(e0_dt) == 0) return(NULL)
+
+  map_sex_label <- function(x) {
+    data.table::fcase(
+      x %in% c("B", "Total", "Both"), "Total",
+      x %in% c("M", "Male"), "Male",
+      x %in% c("F", "Female"), "Female",
+      default = as.character(x)
+    )
+  }
+
+  e0_dt[, Sex := map_sex_label(sex)]
+  e0_dt[, Sex := i18n$translate(as.character(Sex))]
+
+  e0_dt <-
+    data.table::melt(
+      e0_dt,
+      id.vars = c("year", "Sex", "simulation", "un_e0_95low", "un_e0_95high"),
+      measure.vars = c("e0", "un_e0_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  e0_dt[type_value == "e0", type_value := "Projection"]
+  e0_dt[type_value == "un_e0_median", type_value := "UN Projection"]
+
+  e0_dt <- e0_dt[, .(
+    Year = year,
+    Sex,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    `Life Expectancy (years)` = value,
+    `95% Lower bound PI` = un_e0_95low,
+    `95% Upper bound PI` = un_e0_95high
+  )]
+
+  numeric_cols <- c("Life Expectancy (years)", "95% Lower bound PI", "95% Upper bound PI")
+  e0_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  e0_dt[, Type := i18n$translate(as.character(Type))]
+  e0_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(e0_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  e0_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  value_data <- e0_dt[, ..numeric_cols]
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- min_vals[is.finite(min_vals)]
+  max_vals <- max_vals[is.finite(max_vals)]
+  if (!length(min_vals) || !length(max_vals)) return(NULL)
+  min_y <- min(min_vals)
+  max_y <- max(max_vals)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- e0_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  sex_label <- unique(e0_dt$Sex)
+  sex_label <- if (length(sex_label) > 0) sex_label[[1]] else ""
+  title_base <- i18n$translate("Life Expectancy Over Time")
+  plt_title <- paste0(title_base, " (", compare_label, ") - ", sex_label)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    ggplot(
+      e0_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[["Life Expectancy (years)"]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = label_number(accuracy = 0.1)
+    ) +
+    labs(
+      title = plt_title,
+      y = i18n$translate("Life Expectancy (years)")
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(e0_dt)
+  export_dt[, `:=`(
+    Sex = as.character(Sex),
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
+create_mig_compare_plot <- function(dt, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+
+  mig_dt <- data.table::as.data.table(dt)
+  data.table::setkey(mig_dt, NULL)
+  if (!"simulation" %in% names(mig_dt)) return(NULL)
+
+  mig_dt <-
+    data.table::melt(
+      mig_dt,
+      id.vars = c("year", "simulation", "un_mig_95low", "un_mig_95high"),
+      measure.vars = c("mig", "un_mig_median"),
+      variable.name = "type_value",
+      value.name = "value"
+    )
+
+  mig_dt[type_value == "mig", type_value := "Projection"]
+  mig_dt[type_value == "un_mig_median", type_value := "UN Projection"]
+
+  mig_dt <- mig_dt[, .(
+    Year = year,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    `Net Migration` = value,
+    `95% Lower bound PI` = un_mig_95low,
+    `95% Upper bound PI` = un_mig_95high
+  )]
+
+  numeric_cols <- c("Net Migration", "95% Lower bound PI", "95% Upper bound PI")
+  mig_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  mig_dt[, Type := i18n$translate(as.character(Type))]
+  mig_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(mig_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  mig_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  value_data <- mig_dt[, ..numeric_cols]
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- min_vals[is.finite(min_vals)]
+  max_vals <- max_vals[is.finite(max_vals)]
+  if (!length(min_vals) || !length(max_vals)) return(NULL)
+  min_y <- min(min_vals)
+  max_y <- max(max_vals)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- mig_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  title_base <- i18n$translate("Projected Net Migration")
+  plt_title <- paste0(title_base, " (", compare_label, ")")
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    ggplot(
+      mig_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[["Net Migration"]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0),
+      labels = label_number(big.mark = ",")
+    ) +
+    labs(
+      title = plt_title,
+      y = i18n$translate("Net Migration")
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(mig_dt)
+  export_dt[, `:=`(
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
 #' Create Migration Plot
 #'
 #' This function takes a data table to create a net migration plot.
