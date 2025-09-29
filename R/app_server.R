@@ -422,7 +422,7 @@ app_server <- function(input, output, session) {
   }
 
   # Phase 4: Save population data and parameters
-  save_population_files <- function(trigger = NULL, raw_data_override = NULL) {
+  save_population_files <- function(trigger = NULL, raw_data_override = NULL, invalidate_results = TRUE) {
     sim_name <- simulations$current
     if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
     sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
@@ -507,12 +507,14 @@ app_server <- function(input, output, session) {
     }
     cat("[PHASE4] pop_params.json content:\n", params_json, "\n")
     # Invalidate any saved forecast results for this sim (data changed)
-    try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
-    if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    if (isTRUE(invalidate_results)) {
+      try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
+      if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    }
   }
 
   # Phase 5: Save TFR data and parameters
-  save_tfr_files <- function(trigger = NULL, raw_data_override = NULL) {
+  save_tfr_files <- function(trigger = NULL, raw_data_override = NULL, invalidate_results = TRUE) {
     sim_name <- simulations$current
     if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
     sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
@@ -575,12 +577,14 @@ app_server <- function(input, output, session) {
     }
     cat("[PHASE5] tfr_params.json content:\n", params_json, "\n")
     # Invalidate saved forecast results (inputs changed)
-    try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
-    if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    if (isTRUE(invalidate_results)) {
+      try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
+      if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    }
   }
 
   # Phase 6: Save e0 data and parameters
-  save_e0_files <- function(trigger = NULL, raw_data_override = NULL) {
+  save_e0_files <- function(trigger = NULL, raw_data_override = NULL, invalidate_results = TRUE) {
     sim_name <- simulations$current
     if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
     sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
@@ -643,12 +647,14 @@ app_server <- function(input, output, session) {
     }
     cat("[PHASE6] e0_params.json content:\n", params_json, "\n")
     # Invalidate saved forecast results (inputs changed)
-    try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
-    if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    if (isTRUE(invalidate_results)) {
+      try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
+      if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    }
   }
 
   # Phase 6: Save migration data and parameters
-  save_mig_files <- function(trigger = NULL, raw_data_override = NULL) {
+  save_mig_files <- function(trigger = NULL, raw_data_override = NULL, invalidate_results = TRUE) {
     sim_name <- simulations$current
     if (is.null(sim_name) || !nzchar(sim_name)) return(invisible(NULL))
     sim_dir <- ensure_sim_dirs(sim_base_dir, sim_name)
@@ -711,8 +717,10 @@ app_server <- function(input, output, session) {
     }
     cat("[PHASE6] mig_params.json content:\n", params_json, "\n")
     # Invalidate saved forecast results (inputs changed)
-    try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
-    if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    if (isTRUE(invalidate_results)) {
+      try({ unlink(file.path(sim_dir, "results", "results.rds"), force = TRUE) }, silent = TRUE)
+      if (!is.null(simulations$current)) try({ simulation_results(NULL) }, silent = TRUE)
+    }
   }
 
   # Dynamic header and dropdown for simulations (Phase 2)
@@ -927,7 +935,16 @@ app_server <- function(input, output, session) {
       curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
       # Consider Next clicked if last_trigger indicates progression beyond input
       last_trig <- tryCatch({ saved_meta$last_trigger }, error = function(e) NULL)
-      progressed <- isTRUE(last_trig %in% c("forward_pop_page","forward_tfr_page","forward_e0_page","forward_mig_page","begin"))
+      progressed <- isTRUE(last_trig %in% c(
+        "forward_pop_page",
+        "forward_tfr_page",
+        "forward_e0_page",
+        "forward_mig_page",
+        "nav_tfr",
+        "nav_e0",
+        "nav_mig",
+        "begin"
+      ))
       sim_saved_signature(saved_sig)
       sim_progressed(progressed)
       input_next_clicked(isTRUE(progressed) && !identical(saved_sig, NULL) && identical(saved_sig, curr_sig))
@@ -1641,9 +1658,9 @@ app_server <- function(input, output, session) {
 
   observeEvent(input$nav_tfr, {
     if (!isTRUE(input_next_clicked())) return()
-    save_sim_metadata(trigger = "forward_tfr_page")
-    save_population_files(trigger = "forward_tfr_page")
-    save_tfr_files(trigger = "forward_tfr_page")
+    save_sim_metadata(trigger = "nav_tfr")
+    save_population_files(trigger = "nav_tfr", invalidate_results = FALSE)
+    save_tfr_files(trigger = "nav_tfr", invalidate_results = FALSE)
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)
@@ -1651,10 +1668,10 @@ app_server <- function(input, output, session) {
 
   observeEvent(input$nav_e0, {
     if (!isTRUE(input_next_clicked())) return()
-    save_sim_metadata(trigger = "forward_e0_page")
-    save_population_files(trigger = "forward_e0_page")
-    save_tfr_files(trigger = "forward_e0_page")
-    save_e0_files(trigger = "forward_e0_page")
+    save_sim_metadata(trigger = "nav_e0")
+    save_population_files(trigger = "nav_e0", invalidate_results = FALSE)
+    save_tfr_files(trigger = "nav_e0", invalidate_results = FALSE)
+    save_e0_files(trigger = "nav_e0", invalidate_results = FALSE)
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)
@@ -1662,11 +1679,11 @@ app_server <- function(input, output, session) {
 
   observeEvent(input$nav_mig, {
     if (!isTRUE(input_next_clicked())) return()
-    save_sim_metadata(trigger = "forward_mig_page")
-    save_population_files(trigger = "forward_mig_page")
-    save_tfr_files(trigger = "forward_mig_page")
-    save_e0_files(trigger = "forward_mig_page")
-    save_mig_files(trigger = "forward_mig_page")
+    save_sim_metadata(trigger = "nav_mig")
+    save_population_files(trigger = "nav_mig", invalidate_results = FALSE)
+    save_tfr_files(trigger = "nav_mig", invalidate_results = FALSE)
+    save_e0_files(trigger = "nav_mig", invalidate_results = FALSE)
+    save_mig_files(trigger = "nav_mig", invalidate_results = FALSE)
     curr_sig <- compute_input_signature(input$toggle_region, input$wpp_country, input$wpp_starting_year, input$wpp_ending_year)
     sim_saved_signature(curr_sig)
     sim_progressed(TRUE)

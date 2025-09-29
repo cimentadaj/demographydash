@@ -1545,7 +1545,7 @@ handle_navigation <- function(
 
   # Sidebar navigation
   observeEvent(input$nav_input, {
-    hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page"); hide("compare_page")
     show("input_page")
     current_tab("input_page")
     # Log gating state when arriving via sidebar nav
@@ -1560,7 +1560,7 @@ handle_navigation <- function(
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
     }
-    hide("input_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    hide("input_page"); hide("tfr_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page"); hide("compare_page")
     show("pop_page")
     current_tab("pop_page")
     # Log pre-transform (Customize/raw) and post-transform (Plot) data heads
@@ -1621,7 +1621,7 @@ handle_navigation <- function(
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
     }
-    hide("input_page"); hide("pop_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page")
+    hide("input_page"); hide("pop_page"); hide("e0_page"); hide("mig_page"); hide("forecast_page"); hide("compare_page")
     show("tfr_page")
     current_tab("tfr_page")
     
@@ -1651,7 +1651,7 @@ handle_navigation <- function(
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
     }
-    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page")
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("mig_page"); hide("forecast_page"); hide("compare_page")
     show("e0_page")
     current_tab("e0_page")
     # Rehydrate e0 if missing
@@ -1681,7 +1681,7 @@ handle_navigation <- function(
       showNotification(i18n$translate("Please first select an input and click Next"), type = "warning", duration = 4)
       return()
     }
-    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("forecast_page")
+    hide("input_page"); hide("pop_page"); hide("tfr_page"); hide("e0_page"); hide("forecast_page"); hide("compare_page")
     show("mig_page")
     current_tab("mig_page")
     if (!is.null(restoring_inputs) && isTRUE(restoring_inputs())) {
