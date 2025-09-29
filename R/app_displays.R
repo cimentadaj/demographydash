@@ -824,6 +824,345 @@ create_mig_compare_plot <- function(dt, i18n) {
   )
 }
 
+create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
+  if (is.null(dt_list) || length(dt_list) == 0) return(NULL)
+  if (is.null(option) || !nzchar(option)) return(NULL)
+
+  option_parts <- strsplit(option, "_")[[1]]
+  if (length(option_parts) != 2) return(NULL)
+  data_type <- option_parts[[1]]
+  value_type <- option_parts[[2]]
+  if (!data_type %in% c("birth", "death")) return(NULL)
+  if (!value_type %in% c("counts", "rates")) return(NULL)
+
+  dataset <- dt_list[[data_type]]
+  if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
+
+  dt <- data.table::as.data.table(dataset)
+  data.table::setkey(dt, NULL)
+  if (!"simulation" %in% names(dt)) return(NULL)
+
+  key_prefix <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
+  measure_cols <- c(key_prefix, paste0("un_", key_prefix, "_median"))
+  if (!all(measure_cols %in% names(dt))) return(NULL)
+
+  low_col <- grep("95low", names(dt), value = TRUE)
+  high_col <- grep("95high", names(dt), value = TRUE)
+  matching_low <- low_col[grepl(key_prefix, low_col)][1]
+  matching_high <- high_col[grepl(key_prefix, high_col)][1]
+  if (is.na(matching_low) || is.na(matching_high)) return(NULL)
+
+  selected_cols <- unique(c("year", "simulation", measure_cols, matching_low, matching_high))
+  dt <- dt[, ..selected_cols]
+
+  melt_dt <- data.table::melt(
+    dt,
+    id.vars = c("year", "simulation", matching_low, matching_high),
+    measure.vars = measure_cols,
+    variable.name = "type_value",
+    value.name = "value"
+  )
+
+  data.table::setnames(melt_dt, old = matching_low, new = "low")
+  data.table::setnames(melt_dt, old = matching_high, new = "high")
+
+  melt_dt[type_value == measure_cols[[1]], type_value := "Projection"]
+  melt_dt[type_value == measure_cols[[2]], type_value := "UN Projection"]
+
+  var_name <- if (identical(value_type, "counts")) {
+    paste0("Number of ", ifelse(data_type == "birth", "births", "deaths"), " (thousands)")
+  } else {
+    paste0(tools::toTitleCase(paste0(data_type, "s")), " per 1,000 population")
+  }
+
+  melt_dt <- melt_dt[, .(
+    Year = year,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    value,
+    `95% Lower bound PI` = low,
+    `95% Upper bound PI` = high
+  )]
+  setnames(melt_dt, "value", var_name)
+
+  numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
+  melt_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  melt_dt[, Type := i18n$translate(Type)]
+  melt_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(melt_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  melt_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  melt_dt[, (var_name) := as.numeric(get(var_name))]
+
+  value_data <- melt_dt[, ..numeric_cols]
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- min_vals[is.finite(min_vals)]
+  max_vals <- max_vals[is.finite(max_vals)]
+  if (!length(min_vals) || !length(max_vals)) return(NULL)
+  min_y <- min(min_vals)
+  max_y <- max(max_vals)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- melt_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  variant_labels <- stats::setNames(
+    i18n$translate(c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")),
+    c("birth_counts", "birth_rates", "death_counts", "death_rates")
+  )
+  title_base <- i18n$translate("Deaths and Births")
+  variant_label <- variant_labels[[option]] %||% option
+  plt_title <- paste0(title_base, " (", compare_label, ") - ", variant_label)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  plt <-
+    ggplot(
+      melt_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[[var_name]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0)
+    ) +
+    labs(
+      title = plt_title,
+      y = i18n$translate(var_name)
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(melt_dt)
+  export_dt[, `:=`(
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
+create_dependency_compare_plot <- function(dt_list, option, i18n) {
+  if (is.null(dt_list) || length(dt_list) == 0) return(NULL)
+  if (is.null(option) || !nzchar(option)) return(NULL)
+  if (!option %in% c("oadr", "yadr")) return(NULL)
+
+  dataset <- dt_list[[option]]
+  if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
+
+  dt <- data.table::as.data.table(dataset)
+  data.table::setkey(dt, NULL)
+  if (!"simulation" %in% names(dt)) return(NULL)
+
+  value_col <- option
+  median_col <- paste0("un_", option, "_median")
+  if (!all(c("year", value_col, median_col, "low", "high") %in% names(dt))) return(NULL)
+
+  dt <- dt[, .(year, simulation, value = get(value_col), median = get(median_col), low = as.numeric(low), high = as.numeric(high))]
+
+  melt_dt <- data.table::melt(
+    dt,
+    id.vars = c("year", "simulation", "low", "high"),
+    measure.vars = c("value", "median"),
+    variable.name = "type_value",
+    value.name = "value"
+  )
+
+  melt_dt[type_value == "value", type_value := "Projection"]
+  melt_dt[type_value == "median", type_value := "UN Projection"]
+
+  var_name <- if (identical(option, "yadr")) {
+    "Persons age <20 per 100 persons age 20-64"
+  } else {
+    "Persons age 65+ per 100 persons age 20-64"
+  }
+
+  melt_dt <- melt_dt[, .(
+    Year = year,
+    Simulation = as.character(simulation),
+    Type = type_value,
+    value,
+    `95% Lower bound PI` = low,
+    `95% Upper bound PI` = high
+  )]
+  setnames(melt_dt, "value", var_name)
+
+  numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
+  melt_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+
+  type_labels <- i18n$translate(c("Projection", "UN Projection"))
+  melt_dt[, Type := i18n$translate(Type)]
+  melt_dt[, Type := factor(Type, levels = type_labels)]
+
+  sim_levels <- unique(melt_dt$Simulation)
+  if (length(sim_levels) == 0) return(NULL)
+  melt_dt[, Simulation := factor(Simulation, levels = sim_levels)]
+
+  melt_dt[, (var_name) := as.numeric(get(var_name))]
+
+  value_data <- melt_dt[, ..numeric_cols]
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- min_vals[is.finite(min_vals)]
+  max_vals <- max_vals[is.finite(max_vals)]
+  if (!length(min_vals) || !length(max_vals)) return(NULL)
+  min_y <- min(min_vals)
+  max_y <- max(max_vals)
+  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
+  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
+  min_y <- min_y - buffer_min
+  max_y <- max_y + buffer_max
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  linetype_values <- stats::setNames(
+    c("solid", "longdash"),
+    type_labels
+  )
+  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+
+  ribbon_dt <- melt_dt[Type == i18n$translate("UN Projection")]
+
+  compare_label <- i18n$translate("Comparison")
+  option_labels <- stats::setNames(
+    i18n$translate(c(
+      "Old-age dependency ratio (Age 65+ / Age 20-64)",
+      "Young-age dependency ratio (Age <20 / Age 20-64)"
+    )),
+    c("oadr", "yadr")
+  )
+  title_base <- i18n$translate("YADR and OADR")
+  option_label <- option_labels[[option]] %||% option
+  plt_title <- paste0(title_base, " (", compare_label, ") - ", option_label)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  melt_dt[, (var_name) := as.numeric(get(var_name))]
+
+  plt <-
+    ggplot(
+      melt_dt,
+      aes(
+        x = .data[["Year"]],
+        y = .data[[var_name]],
+        color = .data[["Simulation"]],
+        group = interaction(.data[["Simulation"]], .data[["Type"]])
+      )
+    ) +
+    geom_line(aes(linetype = .data[["Type"]])) +
+    scale_color_manual(values = color_palette) +
+    scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
+    scale_y_continuous(
+      limits = c(min_y, max_y),
+      expand = expansion(mult = 0)
+    ) +
+    labs(
+      title = plt_title,
+      y = i18n$translate(var_name)
+    ) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom"
+    )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
+  plt <- plt + ggplot2::guides(fill = "none")
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    layout(legend = PLOTLY_LEGEND_OPTS)
+
+  export_dt <- data.table::copy(melt_dt)
+  export_dt[, `:=`(
+    Simulation = as.character(Simulation),
+    Type = as.character(Type)
+  )]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
 #' Create Migration Plot
 #'
 #' This function takes a data table to create a net migration plot.

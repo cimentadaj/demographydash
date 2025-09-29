@@ -17,7 +17,9 @@ COMPARE_TAB_NAMES <- c(
   "Population Over Time",
   "Projected Total Fertility Rate",
   "Life Expectancy Over Time",
-  "Projected Net Migration"
+  "Projected Net Migration",
+  "Deaths and Births",
+  "YADR and OADR"
 )
 
 # Font size of text from a plot

@@ -410,11 +410,115 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_death_birth_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_birth <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      birth_dt <- tryCatch({ res$births_counts_rates }, error = function(e) NULL)
+      if (is.null(birth_dt)) return(NULL)
+      dt <- data.table::as.data.table(birth_dt)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_death <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      death_dt <- tryCatch({ res$deaths_counts_rates }, error = function(e) NULL)
+      if (is.null(death_dt)) return(NULL)
+      dt <- data.table::as.data.table(death_dt)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_birth <- Filter(Negate(is.null), all_birth)
+    all_death <- Filter(Negate(is.null), all_death)
+    if (length(all_birth) == 0 || length(all_death) == 0) return(NULL)
+
+    birth_combined <- data.table::rbindlist(all_birth, use.names = TRUE, fill = TRUE)
+    death_combined <- data.table::rbindlist(all_death, use.names = TRUE, fill = TRUE)
+
+    required_birth_cols <- c(
+      "year", "birth", "un_birth_median", "un_birth_95low", "un_birth_95high",
+      "cbr", "un_cbr_median", "un_cbr_95low", "un_cbr_95high", "simulation"
+    )
+    required_death_cols <- c(
+      "year", "death", "un_death_median", "un_death_95low", "un_death_95high",
+      "cdr", "un_cdr_median", "un_cdr_95low", "un_cdr_95high", "simulation"
+    )
+    if (!all(required_birth_cols %in% names(birth_combined))) return(NULL)
+    if (!all(required_death_cols %in% names(death_combined))) return(NULL)
+
+    birth_combined[, simulation := factor(simulation, levels = sims)]
+    death_combined[, simulation := factor(simulation, levels = sims)]
+
+    list(
+      birth = birth_combined,
+      death = death_combined
+    )
+  })
+
+  compare_dependency_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    oadr_list <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      oadr_dt <- tryCatch({ res$oadr }, error = function(e) NULL)
+      if (is.null(oadr_dt)) return(NULL)
+      dt <- data.table::as.data.table(oadr_dt)
+      if (nrow(dt) == 0) return(NULL)
+      if (ncol(dt) >= 5) {
+        data.table::setnames(dt, names(dt)[1:5], c("year", "oadr", "un_oadr_median", "low", "high"))
+      }
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    yadr_list <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      yadr_dt <- tryCatch({ res$yadr }, error = function(e) NULL)
+      if (is.null(yadr_dt)) return(NULL)
+      dt <- data.table::as.data.table(yadr_dt)
+      if (nrow(dt) == 0) return(NULL)
+      if (ncol(dt) >= 5) {
+        data.table::setnames(dt, names(dt)[1:5], c("year", "yadr", "un_yadr_median", "low", "high"))
+      }
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    oadr_list <- Filter(Negate(is.null), oadr_list)
+    yadr_list <- Filter(Negate(is.null), yadr_list)
+    if (length(oadr_list) == 0 || length(yadr_list) == 0) return(NULL)
+
+    oadr_combined <- data.table::rbindlist(oadr_list, use.names = TRUE, fill = TRUE)
+    yadr_combined <- data.table::rbindlist(yadr_list, use.names = TRUE, fill = TRUE)
+
+    required_oadr_cols <- c("year", "oadr", "un_oadr_median", "low", "high", "simulation")
+    required_yadr_cols <- c("year", "yadr", "un_yadr_median", "low", "high", "simulation")
+    if (!all(required_oadr_cols %in% names(oadr_combined))) return(NULL)
+    if (!all(required_yadr_cols %in% names(yadr_combined))) return(NULL)
+
+    oadr_combined[, simulation := factor(simulation, levels = sims)]
+    yadr_combined[, simulation := factor(simulation, levels = sims)]
+
+    list(
+      oadr = oadr_combined,
+      yadr = yadr_combined
+    )
+  })
+
   compare_selected_tab_index <- reactiveVal(1)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
   tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
   e0_compare_tab_idx <- match("Life Expectancy Over Time", COMPARE_TAB_NAMES)
   mig_compare_tab_idx <- match("Projected Net Migration", COMPARE_TAB_NAMES)
+  death_birth_compare_tab_idx <- match("Deaths and Births", COMPARE_TAB_NAMES)
+  dependency_compare_tab_idx <- match("YADR and OADR", COMPARE_TAB_NAMES)
 
   get_compare_age_options <- function(dataset) {
     if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
@@ -430,6 +534,21 @@ app_server <- function(input, output, session) {
       selected_age <- opts[[1]]
     }
     selected_age
+  }
+
+  get_compare_death_birth_options <- function() {
+    values <- c("birth_counts", "birth_rates", "death_counts", "death_rates")
+    labels <- i18n$translate(c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates"))
+    stats::setNames(values, labels)
+  }
+
+  get_active_compare_death_birth_option <- function() {
+    opts <- get_compare_death_birth_options()
+    selected <- input$compare_death_birth_option
+    if (is.null(selected) || !selected %in% opts) {
+      selected <- opts[[1]]
+    }
+    selected
   }
 
   map_compare_sex_label <- function(code, translate = TRUE) {
@@ -461,6 +580,24 @@ app_server <- function(input, output, session) {
       selected_sex <- opts[[1]]
     }
     selected_sex
+  }
+
+  get_compare_dependency_options <- function() {
+    values <- c("oadr", "yadr")
+    labels <- i18n$translate(c(
+      "Old-age dependency ratio (Age 65+ / Age 20-64)",
+      "Young-age dependency ratio (Age <20 / Age 20-64)"
+    ))
+    stats::setNames(values, labels)
+  }
+
+  get_active_compare_dependency_option <- function() {
+    opts <- get_compare_dependency_options()
+    selected <- input$compare_dependency_option
+    if (is.null(selected) || !selected %in% opts) {
+      selected <- opts[[1]]
+    }
+    selected
   }
 
   # Save only the current page into the simulation metadata
@@ -1988,6 +2125,76 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
+    if (identical(selected_name, "Deaths and Births")) {
+      dataset <- compare_death_birth_data()
+      if (is.null(dataset)) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      valid_birth <- !is.null(dataset$birth) && nrow(dataset$birth) > 0
+      valid_death <- !is.null(dataset$death) && nrow(dataset$death) > 0
+      if (!valid_birth || !valid_death) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_death_birth_selector_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_death_birth_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_death_birth_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_death_birth_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
+    if (identical(selected_name, "YADR and OADR")) {
+      dataset <- compare_dependency_data()
+      if (is.null(dataset)) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      valid_oadr <- !is.null(dataset$oadr) && nrow(dataset$oadr) > 0
+      valid_yadr <- !is.null(dataset$yadr) && nrow(dataset$yadr) > 0
+      if (!valid_oadr || !valid_yadr) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_dependency_selector_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_dependency_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_dependency_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_dependency_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     div(
       class = "ui warning message",
       i18n$translate("This comparison view is not yet available.")
@@ -2047,6 +2254,66 @@ observeEvent(input$nav_forecast, {
       i18n$translate("Select sex"),
       choices = sex_options,
       selected = selected_sex
+    )
+  })
+
+  output$compare_death_birth_selector_ui <- renderUI({
+    if (is.na(death_birth_compare_tab_idx) || compare_selected_tab_index() != death_birth_compare_tab_idx) {
+      return(NULL)
+    }
+
+    dataset <- compare_death_birth_data()
+    input$selected_language
+
+    if (is.null(dataset)) return(NULL)
+
+    valid_birth <- !is.null(dataset$birth) && nrow(dataset$birth) > 0
+    valid_death <- !is.null(dataset$death) && nrow(dataset$death) > 0
+    if (!valid_birth || !valid_death) {
+      return(div(
+        class = "ui warning message",
+        i18n$translate("No deaths or births data are available for comparison.")
+      ))
+    }
+
+    options <- get_compare_death_birth_options()
+    selected <- get_active_compare_death_birth_option()
+
+    selectInput(
+      "compare_death_birth_option",
+      i18n$translate("Select metric"),
+      choices = options,
+      selected = selected
+    )
+  })
+
+  output$compare_dependency_selector_ui <- renderUI({
+    if (is.na(dependency_compare_tab_idx) || compare_selected_tab_index() != dependency_compare_tab_idx) {
+      return(NULL)
+    }
+
+    dataset <- compare_dependency_data()
+    input$selected_language
+
+    if (is.null(dataset)) return(NULL)
+
+    valid_oadr <- !is.null(dataset$oadr) && nrow(dataset$oadr) > 0
+    valid_yadr <- !is.null(dataset$yadr) && nrow(dataset$yadr) > 0
+    if (!valid_oadr || !valid_yadr) {
+      return(div(
+        class = "ui warning message",
+        i18n$translate("No dependency ratio data are available for comparison.")
+      ))
+    }
+
+    options <- get_compare_dependency_options()
+    selected <- get_active_compare_dependency_option()
+
+    selectInput(
+      "compare_dependency_option",
+      i18n$translate("Select metric"),
+      choices = options,
+      selected = selected
     )
   })
 
@@ -2156,6 +2423,36 @@ observeEvent(input$nav_forecast, {
     req(!is.null(dataset))
 
     plot_components <- create_mig_compare_plot(dataset, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_death_birth_plot <- plotly::renderPlotly({
+    req(!is.na(death_birth_compare_tab_idx))
+    req(compare_selected_tab_index() == death_birth_compare_tab_idx)
+    dataset <- compare_death_birth_data()
+    req(!is.null(dataset))
+
+    selected_option <- get_active_compare_death_birth_option()
+    req(!is.null(selected_option))
+
+    plot_components <- create_deaths_births_compare_plot(dataset, selected_option, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_dependency_plot <- plotly::renderPlotly({
+    req(!is.na(dependency_compare_tab_idx))
+    req(compare_selected_tab_index() == dependency_compare_tab_idx)
+    dataset <- compare_dependency_data()
+    req(!is.null(dataset))
+
+    selected_option <- get_active_compare_dependency_option()
+    req(!is.null(selected_option))
+
+    plot_components <- create_dependency_compare_plot(dataset, selected_option, i18n)
     req(!is.null(plot_components))
 
     plot_components$plotly
@@ -2284,6 +2581,94 @@ observeEvent(input$nav_forecast, {
       dataset <- compare_mig_data()
       req(!is.null(dataset))
       plot_components <- create_mig_compare_plot(dataset, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_death_birth_download_plot <- downloadHandler(
+    filename = function() {
+      option <- get_active_compare_death_birth_option()
+      req(!is.null(option))
+      paste0("deaths_births_compare_", gsub("[^A-Za-z0-9]+", "_", option), ".png")
+    },
+    content = function(file) {
+      dataset <- compare_death_birth_data()
+      req(!is.null(dataset))
+      option <- get_active_compare_death_birth_option()
+      req(!is.null(option))
+      plot_components <- create_deaths_births_compare_plot(dataset, option, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_death_birth_download_data <- downloadHandler(
+    filename = function() {
+      option <- get_active_compare_death_birth_option()
+      req(!is.null(option))
+      paste0("deaths_births_compare_", gsub("[^A-Za-z0-9]+", "_", option), ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_death_birth_data()
+      req(!is.null(dataset))
+      option <- get_active_compare_death_birth_option()
+      req(!is.null(option))
+      plot_components <- create_deaths_births_compare_plot(dataset, option, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
+
+  output$compare_dependency_download_plot <- downloadHandler(
+    filename = function() {
+      option <- get_active_compare_dependency_option()
+      req(!is.null(option))
+      paste0("dependency_ratio_compare_", gsub("[^A-Za-z0-9]+", "_", option), ".png")
+    },
+    content = function(file) {
+      dataset <- compare_dependency_data()
+      req(!is.null(dataset))
+      option <- get_active_compare_dependency_option()
+      req(!is.null(option))
+      plot_components <- create_dependency_compare_plot(dataset, option, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_dependency_download_data <- downloadHandler(
+    filename = function() {
+      option <- get_active_compare_dependency_option()
+      req(!is.null(option))
+      paste0("dependency_ratio_compare_", gsub("[^A-Za-z0-9]+", "_", option), ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_dependency_data()
+      req(!is.null(dataset))
+      option <- get_active_compare_dependency_option()
+      req(!is.null(option))
+      plot_components <- create_dependency_compare_plot(dataset, option, i18n)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)
