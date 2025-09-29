@@ -826,12 +826,15 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   data.table::setkey(dt, NULL)
   if (!"simulation" %in% names(dt)) return(NULL)
 
-  if (identical(value_type, "counts")) {
-    value_col <- if (identical(data_type, "birth")) "birth" else "death"
-    median_col <- if (identical(data_type, "birth")) "un_birth_median" else "un_death_median"
+  value_col <- if (identical(value_type, "counts")) {
+    if (identical(data_type, "birth")) "birth" else "death"
   } else {
-    value_col <- if (identical(data_type, "birth")) "cbr" else "cdr"
-    median_col <- if (identical(data_type, "birth")) "un_cbr_median" else "un_cdr_median"
+    if (identical(data_type, "birth")) "cbr" else "cdr"
+  }
+  median_col <- if (identical(value_type, "counts")) {
+    if (identical(data_type, "birth")) "un_birth_median" else "un_death_median"
+  } else {
+    if (identical(data_type, "birth")) "un_cbr_median" else "un_cdr_median"
   }
   lower_col <- paste0(value_col, "_95low")
   upper_col <- paste0(value_col, "_95high")
@@ -847,6 +850,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     `95% Upper bound PI` = as.numeric(get(upper_col))
   )]
 
+  cat("[COMPARE_DEATHS_BIRTHS] Prepared sample:
+")
+  print(utils::head(prepared, 5))
+
   melt_dt <- data.table::melt(
     prepared,
     id.vars = c("Year", "Simulation", "95% Lower bound PI", "95% Upper bound PI"),
@@ -854,6 +861,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     variable.name = "Type",
     value.name = "value"
   )
+
+  cat("[COMPARE_DEATHS_BIRTHS] Melted sample:
+")
+  print(utils::head(melt_dt, 5))
 
   var_name <- if (identical(value_type, "counts")) {
     paste0("Number of ", tolower(data_type), "s (thousands)")
@@ -865,6 +876,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
   melt_dt[, (numeric_cols) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = numeric_cols]
+
+  cat("[COMPARE_DEATHS_BIRTHS] Final sample:
+")
+  print(utils::head(melt_dt, 5))
 
   type_labels <- i18n$translate(c("Projection", "UN Projection"))
   melt_dt[, Type := i18n$translate(as.character(Type))]
