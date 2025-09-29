@@ -681,6 +681,24 @@ app_server <- function(input, output, session) {
     years[is.finite(years)]
   }
 
+  pyramid_scale_labels <- function() {
+    i18n$translate(c("Absolute", "Relative"))
+  }
+
+  get_active_compare_pyramid_scale <- function() {
+    labels <- pyramid_scale_labels()
+    codes <- c("absolute", "relative")
+    selected_label <- input$compare_pyramid_scale
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
+    codes[[match(selected_label, labels)]]
+  }
+
+  get_compare_pyramid_scale <- function() {
+    get_active_compare_pyramid_scale()
+  }
+
   get_active_compare_pyramid_year <- function(dataset) {
     years <- get_compare_pyramid_years(dataset)
     if (length(years) == 0) return(NULL)
@@ -2205,6 +2223,8 @@ observeEvent(input$nav_forecast, {
       }
       return(untheme::sidebar_layout_responsive(
         sidebar = div(
+          uiOutput("compare_pyramid_scale_ui"),
+          shiny::tags$div(style = "margin-bottom: 4px;"),
           uiOutput("compare_pyramid_year_selector_ui"),
           shiny::tags$div(style = "margin-bottom: 1px;"),
           div(
@@ -2567,11 +2587,34 @@ observeEvent(input$nav_forecast, {
     req(!is.null(dataset))
     selected_year <- get_active_compare_pyramid_year(dataset)
     req(!is.null(selected_year))
+    scale_type <- get_compare_pyramid_scale()
 
-    plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+    plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n, scale_type = scale_type)
     req(!is.null(plot_components))
 
     plot_components$plotly
+  })
+
+  output$compare_pyramid_scale_ui <- renderUI({
+    if (is.na(pop_pyramid_compare_tab_idx) || compare_selected_tab_index() != pop_pyramid_compare_tab_idx) {
+      return(NULL)
+    }
+
+    input$selected_language
+
+    labels <- pyramid_scale_labels()
+    selected_label <- input$compare_pyramid_scale
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
+
+    multiple_radio(
+      input_id = "compare_pyramid_scale",
+      label = i18n$translate("Scale Type"),
+      choices = labels,
+      selected = selected_label,
+      type = "inline"
+    )
   })
 
   output$compare_pyramid_year_selector_ui <- renderUI({
@@ -3070,15 +3113,18 @@ observeEvent(input$nav_forecast, {
       dataset <- compare_pop_pyramid_data()
       req(!is.null(dataset))
       selected_year <- get_active_compare_pyramid_year(dataset)
+      scale_type <- get_compare_pyramid_scale()
+      suffix <- if (identical(scale_type, "relative")) "relative" else "absolute"
       year_slug <- if (is.null(selected_year)) "year" else formatC(round(selected_year), format = "d")
-      paste0("population_pyramid_compare_", year_slug, ".png")
+      paste0("population_pyramid_compare_", year_slug, "_", suffix, ".png")
     },
     content = function(file) {
       dataset <- compare_pop_pyramid_data()
       req(!is.null(dataset))
       selected_year <- get_active_compare_pyramid_year(dataset)
       req(!is.null(selected_year))
-      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+      scale_type <- get_compare_pyramid_scale()
+      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n, scale_type = scale_type)
       req(!is.null(plot_components))
       ggplot2::ggsave(
         filename = file,
@@ -3097,15 +3143,18 @@ observeEvent(input$nav_forecast, {
       dataset <- compare_pop_pyramid_data()
       req(!is.null(dataset))
       selected_year <- get_active_compare_pyramid_year(dataset)
+      scale_type <- get_compare_pyramid_scale()
+      suffix <- if (identical(scale_type, "relative")) "relative" else "absolute"
       year_slug <- if (is.null(selected_year)) "year" else formatC(round(selected_year), format = "d")
-      paste0("population_pyramid_compare_", year_slug, ".csv")
+      paste0("population_pyramid_compare_", year_slug, "_", suffix, ".csv")
     },
     content = function(file) {
       dataset <- compare_pop_pyramid_data()
       req(!is.null(dataset))
       selected_year <- get_active_compare_pyramid_year(dataset)
       req(!is.null(selected_year))
-      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+      scale_type <- get_compare_pyramid_scale()
+      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n, scale_type = scale_type)
       req(!is.null(plot_components))
       export_dt <- plot_components$data
       req(!is.null(export_dt), nrow(export_dt) > 0)

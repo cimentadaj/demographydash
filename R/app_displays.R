@@ -393,9 +393,10 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
   )
 }
 
-create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
+create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type = "absolute") {
   if (is.null(dt) || nrow(dt) == 0) return(NULL)
   if (is.null(selected_year) || !length(selected_year)) return(NULL)
+  scale_type <- if (is.null(scale_type) || !scale_type %in% c("absolute", "relative")) "absolute" else scale_type
 
   full_dt <- data.table::as.data.table(dt)
   data.table::setkey(full_dt, NULL)
@@ -452,15 +453,23 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
   }
   pop_dt[, Simulation := factor(Simulation, levels = sim_levels_present)]
 
-  pop_dt[, `Population Signed (000s)` := round(ifelse(SexBase == "Males", -Population, Population), 3)]
-  pop_dt[, `Population (000s)` := round(abs(Population), 3)]
+  pop_dt[, Population := as.numeric(Population)]
 
-  pop_dt <- pop_dt[!is.na(`Population Signed (000s)`)]
+  if (identical(scale_type, "relative")) {
+    pop_dt[, total_pop := sum(Population, na.rm = TRUE), by = Simulation]
+    pop_dt[, Population := ifelse(total_pop > 0, (Population / total_pop) * 100, NA_real_)]
+  }
+
+  pop_dt[, value_signed := ifelse(SexBase == "Males", -Population, Population)]
+  pop_dt[, value_signed := round(value_signed, 3)]
+  pop_dt[, value_abs := round(abs(value_signed), 3)]
+
+  pop_dt <- pop_dt[!is.na(value_signed)]
   if (nrow(pop_dt) == 0) return(NULL)
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels_present)), sim_levels_present)
 
-  max_abs <- suppressWarnings(max(abs(pop_dt$`Population Signed (000s)`), na.rm = TRUE))
+  max_abs <- suppressWarnings(max(abs(pop_dt$value_signed), na.rm = TRUE))
   if (!is.finite(max_abs) || max_abs <= 0) {
     max_abs <- 1
   }
@@ -470,6 +479,17 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
   base_title <- i18n$translate("Population Pyramid By Age and Sex")
   plt_title <- paste0(base_title, " (", compare_label, ") - ", selected_year)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  value_suffix <- if (identical(scale_type, "relative")) "(%)" else "(000s)"
+  value_label <- sprintf("%s %s", i18n$translate("Population"), value_suffix)
+  value_signed_label <- sprintf("%s Signed %s", i18n$translate("Population"), value_suffix)
+
+  if (identical(scale_type, "relative")) {
+    percent_formatter <- scales::label_number(accuracy = 0.1, suffix = "%")
+    axis_formatter <- function(x) percent_formatter(abs(x))
+  } else {
+    axis_formatter <- function(x) paste0(abs(x))
+  }
 
   age_levels <- levels(pop_dt$Age)
   age_numeric_levels <- suppressWarnings(as.numeric(gsub("\\+.*", "", gsub("-.*", "", age_levels))))
@@ -498,7 +518,7 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
 
   text_dt <- data.table::data.table(
     Age = factor(rep(text_age, 2), levels = age_levels),
-    `Population Signed (000s)` = c(-limit * 0.85, limit * 0.85),
+    value_signed = c(-limit * 0.85, limit * 0.85),
     Label = c(males_label, females_label)
   )
 
@@ -506,29 +526,49 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
     Age,
     Simulation,
     Sex,
-    `Population Signed (000s)`,
-    `Population (000s)`
+    value_signed,
+    value_abs
+  )]
+
+  if (identical(scale_type, "relative")) {
+    value_formatter <- scales::label_number(accuracy = 0.1, suffix = "%")
+  } else {
+    value_formatter <- scales::label_number(big.mark = ",", accuracy = 0.1)
+  }
+
+  translate_age <- i18n$translate("Age")
+  translate_sex <- i18n$translate("Sex")
+  translate_sim <- i18n$translate("Simulation")
+
+  plot_dt[, formatted_value := value_formatter(value_abs)]
+  plot_dt[, tooltip := sprintf(
+    "%s: %s<br>%s: %s<br>%s: %s<br>%s: %s",
+    translate_age, Age,
+    translate_sex, Sex,
+    translate_sim, Simulation,
+    value_label, formatted_value
   )]
 
   plt <- ggplot(
     plot_dt,
     aes(
       x = .data[["Age"]],
-      y = .data[["Population Signed (000s)"]],
+      y = .data[["value_signed"]],
       color = .data[["Simulation"]],
-      group = interaction(.data[["Simulation"]], .data[["Sex"]])
+      group = interaction(.data[["Simulation"]], .data[["Sex"]]),
+      text = .data[["tooltip"]]
     )
   ) +
     ggplot2::geom_line(linewidth = 0.6, aes(group = interaction(.data[["Simulation"]], .data[["Sex"]]))) +
     scale_color_manual(values = color_palette) +
     scale_y_continuous(
       limits = c(-limit, limit),
-      labels = function(x) paste0(abs(x)),
+      labels = axis_formatter,
       expand = expansion(mult = 0.05)
     ) +
     scale_x_discrete(breaks = age_breaks) +
     coord_flip() +
-    labs(title = plt_title) +
+    labs(title = plt_title, y = value_label, x = i18n$translate("Age")) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
@@ -542,7 +582,7 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
       data = text_dt,
       aes(
         x = .data[["Age"]],
-        y = .data[["Population Signed (000s)"]],
+        y = .data[["value_signed"]],
         label = .data[["Label"]]
       ),
       inherit.aes = FALSE,
@@ -561,7 +601,7 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
       plot.title = element_text(size = plt_title_adapted$font_size)
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour")) %>%
+  plt_visible <- ggplotly(plt_visible, tooltip = c("text", "colour")) %>%
     layout(
       legend = PLOTLY_LEGEND_OPTS,
       xaxis = list(showgrid = FALSE, zeroline = FALSE, showline = FALSE),
@@ -569,8 +609,12 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
     )
 
   export_dt <- data.table::copy(plot_dt)
-  export_dt[, `Population (000s)` := round(abs(`Population Signed (000s)`), 3)]
-  export_dt[, `Population Signed (000s)` := round(`Population Signed (000s)`, 3)]
+  export_dt[, c("formatted_value", "tooltip") := NULL]
+  export_dt[, `:=`(
+    value_abs = round(abs(value_signed), 3),
+    value_signed = round(value_signed, 3)
+  )]
+  data.table::setnames(export_dt, c("value_signed", "value_abs"), c(value_signed_label, value_label))
   export_dt[, Age := as.character(Age)]
   export_dt[, Simulation := as.character(Simulation)]
   export_dt[, Sex := as.character(Sex)]
