@@ -886,11 +886,9 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   melt_dt[, (var_name) := as.numeric(get(var_name))]
 
-  lower_col <- paste0(var_name, " 95% Lower bound PI")
-  upper_col <- paste0(var_name, " 95% Upper bound PI")
   value_data <- melt_dt[, ..numeric_cols]
-  min_vals <- sapply(value_data[, ..numeric_cols], function(x) suppressWarnings(min(x, na.rm = TRUE)))
-  max_vals <- sapply(value_data[, ..numeric_cols], function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
   min_vals <- min_vals[is.finite(min_vals)]
   max_vals <- max_vals[is.finite(max_vals)]
   if (!length(min_vals) || !length(max_vals)) return(NULL)
@@ -903,8 +901,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
   linetype_values <- stats::setNames(c("solid", "longdash"), type_labels)
-
-  ribbon_dt <- melt_dt[Type == i18n$translate("UN Projection")]
 
   compare_label <- i18n$translate("Comparison")
   variant_labels <- stats::setNames(
@@ -928,8 +924,8 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     geom_ribbon(
       data = melt_dt[Type == i18n$translate("UN Projection")],
       aes(
-        ymin = .data[[paste0(var_name, " 95% Lower bound PI")]],
-        ymax = .data[[paste0(var_name, " 95% Upper bound PI")]],
+        ymin = .data[[lower_col]],
+        ymax = .data[[upper_col]],
         fill = .data[["Simulation"]]
       ),
       inherit.aes = FALSE,
@@ -937,6 +933,7 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
+    scale_fill_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
     scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = 0)) +
     labs(
@@ -948,22 +945,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
-
-  if (nrow(ribbon_dt) > 0) {
-    plt <- plt +
-      geom_ribbon(
-        data = ribbon_dt,
-        aes(
-          x = .data[["Year"]],
-          ymin = .data[["95% Lower bound PI"]],
-          ymax = .data[["95% Upper bound PI"]],
-          fill = .data[["Simulation"]]
-        ),
-        inherit.aes = FALSE,
-        alpha = 0.12
-      ) +
-      scale_fill_manual(values = color_palette)
-  }
 
   plt <- plt + ggplot2::guides(fill = "none")
 
