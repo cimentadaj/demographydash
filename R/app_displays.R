@@ -645,22 +645,6 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
       legend.position = "bottom"
     )
 
-  if (nrow(ribbon_dt) > 0) {
-    plt <- plt +
-      geom_ribbon(
-        data = ribbon_dt,
-        aes(
-          x = .data[["Year"]],
-          ymin = .data[["95% Lower bound PI"]],
-          ymax = .data[["95% Upper bound PI"]],
-          fill = .data[["Simulation"]]
-        ),
-        inherit.aes = FALSE,
-        alpha = 0.12
-      ) +
-      scale_fill_manual(values = color_palette)
-  }
-
   plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
@@ -882,12 +866,14 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     Simulation = as.character(simulation),
     Type = type_value,
     value,
-    `95% Lower bound PI` = as.numeric(low),
-    `95% Upper bound PI` = as.numeric(high)
+    low,
+    high
   )]
-  data.table::setnames(melt_dt, "value", var_name)
+  data.table::setnames(melt_dt, c("value", "low", "high"), c(var_name, paste0(var_name, " 95% Lower bound PI"), paste0(var_name, " 95% Upper bound PI")))
 
-  numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
+  lower_col <- paste0(var_name, " 95% Lower bound PI")
+  upper_col <- paste0(var_name, " 95% Upper bound PI")
+  numeric_cols <- c(var_name, lower_col, upper_col)
   melt_dt[, (numeric_cols) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = numeric_cols]
 
   type_labels <- i18n$translate(c("Projection", "UN Projection"))
@@ -900,9 +886,11 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   melt_dt[, (var_name) := as.numeric(get(var_name))]
 
+  lower_col <- paste0(var_name, " 95% Lower bound PI")
+  upper_col <- paste0(var_name, " 95% Upper bound PI")
   value_data <- melt_dt[, ..numeric_cols]
-  min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
-  max_vals <- sapply(value_data, function(x) suppressWarnings(max(x, na.rm = TRUE)))
+  min_vals <- sapply(value_data[, ..numeric_cols], function(x) suppressWarnings(min(x, na.rm = TRUE)))
+  max_vals <- sapply(value_data[, ..numeric_cols], function(x) suppressWarnings(max(x, na.rm = TRUE)))
   min_vals <- min_vals[is.finite(min_vals)]
   max_vals <- max_vals[is.finite(max_vals)]
   if (!length(min_vals) || !length(max_vals)) return(NULL)
@@ -937,6 +925,16 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
       group = interaction(.data[["Simulation"]], .data[["Type"]])
     )
   ) +
+    geom_ribbon(
+      data = melt_dt[Type == i18n$translate("UN Projection")],
+      aes(
+        ymin = .data[[paste0(var_name, " 95% Lower bound PI")]],
+        ymax = .data[[paste0(var_name, " 95% Upper bound PI")]],
+        fill = .data[["Simulation"]]
+      ),
+      inherit.aes = FALSE,
+      alpha = 0.12
+    ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
