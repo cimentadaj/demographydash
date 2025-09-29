@@ -331,6 +331,7 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
     ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
+    scale_fill_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
     scale_y_continuous(
       limits = c(min_y, max_y),
@@ -909,14 +910,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
       group = interaction(.data[["Simulation"]], .data[["Type"]])
     )
   ) +
-    geom_ribbon(
-      data = ribbon_dt,
-      aes(
-        ymin = .data[["95% Lower bound PI"]],
-        ymax = .data[["95% Upper bound PI"]]
-      ),
-      alpha = 0.12
-    ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
@@ -930,6 +923,22 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
+
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
 
   plt <- plt + ggplot2::guides(fill = "none")
 
