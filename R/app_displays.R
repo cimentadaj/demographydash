@@ -826,65 +826,53 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   data.table::setkey(dt, NULL)
   if (!"simulation" %in% names(dt)) return(NULL)
 
-  type_key <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
-  cols_match <- grep(type_key, names(dt), value = TRUE)
-  if (length(cols_match) < 2) return(NULL)
+  if (identical(value_type, "counts")) {
+    value_col <- if (identical(data_type, "birth")) "birth" else "death"
+    median_col <- if (identical(data_type, "birth")) "un_birth_median" else "un_death_median"
+  } else {
+    value_col <- if (identical(data_type, "birth")) "cbr" else "cdr"
+    median_col <- if (identical(data_type, "birth")) "un_cbr_median" else "un_cdr_median"
+  }
+  lower_col <- paste0(value_col, "_95low")
+  upper_col <- paste0(value_col, "_95high")
+  needed_cols <- c("year", "simulation", value_col, median_col, lower_col, upper_col)
+  if (!all(needed_cols %in% names(dt))) return(NULL)
 
-  interval_cols <- grep("95(?:low|high)", names(dt), value = TRUE)
-  keep_cols <- unique(c("year", "simulation", cols_match, interval_cols))
-  dt <- dt[, ..keep_cols]
-
-  id_vars <- unique(c("year", "simulation", interval_cols))
-  measure_vars <- setdiff(names(dt), id_vars)
-  if (length(measure_vars) < 2) return(NULL)
-  measure_vars <- measure_vars[seq_len(2)]
+  prepared <- dt[, .(
+    Year = year,
+    Simulation = as.character(simulation),
+    Projection = get(value_col),
+    `UN Projection` = get(median_col),
+    `95% Lower bound PI` = as.numeric(get(lower_col)),
+    `95% Upper bound PI` = as.numeric(get(upper_col))
+  )]
 
   melt_dt <- data.table::melt(
-    dt,
-    id.vars = id_vars,
-    measure.vars = measure_vars,
-    variable.name = "type_value",
+    prepared,
+    id.vars = c("Year", "Simulation", "95% Lower bound PI", "95% Upper bound PI"),
+    measure.vars = c("Projection", "UN Projection"),
+    variable.name = "Type",
     value.name = "value"
   )
 
-  low_cols <- grep("95.*low", names(melt_dt), value = TRUE)
-  high_cols <- grep("95.*high", names(melt_dt), value = TRUE)
-  if (length(low_cols) > 0) data.table::setnames(melt_dt, low_cols, rep("low", length(low_cols)))
-  if (length(high_cols) > 0) data.table::setnames(melt_dt, high_cols, rep("high", length(high_cols)))
-
-  melt_dt[type_value == measure_vars[[1]], type_value := "Projection"]
-  melt_dt[type_value != "Projection", type_value := "UN Projection"]
-
   var_name <- if (identical(value_type, "counts")) {
-    paste0("Number of ", ifelse(data_type == "birth", "births", "deaths"), " (thousands)")
+    paste0("Number of ", tolower(data_type), "s (thousands)")
   } else {
-    paste0(tools::toTitleCase(paste0(data_type, "s")), " per 1,000 population")
+    paste0(tools::toTitleCase(data_type), "s per 1,000 population")
   }
 
-  melt_dt <- melt_dt[, .(
-    Year = year,
-    Simulation = as.character(simulation),
-    Type = type_value,
-    value,
-    low,
-    high
-  )]
-  data.table::setnames(melt_dt, c("value", "low", "high"), c(var_name, paste0(var_name, " 95% Lower bound PI"), paste0(var_name, " 95% Upper bound PI")))
+  data.table::setnames(melt_dt, "value", var_name)
 
-  lower_col <- paste0(var_name, " 95% Lower bound PI")
-  upper_col <- paste0(var_name, " 95% Upper bound PI")
-  numeric_cols <- c(var_name, lower_col, upper_col)
+  numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
   melt_dt[, (numeric_cols) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = numeric_cols]
 
   type_labels <- i18n$translate(c("Projection", "UN Projection"))
-  melt_dt[, Type := i18n$translate(Type)]
+  melt_dt[, Type := i18n$translate(as.character(Type))]
   melt_dt[, Type := factor(Type, levels = type_labels)]
 
   sim_levels <- unique(melt_dt$Simulation)
   if (length(sim_levels) == 0) return(NULL)
   melt_dt[, Simulation := factor(Simulation, levels = sim_levels)]
-
-  melt_dt[, (var_name) := as.numeric(get(var_name))]
 
   value_data <- melt_dt[, ..numeric_cols]
   min_vals <- sapply(value_data, function(x) suppressWarnings(min(x, na.rm = TRUE)))
@@ -894,22 +882,20 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   if (!length(min_vals) || !length(max_vals)) return(NULL)
 
   pad <- function(v) if (is.na(v) || v == 0) 0 else abs(v) * 0.05
-  overall_min <- min(min_vals)
-  overall_max <- max(max_vals)
-  min_y <- overall_min - pad(overall_min)
-  max_y <- overall_max + pad(overall_max)
+  min_y <- min(min_vals) - pad(min(min_vals))
+  max_y <- max(max_vals) + pad(max(max_vals))
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
   linetype_values <- stats::setNames(c("solid", "longdash"), type_labels)
+  ribbon_dt <- melt_dt[Type == i18n$translate("UN Projection")]
 
   compare_label <- i18n$translate("Comparison")
   variant_labels <- stats::setNames(
     i18n$translate(c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates")),
     c("birth_counts", "birth_rates", "death_counts", "death_rates")
   )
-  title_base <- i18n$translate("Deaths and Births")
   variant_label <- variant_labels[[option]] %||% option
-  plt_title <- paste0(title_base, " (", compare_label, ") - ", variant_label)
+  plt_title <- paste0(i18n$translate("Deaths and Births"), " (", compare_label, ") - ", variant_label)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
   plt <- ggplot(
@@ -922,10 +908,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     )
   ) +
     geom_ribbon(
-      data = melt_dt[Type == i18n$translate("UN Projection")],
+      data = ribbon_dt,
       aes(
-        ymin = .data[[lower_col]],
-        ymax = .data[[upper_col]],
+        ymin = .data[["95% Lower bound PI"]],
+        ymax = .data[["95% Upper bound PI"]],
         fill = .data[["Simulation"]]
       ),
       inherit.aes = FALSE,
@@ -948,7 +934,8 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   plt <- plt + ggplot2::guides(fill = "none")
 
-  plt_visible <- plt +
+  plt_visible <-
+    plt +
     theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
     labs(title = plt_title_adapted$title) +
     theme(plot.title = element_text(size = plt_title_adapted$font_size))
@@ -968,8 +955,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     data = as.data.frame(export_dt)
   )
 }
-
-
 create_dependency_compare_plot <- function(dt_list, option, i18n) {
   if (is.null(dt_list) || length(dt_list) == 0) return(NULL)
   if (is.null(option) || !nzchar(option)) return(NULL)

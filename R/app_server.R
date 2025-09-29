@@ -414,37 +414,26 @@ app_server <- function(input, output, session) {
     sims <- sims_with_results()
     if (length(sims) == 0) return(NULL)
 
-    all_birth <- lapply(sims, function(sim_name) {
-      res <- read_simulation_results(sim_name)
-      birth_dt <- tryCatch({ res$births_counts_rates }, error = function(e) NULL)
-      if (is.null(birth_dt)) return(NULL)
-      dt <- data.table::as.data.table(birth_dt)
-      if (nrow(dt) == 0) return(NULL)
-      dt[, simulation := sim_name]
-      dt
-    })
+    assemble <- function(extractor) {
+      parts <- lapply(sims, function(sim_name) {
+        res <- read_simulation_results(sim_name)
+        tbl <- extractor(res)
+        if (is.null(tbl)) return(NULL)
+        dt <- data.table::as.data.table(tbl)
+        if (nrow(dt) == 0) return(NULL)
+        dt[, simulation := sim_name]
+        dt
+      })
+      parts <- Filter(Negate(is.null), parts)
+      if (length(parts) == 0) return(NULL)
+      combined <- data.table::rbindlist(parts, use.names = TRUE, fill = TRUE)
+      combined[, simulation := factor(as.character(simulation), levels = sims)]
+      combined
+    }
 
-    all_death <- lapply(sims, function(sim_name) {
-      res <- read_simulation_results(sim_name)
-      death_dt <- tryCatch({ res$deaths_counts_rates }, error = function(e) NULL)
-      if (is.null(death_dt)) return(NULL)
-      dt <- data.table::as.data.table(death_dt)
-      if (nrow(dt) == 0) return(NULL)
-      dt[, simulation := sim_name]
-      dt
-    })
-
-    all_birth <- Filter(Negate(is.null), all_birth)
-    all_death <- Filter(Negate(is.null), all_death)
-    if (length(all_birth) == 0 || length(all_death) == 0) return(NULL)
-
-    birth_combined <- data.table::rbindlist(all_birth, use.names = TRUE, fill = TRUE)
-    death_combined <- data.table::rbindlist(all_death, use.names = TRUE, fill = TRUE)
-
-    if (!"simulation" %in% names(birth_combined) || !"simulation" %in% names(death_combined)) return(NULL)
-
-    birth_combined[, simulation := factor(as.character(simulation), levels = sims)]
-    death_combined[, simulation := factor(as.character(simulation), levels = sims)]
+    birth_combined <- assemble(function(res) tryCatch(res$births_counts_rates, error = function(e) NULL))
+    death_combined <- assemble(function(res) tryCatch(res$deaths_counts_rates, error = function(e) NULL))
+    if (is.null(birth_combined) || is.null(death_combined)) return(NULL)
 
     list(
       birth = birth_combined,
