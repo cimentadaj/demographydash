@@ -861,6 +861,22 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
       legend.position = "bottom"
     )
 
+  if (nrow(ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = ribbon_dt,
+        aes(
+          x = .data[["Year"]],
+          ymin = .data[["95% Lower bound PI"]],
+          ymax = .data[["95% Upper bound PI"]],
+          fill = .data[["Simulation"]]
+        ),
+        inherit.aes = FALSE,
+        alpha = 0.12
+      ) +
+      scale_fill_manual(values = color_palette)
+  }
+
   plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
