@@ -849,10 +849,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     `95% Upper bound PI` = as.numeric(get(upper_col))
   )]
 
-  cat("[COMPARE_DEATHS_BIRTHS] Prepared sample:
-")
-  print(utils::head(prepared, 5))
-
   melt_dt <- data.table::melt(
     prepared,
     id.vars = c("Year", "Simulation", "95% Lower bound PI", "95% Upper bound PI"),
@@ -860,10 +856,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     variable.name = "Type",
     value.name = "value"
   )
-
-  cat("[COMPARE_DEATHS_BIRTHS] Melted sample:
-")
-  print(utils::head(melt_dt, 5))
 
   var_name <- if (identical(value_type, "counts")) {
     paste0("Number of ", tolower(data_type), "s (thousands)")
@@ -875,10 +867,6 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
   melt_dt[, (numeric_cols) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = numeric_cols]
-
-  cat("[COMPARE_DEATHS_BIRTHS] Final sample:
-")
-  print(utils::head(melt_dt, 5))
 
   type_labels <- i18n$translate(c("Projection", "UN Projection"))
   melt_dt[, Type := i18n$translate(as.character(Type))]
@@ -924,16 +912,13 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     geom_ribbon(
       data = ribbon_dt,
       aes(
-        x = .data[["Year"]],
         ymin = .data[["95% Lower bound PI"]],
-        ymax = .data[["95% Upper bound PI"]],
-        fill = .data[["Simulation"]]
+        ymax = .data[["95% Upper bound PI"]]
       ),
       alpha = 0.12
     ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
-    scale_fill_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
     scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = 0)) +
     labs(
