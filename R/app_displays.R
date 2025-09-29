@@ -826,18 +826,17 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   data.table::setkey(dt, NULL)
   if (!"simulation" %in% names(dt)) return(NULL)
 
-  value_col <- if (identical(value_type, "counts")) {
-    if (identical(data_type, "birth")) "birth" else "death"
+  if (identical(value_type, "counts")) {
+    value_col <- if (identical(data_type, "birth")) "births" else "deaths"
+    median_col <- if (identical(data_type, "birth")) "un_births_median" else "un_deaths_median"
+    lower_col <- if (identical(data_type, "birth")) "un_births_95low" else "un_deaths_95low"
+    upper_col <- if (identical(data_type, "birth")) "un_births_95high" else "un_deaths_95high"
   } else {
-    if (identical(data_type, "birth")) "cbr" else "cdr"
+    value_col <- if (identical(data_type, "birth")) "cbr" else "cdr"
+    median_col <- if (identical(data_type, "birth")) "un_cbr_median" else "un_cdr_median"
+    lower_col <- if (identical(data_type, "birth")) "un_cbr_95low" else "un_cdr_95low"
+    upper_col <- if (identical(data_type, "birth")) "un_cbr_95high" else "un_cdr_95high"
   }
-  median_col <- if (identical(value_type, "counts")) {
-    if (identical(data_type, "birth")) "un_birth_median" else "un_death_median"
-  } else {
-    if (identical(data_type, "birth")) "un_cbr_median" else "un_cdr_median"
-  }
-  lower_col <- paste0(value_col, "_95low")
-  upper_col <- paste0(value_col, "_95high")
   needed_cols <- c("year", "simulation", value_col, median_col, lower_col, upper_col)
   if (!all(needed_cols %in% names(dt))) return(NULL)
 
@@ -925,11 +924,11 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     geom_ribbon(
       data = ribbon_dt,
       aes(
+        x = .data[["Year"]],
         ymin = .data[["95% Lower bound PI"]],
         ymax = .data[["95% Upper bound PI"]],
         fill = .data[["Simulation"]]
       ),
-      inherit.aes = FALSE,
       alpha = 0.12
     ) +
     geom_line(aes(linetype = .data[["Type"]])) +
