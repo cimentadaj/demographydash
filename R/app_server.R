@@ -527,19 +527,19 @@ app_server <- function(input, output, session) {
     selected_age
   }
 
-  get_compare_death_birth_options <- function() {
-    values <- c("birth_counts", "birth_rates", "death_counts", "death_rates")
-    labels <- i18n$translate(c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates"))
-    stats::setNames(values, labels)
+  death_birth_choice_labels <- function() {
+    i18n$translate(c("Birth Counts", "Birth Rates", "Death Counts", "Death Rates"))
   }
 
   get_active_compare_death_birth_option <- function() {
-    opts <- get_compare_death_birth_options()
-    selected <- input$compare_death_birth_option
-    if (is.null(selected) || !selected %in% opts) {
-      selected <- opts[[1]]
+    labels <- death_birth_choice_labels()
+    codes <- c("birth_counts", "birth_rates", "death_counts", "death_rates")
+    selected_label <- input$compare_death_birth_option
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
     }
-    selected
+    mapped <- codes[match(selected_label, labels)]
+    if (is.na(mapped)) codes[[1]] else mapped
   }
 
   map_compare_sex_label <- function(code, translate = TRUE) {
@@ -2264,14 +2264,18 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
-    options <- get_compare_death_birth_options()
-    selected <- get_active_compare_death_birth_option()
+    labels <- death_birth_choice_labels()
+    selected_label <- input$compare_death_birth_option
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
 
-    selectInput(
-      "compare_death_birth_option",
-      i18n$translate("Select metric"),
-      choices = options,
-      selected = selected
+    multiple_radio(
+      input_id = "compare_death_birth_option",
+      label = i18n$translate("Type of plot"),
+      choices = labels,
+      selected = selected_label,
+      type = "inline"
     )
   })
 

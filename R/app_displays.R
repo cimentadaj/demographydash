@@ -842,32 +842,31 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   data.table::setkey(dt, NULL)
   if (!"simulation" %in% names(dt)) return(NULL)
 
-  key_prefix <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
-  measure_cols <- c(key_prefix, paste0("un_", key_prefix, "_median"))
-  if (!all(measure_cols %in% names(dt))) return(NULL)
+  value_key <- if (identical(value_type, "counts")) data_type else paste0("c", substr(data_type, 1, 1), "r")
 
-  low_col <- grep("95low", names(dt), value = TRUE)
-  high_col <- grep("95high", names(dt), value = TRUE)
-  matching_low <- low_col[grepl(key_prefix, low_col)][1]
-  matching_high <- high_col[grepl(key_prefix, high_col)][1]
-  if (is.na(matching_low) || is.na(matching_high)) return(NULL)
+  cols_to_keep <- unique(c("year", "simulation", grep(value_key, names(dt), value = TRUE)))
+  dt <- dt[, ..cols_to_keep]
 
-  selected_cols <- unique(c("year", "simulation", measure_cols, matching_low, matching_high))
-  dt <- dt[, ..selected_cols]
+  interval_cols <- grep("95(?:low|high)", names(dt), value = TRUE)
+  id_vars <- unique(c("year", "simulation", interval_cols))
+  measure_vars <- setdiff(names(dt), id_vars)
+  if (length(measure_vars) == 0) return(NULL)
 
   melt_dt <- data.table::melt(
     dt,
-    id.vars = c("year", "simulation", matching_low, matching_high),
-    measure.vars = measure_cols,
+    id.vars = id_vars,
+    measure.vars = measure_vars,
     variable.name = "type_value",
     value.name = "value"
   )
 
-  data.table::setnames(melt_dt, old = matching_low, new = "low")
-  data.table::setnames(melt_dt, old = matching_high, new = "high")
+  low_cols <- grep("95.*low", names(melt_dt), value = TRUE)
+  high_cols <- grep("95.*high", names(melt_dt), value = TRUE)
+  if (length(low_cols) > 0) setnames(melt_dt, low_cols, rep("low", length(low_cols)))
+  if (length(high_cols) > 0) setnames(melt_dt, high_cols, rep("high", length(high_cols)))
 
-  melt_dt[type_value == measure_cols[[1]], type_value := "Projection"]
-  melt_dt[type_value == measure_cols[[2]], type_value := "UN Projection"]
+  melt_dt[type_value == value_key, type_value := "Projection"]
+  melt_dt[type_value != "Projection", type_value := "UN Projection"]
 
   var_name <- if (identical(value_type, "counts")) {
     paste0("Number of ", ifelse(data_type == "birth", "births", "deaths"), " (thousands)")
@@ -880,13 +879,13 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     Simulation = as.character(simulation),
     Type = type_value,
     value,
-    `95% Lower bound PI` = low,
-    `95% Upper bound PI` = high
+    `95% Lower bound PI` = as.numeric(low),
+    `95% Upper bound PI` = as.numeric(high)
   )]
-  setnames(melt_dt, "value", var_name)
+  data.table::setnames(melt_dt, "value", var_name)
 
   numeric_cols <- c(var_name, "95% Lower bound PI", "95% Upper bound PI")
-  melt_dt[, (numeric_cols) := lapply(.SD, round, 3), .SDcols = numeric_cols]
+  melt_dt[, (numeric_cols) := lapply(.SD, function(x) round(as.numeric(x), 3)), .SDcols = numeric_cols]
 
   type_labels <- i18n$translate(c("Projection", "UN Projection"))
   melt_dt[, Type := i18n$translate(Type)]
@@ -904,19 +903,15 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   min_vals <- min_vals[is.finite(min_vals)]
   max_vals <- max_vals[is.finite(max_vals)]
   if (!length(min_vals) || !length(max_vals)) return(NULL)
-  min_y <- min(min_vals)
-  max_y <- max(max_vals)
-  buffer_min <- if (min_y == 0) 0 else abs(min_y) * 0.05
-  buffer_max <- if (max_y == 0) 0 else abs(max_y) * 0.05
-  min_y <- min_y - buffer_min
-  max_y <- max_y + buffer_max
+
+  pad <- function(v) if (is.na(v) || v == 0) 0 else abs(v) * 0.05
+  overall_min <- min(min_vals)
+  overall_max <- max(max_vals)
+  min_y <- overall_min - pad(overall_min)
+  max_y <- overall_max + pad(overall_max)
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
-  linetype_values <- stats::setNames(
-    c("solid", "longdash"),
-    type_labels
-  )
-  linetype_values <- linetype_values[!is.na(names(linetype_values))]
+  linetype_values <- stats::setNames(c("solid", "longdash"), type_labels)
 
   ribbon_dt <- melt_dt[Type == i18n$translate("UN Projection")]
 
@@ -930,23 +925,19 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
   plt_title <- paste0(title_base, " (", compare_label, ") - ", variant_label)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
-  plt <-
-    ggplot(
-      melt_dt,
-      aes(
-        x = .data[["Year"]],
-        y = .data[[var_name]],
-        color = .data[["Simulation"]],
-        group = interaction(.data[["Simulation"]], .data[["Type"]])
-      )
-    ) +
+  plt <- ggplot(
+    melt_dt,
+    aes(
+      x = .data[["Year"]],
+      y = .data[[var_name]],
+      color = .data[["Simulation"]],
+      group = interaction(.data[["Simulation"]], .data[["Type"]])
+    )
+  ) +
     geom_line(aes(linetype = .data[["Type"]])) +
     scale_color_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
-    scale_y_continuous(
-      limits = c(min_y, max_y),
-      expand = expansion(mult = 0)
-    ) +
+    scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = 0)) +
     labs(
       title = plt_title,
       y = i18n$translate(var_name)
@@ -975,13 +966,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
 
   plt <- plt + ggplot2::guides(fill = "none")
 
-  plt_visible <-
-    plt +
+  plt_visible <- plt +
     theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
     labs(title = plt_title_adapted$title) +
-    theme(
-      plot.title = element_text(size = plt_title_adapted$font_size)
-    )
+    theme(plot.title = element_text(size = plt_title_adapted$font_size))
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
     layout(legend = PLOTLY_LEGEND_OPTS)
