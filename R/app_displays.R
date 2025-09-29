@@ -393,6 +393,195 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
   )
 }
 
+create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n) {
+  if (is.null(dt) || nrow(dt) == 0) return(NULL)
+  if (is.null(selected_year) || !length(selected_year)) return(NULL)
+
+  full_dt <- data.table::as.data.table(dt)
+  data.table::setkey(full_dt, NULL)
+  required_cols <- c("year", "age", "popF", "popM", "simulation")
+  if (!all(required_cols %in% names(full_dt))) return(NULL)
+
+  sim_levels_full <- if (is.factor(full_dt$simulation)) levels(full_dt$simulation) else unique(full_dt$simulation)
+  pop_dt <- full_dt[year == selected_year]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  pop_dt <- pop_dt[!is.na(popF) & !is.na(popM)]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  pop_dt <- pop_dt[, .(
+    AgeRaw = as.character(age),
+    Simulation = as.character(simulation),
+    Females = as.numeric(popF),
+    Males = as.numeric(popM)
+  )]
+
+  pop_dt <- data.table::melt(
+    pop_dt,
+    id.vars = c("AgeRaw", "Simulation"),
+    measure.vars = c("Females", "Males"),
+    variable.name = "SexBase",
+    value.name = "Population"
+  )
+
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  pop_dt <- pop_dt[!is.na(Population)]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  age_numeric <- suppressWarnings(as.numeric(gsub("\\+.*", "", gsub("-.*", "", pop_dt$AgeRaw))))
+  ord <- order(age_numeric, pop_dt$AgeRaw, na.last = TRUE)
+  age_levels <- unique(pop_dt$AgeRaw[ord])
+  pop_dt[, Age := factor(AgeRaw, levels = age_levels)]
+
+  sex_labels <- i18n$translate(c("Males", "Females"))
+  fallback_idx <- is.na(sex_labels) | !nzchar(sex_labels)
+  sex_labels[fallback_idx] <- c("Males", "Females")[fallback_idx]
+  names(sex_labels) <- c("Males", "Females")
+
+  pop_dt[, SexBase := ifelse(SexBase == "Males", "Males", "Females")]
+  pop_dt[, Sex := sex_labels[SexBase]]
+  pop_dt[, Sex := factor(Sex, levels = sex_labels)]
+
+  if (length(sim_levels_full) == 0) {
+    sim_levels_full <- unique(pop_dt$Simulation)
+  }
+  sim_levels_present <- sim_levels_full[sim_levels_full %in% unique(pop_dt$Simulation)]
+  if (length(sim_levels_present) == 0) {
+    sim_levels_present <- unique(pop_dt$Simulation)
+  }
+  pop_dt[, Simulation := factor(Simulation, levels = sim_levels_present)]
+
+  pop_dt[, `Population Signed (000s)` := round(ifelse(SexBase == "Males", -Population, Population), 3)]
+  pop_dt[, `Population (000s)` := round(abs(Population), 3)]
+
+  pop_dt <- pop_dt[!is.na(`Population Signed (000s)`)]
+  if (nrow(pop_dt) == 0) return(NULL)
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels_present)), sim_levels_present)
+
+  max_abs <- suppressWarnings(max(abs(pop_dt$`Population Signed (000s)`), na.rm = TRUE))
+  if (!is.finite(max_abs) || max_abs <= 0) {
+    max_abs <- 1
+  }
+  limit <- max_abs * 1.05
+
+  compare_label <- i18n$translate("Comparison")
+  base_title <- i18n$translate("Population Pyramid By Age and Sex")
+  plt_title <- paste0(base_title, " (", compare_label, ") - ", selected_year)
+  plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
+
+  age_levels <- levels(pop_dt$Age)
+  age_numeric_levels <- suppressWarnings(as.numeric(gsub("\\+.*", "", gsub("-.*", "", age_levels))))
+  if (!any(is.na(age_numeric_levels))) {
+    age_break_idx <- seq(1, length(age_numeric_levels), by = 5)
+    age_breaks <- age_levels[age_break_idx]
+  } else {
+    age_breaks <- age_levels
+  }
+
+  males_label <- sex_labels[["Males"]]
+  females_label <- sex_labels[["Females"]]
+  if (is.null(males_label) || !nzchar(males_label)) males_label <- i18n$translate("Males")
+  if (is.null(females_label) || !nzchar(females_label)) females_label <- i18n$translate("Females")
+
+  target_age <- 80
+  text_age_idx <- if (length(age_levels) == 0) {
+    1L
+  } else if (any(!is.na(age_numeric_levels))) {
+    idx <- which.min(abs(age_numeric_levels - target_age))
+    if (length(idx) == 0) length(age_levels) else idx[[1]]
+  } else {
+    length(age_levels)
+  }
+  text_age <- age_levels[[text_age_idx]]
+
+  text_dt <- data.table::data.table(
+    Age = factor(rep(text_age, 2), levels = age_levels),
+    `Population Signed (000s)` = c(-limit * 0.85, limit * 0.85),
+    Label = c(males_label, females_label)
+  )
+
+  plot_dt <- pop_dt[, .(
+    Age,
+    Simulation,
+    Sex,
+    `Population Signed (000s)`,
+    `Population (000s)`
+  )]
+
+  plt <- ggplot(
+    plot_dt,
+    aes(
+      x = .data[["Age"]],
+      y = .data[["Population Signed (000s)"]],
+      color = .data[["Simulation"]],
+      group = interaction(.data[["Simulation"]], .data[["Sex"]])
+    )
+  ) +
+    ggplot2::geom_line(linewidth = 0.6, aes(group = interaction(.data[["Simulation"]], .data[["Sex"]]))) +
+    scale_color_manual(values = color_palette) +
+    scale_y_continuous(
+      limits = c(-limit, limit),
+      labels = function(x) paste0(abs(x)),
+      expand = expansion(mult = 0.05)
+    ) +
+    scale_x_discrete(breaks = age_breaks) +
+    coord_flip() +
+    labs(title = plt_title) +
+    theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
+    theme(
+      plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
+      legend.position = "bottom",
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.y = element_blank(),
+      panel.grid.minor.x = element_blank()
+    ) +
+    ggplot2::geom_text(
+      data = text_dt,
+      aes(
+        x = .data[["Age"]],
+        y = .data[["Population Signed (000s)"]],
+        label = .data[["Label"]]
+      ),
+      inherit.aes = FALSE,
+      hjust = 0.5,
+      vjust = 0.5,
+      family = "sans",
+      size = 4.2,
+      fontface = "bold"
+    )
+
+  plt_visible <-
+    plt +
+    theme_minimal(base_size = PLOTLY_TEXT_SIZE$font) +
+    labs(title = plt_title_adapted$title) +
+    theme(
+      plot.title = element_text(size = plt_title_adapted$font_size)
+    )
+
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour")) %>%
+    layout(
+      legend = PLOTLY_LEGEND_OPTS,
+      xaxis = list(showgrid = FALSE, zeroline = FALSE, showline = FALSE),
+      yaxis = list(showgrid = FALSE, zeroline = FALSE, showline = FALSE)
+    )
+
+  export_dt <- data.table::copy(plot_dt)
+  export_dt[, `Population (000s)` := round(abs(`Population Signed (000s)`), 3)]
+  export_dt[, `Population Signed (000s)` := round(`Population Signed (000s)`, 3)]
+  export_dt[, Age := as.character(Age)]
+  export_dt[, Simulation := as.character(Simulation)]
+  export_dt[, Sex := as.character(Sex)]
+
+  list(
+    gg = plt,
+    plotly = config(plt_visible, displayModeBar = FALSE),
+    data = as.data.frame(export_dt)
+  )
+}
+
 create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   if (is.null(dt) || nrow(dt) == 0) return(NULL)
   if (!scale_type %in% c("percent", "absolute")) return(NULL)

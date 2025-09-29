@@ -320,6 +320,33 @@ app_server <- function(input, output, session) {
     combined
   })
 
+  compare_pop_pyramid_data <- reactive({
+    sims <- sims_with_results()
+    if (length(sims) == 0) return(NULL)
+
+    all_results <- lapply(sims, function(sim_name) {
+      res <- read_simulation_results(sim_name)
+      pop_age_sex <- tryCatch({ res$population_by_age_and_sex }, error = function(e) NULL)
+      if (is.null(pop_age_sex)) return(NULL)
+      dt <- data.table::as.data.table(pop_age_sex)
+      if (nrow(dt) == 0) return(NULL)
+      dt[, simulation := sim_name]
+      dt
+    })
+
+    all_results <- Filter(Negate(is.null), all_results)
+    if (length(all_results) == 0) return(NULL)
+
+    combined <- data.table::rbindlist(all_results, use.names = TRUE, fill = TRUE)
+
+    required_cols <- c("year", "age", "popF", "popM", "simulation")
+    if (!all(required_cols %in% names(combined))) return(NULL)
+
+    combined[, simulation := factor(simulation, levels = sims)]
+
+    combined
+  })
+
   compare_pop_broad_age_data <- reactive({
     sims <- sims_with_results()
     if (length(sims) == 0) return(NULL)
@@ -628,6 +655,7 @@ app_server <- function(input, output, session) {
   })
 
   compare_selected_tab_index <- reactiveVal(1)
+  pop_pyramid_compare_tab_idx <- match("Population Pyramid By Age and Sex", COMPARE_TAB_NAMES)
   pop_broad_compare_tab_idx <- match("Population by Broad Age Groups", COMPARE_TAB_NAMES)
   population_compare_tab_idx <- match("Population Over Time", COMPARE_TAB_NAMES)
   growth_age_compare_tab_idx <- match("Population Growth Rate by Age", COMPARE_TAB_NAMES)
@@ -644,6 +672,23 @@ app_server <- function(input, output, session) {
     if (is.null(dataset) || nrow(dataset) == 0) return(character(0))
     opts <- unique(i18n$translate(as.character(dataset$age)))
     opts[!is.na(opts) & nzchar(opts)]
+  }
+
+  get_compare_pyramid_years <- function(dataset) {
+    if (is.null(dataset) || nrow(dataset) == 0) return(numeric(0))
+    if (!"year" %in% names(dataset)) return(numeric(0))
+    years <- sort(unique(dataset$year))
+    years[is.finite(years)]
+  }
+
+  get_active_compare_pyramid_year <- function(dataset) {
+    years <- get_compare_pyramid_years(dataset)
+    if (length(years) == 0) return(NULL)
+    selected_year <- suppressWarnings(as.numeric(input$compare_pyramid_year))
+    if (length(selected_year) != 1 || is.na(selected_year) || !(selected_year %in% years)) {
+      selected_year <- years[[1]]
+    }
+    selected_year
   }
 
   get_active_compare_age <- function(dataset) {
@@ -2150,6 +2195,33 @@ observeEvent(input$nav_forecast, {
     }
     selected_name <- COMPARE_TAB_NAMES[[selected_idx]]
 
+    if (identical(selected_name, "Population Pyramid By Age and Sex")) {
+      dataset <- compare_pop_pyramid_data()
+      if (is.null(dataset) || nrow(dataset) == 0) {
+        return(div(
+          class = "ui info message",
+          i18n$translate("Run a projection to enable simulation comparisons.")
+        ))
+      }
+      return(untheme::sidebar_layout_responsive(
+        sidebar = div(
+          uiOutput("compare_pyramid_year_selector_ui"),
+          shiny::tags$div(style = "margin-bottom: 1px;"),
+          div(
+            style = "display: block;",
+            downloadButton("compare_pop_pyramid_download_plot", label = i18n$translate("Download Plot")),
+            br(),
+            downloadButton("compare_pop_pyramid_download_data", label = i18n$translate("Download Data"))
+          )
+        ),
+        main_panel = div(
+          shinycssloaders::withSpinner(
+            plotly::plotlyOutput("compare_pop_pyramid_plot", height = "600px", width = "auto")
+          )
+        )
+      ))
+    }
+
     if (identical(selected_name, "Population by Broad Age Groups")) {
       dataset <- compare_pop_broad_age_data()
       if (is.null(dataset) || nrow(dataset) == 0) {
@@ -2485,6 +2557,48 @@ observeEvent(input$nav_forecast, {
       choices = labels,
       selected = selected_label,
       type = "inline"
+    )
+  })
+
+  output$compare_pop_pyramid_plot <- plotly::renderPlotly({
+    req(!is.na(pop_pyramid_compare_tab_idx))
+    req(compare_selected_tab_index() == pop_pyramid_compare_tab_idx)
+    dataset <- compare_pop_pyramid_data()
+    req(!is.null(dataset))
+    selected_year <- get_active_compare_pyramid_year(dataset)
+    req(!is.null(selected_year))
+
+    plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+    req(!is.null(plot_components))
+
+    plot_components$plotly
+  })
+
+  output$compare_pyramid_year_selector_ui <- renderUI({
+    if (is.na(pop_pyramid_compare_tab_idx) || compare_selected_tab_index() != pop_pyramid_compare_tab_idx) {
+      return(NULL)
+    }
+
+    dataset <- compare_pop_pyramid_data()
+    input$selected_language
+
+    if (is.null(dataset) || nrow(dataset) == 0) return(NULL)
+
+    years <- get_compare_pyramid_years(dataset)
+    if (length(years) == 0) {
+      return(div(
+        class = "ui warning message",
+        i18n$translate("No years are available for comparison.")
+      ))
+    }
+
+    selected_year <- get_active_compare_pyramid_year(dataset)
+
+    selectInput(
+      "compare_pyramid_year",
+      i18n$translate("Select year"),
+      choices = stats::setNames(as.character(years), years),
+      selected = as.character(selected_year)
     )
   })
 
@@ -2950,6 +3064,54 @@ observeEvent(input$nav_forecast, {
 
     plot_components$plotly
   })
+
+  output$compare_pop_pyramid_download_plot <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_pyramid_data()
+      req(!is.null(dataset))
+      selected_year <- get_active_compare_pyramid_year(dataset)
+      year_slug <- if (is.null(selected_year)) "year" else formatC(round(selected_year), format = "d")
+      paste0("population_pyramid_compare_", year_slug, ".png")
+    },
+    content = function(file) {
+      dataset <- compare_pop_pyramid_data()
+      req(!is.null(dataset))
+      selected_year <- get_active_compare_pyramid_year(dataset)
+      req(!is.null(selected_year))
+      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+      req(!is.null(plot_components))
+      ggplot2::ggsave(
+        filename = file,
+        plot = plot_components$gg,
+        device = "png",
+        width = 11,
+        height = 6,
+        dpi = 300,
+        units = "in"
+      )
+    }
+  )
+
+  output$compare_pop_pyramid_download_data <- downloadHandler(
+    filename = function() {
+      dataset <- compare_pop_pyramid_data()
+      req(!is.null(dataset))
+      selected_year <- get_active_compare_pyramid_year(dataset)
+      year_slug <- if (is.null(selected_year)) "year" else formatC(round(selected_year), format = "d")
+      paste0("population_pyramid_compare_", year_slug, ".csv")
+    },
+    content = function(file) {
+      dataset <- compare_pop_pyramid_data()
+      req(!is.null(dataset))
+      selected_year <- get_active_compare_pyramid_year(dataset)
+      req(!is.null(selected_year))
+      plot_components <- create_pop_pyramid_compare_plot(dataset, selected_year, i18n)
+      req(!is.null(plot_components))
+      export_dt <- plot_components$data
+      req(!is.null(export_dt), nrow(export_dt) > 0)
+      utils::write.csv(export_dt, file, row.names = FALSE)
+    }
+  )
 
   output$compare_e0_plot <- plotly::renderPlotly({
     req(!is.na(e0_compare_tab_idx))

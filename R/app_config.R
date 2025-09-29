@@ -14,6 +14,7 @@ TAB_NAMES <- c(
 )
 
 COMPARE_TAB_NAMES <- c(
+  "Population Pyramid By Age and Sex",
   "Population by Broad Age Groups",
   "Population Over Time",
   "Projected Total Fertility Rate",
