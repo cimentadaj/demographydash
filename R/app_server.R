@@ -441,19 +441,10 @@ app_server <- function(input, output, session) {
     birth_combined <- data.table::rbindlist(all_birth, use.names = TRUE, fill = TRUE)
     death_combined <- data.table::rbindlist(all_death, use.names = TRUE, fill = TRUE)
 
-    required_birth_cols <- c(
-      "year", "birth", "un_birth_median", "un_birth_95low", "un_birth_95high",
-      "cbr", "un_cbr_median", "un_cbr_95low", "un_cbr_95high", "simulation"
-    )
-    required_death_cols <- c(
-      "year", "death", "un_death_median", "un_death_95low", "un_death_95high",
-      "cdr", "un_cdr_median", "un_cdr_95low", "un_cdr_95high", "simulation"
-    )
-    if (!all(required_birth_cols %in% names(birth_combined))) return(NULL)
-    if (!all(required_death_cols %in% names(death_combined))) return(NULL)
+    if (!"simulation" %in% names(birth_combined) || !"simulation" %in% names(death_combined)) return(NULL)
 
-    birth_combined[, simulation := factor(simulation, levels = sims)]
-    death_combined[, simulation := factor(simulation, levels = sims)]
+    birth_combined[, simulation := factor(as.character(simulation), levels = sims)]
+    death_combined[, simulation := factor(as.character(simulation), levels = sims)]
 
     list(
       birth = birth_combined,
@@ -582,22 +573,19 @@ app_server <- function(input, output, session) {
     selected_sex
   }
 
-  get_compare_dependency_options <- function() {
-    values <- c("oadr", "yadr")
-    labels <- i18n$translate(c(
-      "Old-age dependency ratio (Age 65+ / Age 20-64)",
-      "Young-age dependency ratio (Age <20 / Age 20-64)"
-    ))
-    stats::setNames(values, labels)
+  dependency_choice_labels <- function() {
+    i18n$translate(c("YADR", "OADR"))
   }
 
   get_active_compare_dependency_option <- function() {
-    opts <- get_compare_dependency_options()
-    selected <- input$compare_dependency_option
-    if (is.null(selected) || !selected %in% opts) {
-      selected <- opts[[1]]
+    labels <- dependency_choice_labels()
+    codes <- c("yadr", "oadr")
+    selected_label <- input$compare_dependency_option
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
     }
-    selected
+    mapped <- codes[match(selected_label, labels)]
+    if (is.na(mapped)) "yadr" else mapped
   }
 
   # Save only the current page into the simulation metadata
@@ -2306,14 +2294,18 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
-    options <- get_compare_dependency_options()
-    selected <- get_active_compare_dependency_option()
+    labels <- dependency_choice_labels()
+    selected_label <- input$compare_dependency_option
+    if (is.null(selected_label) || !selected_label %in% labels) {
+      selected_label <- labels[[1]]
+    }
 
-    selectInput(
-      "compare_dependency_option",
-      i18n$translate("Select metric"),
-      choices = options,
-      selected = selected
+    multiple_radio(
+      input_id = "compare_dependency_option",
+      label = i18n$translate("Type of plot"),
+      choices = labels,
+      selected = selected_label,
+      type = "inline"
     )
   })
 
