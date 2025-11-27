@@ -278,13 +278,13 @@ create_enhanced_population_modal_ui <- function(modal_id, header_title, output_i
         class = "ui styled accordion",
         style = "margin-top: 15px; width: 100%;",
         div(
-          class = "title",
+          class = "active title",
           style = "background-color: #f8f8f9; padding: 12px;",
-          icon("caret right"),
+          icon("caret down"),
           tags$span(style = "font-weight: 600; margin-left: 8px;", if (!is.null(i18n)) i18n$t("Data Configuration") else "Data Configuration")
         ),
         div(
-          class = "content",
+          class = "active content",
           style = "padding: 15px;",
           # Dynamic content based on data source
           conditionalPanel(
@@ -688,7 +688,7 @@ handle_customize_data <- function(
   # Note: custom_data_configs is now passed as parameter from main server scope
   
   # UI state
-  accordion_state <- reactiveVal(list(data_config = FALSE))  # Track accordion state
+  accordion_state <- reactiveVal(list(data_config = TRUE))  # Track accordion state - always start expanded
   previous_modal_tab <- reactiveVal(NULL)  # Track previous tab for auto-saving
   # Note: last_active_modal_tab is now passed as parameter from main server scope
   un_data_reset_trigger <- reactiveVal(0)  # Trigger to force table re-render on reset
@@ -1991,19 +1991,19 @@ handle_report_download <- function(simulation_results, wpp_starting_year, wpp_en
 #' event handling and state management.
 #'
 #' @param modal_id The ID of the modal containing the accordion
-#' @param initial_state Whether the accordion should be open initially (default FALSE)
+#' @param initial_state Whether the accordion should be open initially (default TRUE, always expanded)
 #'
 #' @return JavaScript code string to be executed with shinyjs::runjs
 #' @export
 #'
-initialize_population_modal_accordion <- function(modal_id, initial_state = FALSE) {
+initialize_population_modal_accordion <- function(modal_id, initial_state = TRUE) {
   js_code <- paste0("
-    // Initialize the single accordion
+    // Initialize the single accordion - always start expanded
     $('#", modal_id, "_data_config_accordion').accordion({
       exclusive: false,
       animateChildren: false,
       duration: 200,
-      active: ", if(initial_state) "0" else "false", ",
+      active: 0,
       onOpen: function() {
         // Update state and refresh modal
         Shiny.setInputValue('accordion_data_config_open', true);
