@@ -1817,6 +1817,36 @@
       "es": "¿Necesita cambios? Use la barra lateral para revisar las entradas o haga clic nuevamente en Ejecutar proyección desde la sección Migración."
     },
     {
+      "en": "Click here to add a new simulation. Each simulation can have different settings.",
+      "fr": "Cliquez ici pour ajouter une nouvelle simulation. Chaque simulation peut avoir des paramètres différents.",
+      "es": "Haga clic aquí para agregar una nueva simulación. Cada simulación puede tener configuraciones diferentes."
+    },
+    {
+      "en": "Your simulations will appear here. Click on a simulation to switch between them.",
+      "fr": "Vos simulations apparaîtront ici. Cliquez sur une simulation pour basculer entre elles.",
+      "es": "Sus simulaciones aparecerán aquí. Haga clic en una simulación para cambiar entre ellas."
+    },
+    {
+      "en": "After creating a simulation, select a country or region, choose your start and end years, then click 'Next' to proceed.",
+      "fr": "Après avoir créé une simulation, sélectionnez un pays ou une région, choisissez vos années de début et de fin, puis cliquez sur 'Suivant' pour continuer.",
+      "es": "Después de crear una simulación, seleccione un país o región, elija sus años de inicio y fin, luego haga clic en 'Siguiente' para continuar."
+    },
+    {
+      "en": "Use these steps to optionally customize Population, Fertility, Life Expectancy, and Migration data before running your projection.",
+      "fr": "Utilisez ces étapes pour personnaliser optionnellement les données de Population, Fécondité, Espérance de vie et Migration avant d'exécuter votre projection.",
+      "es": "Use estos pasos para personalizar opcionalmente los datos de Población, Fecundidad, Esperanza de vida y Migración antes de ejecutar su proyección."
+    },
+    {
+      "en": "Once you've selected your country and optionally edited the demographic data, click here to run the projection.",
+      "fr": "Une fois que vous avez sélectionné votre pays et éventuellement modifié les données démographiques, cliquez ici pour exécuter la projection.",
+      "es": "Una vez que haya seleccionado su país y opcionalmente editado los datos demográficos, haga clic aquí para ejecutar la proyección."
+    },
+    {
+      "en": "When you have multiple simulations with results, a 'Compare Simulations' option will appear here to compare them side by side.",
+      "fr": "Lorsque vous avez plusieurs simulations avec des résultats, une option 'Comparer les simulations' apparaîtra ici pour les comparer côte à côte.",
+      "es": "Cuando tenga múltiples simulaciones con resultados, aparecerá aquí una opción 'Comparar simulaciones' para compararlas lado a lado."
+    },
+    {
       "en": "Current simulation:",
       "fr": "Simulation actuelle:",
       "es": "Simulación actual:"

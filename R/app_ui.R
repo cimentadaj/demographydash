@@ -346,6 +346,10 @@ app_ui <- function(request) {
           id = "input_page",
           class = "ui raised very padded text container segment responsive-container",
           div(
+            style = "display: flex; justify-content: flex-end; margin-bottom: 10px;",
+            action_button("input_help", i18n$translate("Instructions"), class = "ui red button")
+          ),
+          div(
             class = "ui form",
             show_input_ui(i18n),
             uiOutput("next_pop_page")

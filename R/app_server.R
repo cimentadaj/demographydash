@@ -3668,6 +3668,46 @@ observeEvent(input$nav_forecast, {
     }
   })
 
+  observeEvent(input$input_help, {
+    if (current_tab() == "input_page") {
+      input_steps <- list(
+        list(
+          element = "#add_sim",
+          intro = i18n$translate("Click here to add a new simulation. Each simulation can have different settings."),
+          position = "right"
+        ),
+        list(
+          element = ".sim-header",
+          intro = i18n$translate("Your simulations will appear here. Click on a simulation to switch between them."),
+          position = "right"
+        ),
+        list(
+          element = "#input_page",
+          intro = i18n$translate("After creating a simulation, select a country or region, choose your start and end years, then click 'Next' to proceed."),
+          position = "left"
+        ),
+        list(
+          element = "#left_menu .menu-inner",
+          intro = i18n$translate("Use these steps to optionally customize Population, Fertility, Life Expectancy, and Migration data before running your projection."),
+          position = "right",
+          scrollTo = FALSE
+        ),
+        list(
+          element = "#nav_run_projection",
+          intro = i18n$translate("Once you've selected your country and optionally edited the demographic data, click here to run the projection."),
+          position = "right"
+        ),
+        list(
+          element = "#left_menu .menu-inner",
+          intro = i18n$translate("When you have multiple simulations with results, a 'Compare Simulations' option will appear here to compare them side by side."),
+          position = "right",
+          scrollTo = FALSE
+        )
+      )
+      rintrojs::introjs(session, options = list(steps = input_steps, scrollToElement = FALSE))
+    }
+  })
+
   observeEvent(input$customize_help, {
     if (grepl("modal_", current_tab())) {
       # Extract the base name (everything after "modal_")
