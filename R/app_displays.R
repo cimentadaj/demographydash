@@ -130,7 +130,7 @@ create_pop_pyramid_plot <- function(dt, country = NULL, input_year = NULL, i18n 
       panel.grid.major.x = element_blank()
     )
 
-  plt_visible <- ggplotly(plt_visible) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -377,7 +377,7 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(pop_dt)
   export_dt[, `:=`(
@@ -603,10 +603,10 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("text", "colour")) %>%
     layout(
-      legend = PLOTLY_LEGEND_OPTS,
       xaxis = list(showgrid = FALSE, zeroline = FALSE, showline = FALSE),
       yaxis = list(showgrid = FALSE, zeroline = FALSE, showline = FALSE)
-    )
+    ) %>%
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(plot_dt)
   export_dt[, c("formatted_value", "tooltip") := NULL]
@@ -724,7 +724,7 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(pop_dt)
   export_dt[, `:=`(
@@ -825,7 +825,7 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(growth_dt)
   export_dt[, `:=`(
@@ -964,7 +964,7 @@ create_tfr_compare_plot <- function(dt, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(tfr_dt)
   export_dt[, `:=`(
@@ -1121,7 +1121,7 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(e0_dt)
   export_dt[, `:=`(
@@ -1258,7 +1258,7 @@ create_mig_compare_plot <- function(dt, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(mig_dt)
   export_dt[, `:=`(
@@ -1413,7 +1413,7 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     theme(plot.title = element_text(size = plt_title_adapted$font_size))
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(melt_dt)
   export_dt[, `:=`(
@@ -1576,7 +1576,7 @@ create_dependency_compare_plot <- function(dt_list, option, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(melt_dt)
   export_dt[, `:=`(
@@ -1777,7 +1777,7 @@ create_mig_projected_plot <- function(dt, end_year, country, i18n) {
 
   plt_visible <-
     ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>%
-    layout(legend = update_plotly_legend_opts(PLOTLY_LEGEND_OPTS))
+    apply_plotly_legend(update_plotly_legend_opts(PLOTLY_LEGEND_OPTS))
 
   list(
     gg = plt,
@@ -1939,7 +1939,7 @@ create_e0_projected_plot <- function(dt, input_sex, country, i18n) {
 
   plt_visible <-
     ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2038,7 +2038,7 @@ create_age_group_plot <- function(dt, input_scale, country, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color")) %>% 
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2188,7 +2188,7 @@ create_pop_time_plot <- function(dt, input_age, country, i18n) {
       plot.title = element_text(size = plt_title_adapted$font_size)
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2316,7 +2316,7 @@ create_tfr_projected_plot <- function(dt, end_year, country, i18n) {
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2393,7 +2393,7 @@ create_annual_growth_plot <- function(dt, end_year, country, i18n) {
     plt_visible,
     tooltip = c("x", "y", "color")
   ) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2717,7 +2717,7 @@ create_deaths_births_plot <- function(forecast_birth, forecast_death, data_type,
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -2867,7 +2867,7 @@ create_yadr_oadr_plot <- function(oadr, yadr, data_type, end_year, country, i18n
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "ymax", "ymin")) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -3012,7 +3012,7 @@ create_un_projection_plot <- function(dt, end_year, name_mappings, percent_x = F
       legend.position = "bottom"
     )
 
-  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "text")) %>% layout(legend = PLOTLY_LEGEND_OPTS)
+  plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "color", "text")) %>% apply_plotly_legend()
 
   list(
     gg = plt,
@@ -3157,7 +3157,7 @@ create_un_projection_compare_plot <- function(dt, axis_mappings, percent_x = FAL
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("text", "colour", "shape")) %>%
-    layout(legend = PLOTLY_LEGEND_OPTS)
+    apply_plotly_legend()
 
   export_dt <- data.table::copy(combined_data)
   export_dt[, `:=`(

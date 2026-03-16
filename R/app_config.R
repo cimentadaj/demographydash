@@ -34,10 +34,10 @@ DOWNLOAD_PLOT_SIZE <- list(title = 9, font = 10)
 PLOTLY_TEXT_SIZE <- shiny::reactiveValues()
 
 PLOTLY_LEGEND_OPTS <- list(
-  xanchor = "bottom",
-  y = -0.32,
-  xref = "container",
-  yanchor = "bottom",
+  x = 0.5,
+  xanchor = "center",
+  y = -0.2,
+  yanchor = "top",
   orientation = "h"
 )
 
@@ -47,6 +47,20 @@ update_plotly_legend_opts <- function(PLOTLY_LEGEND_OPTS) {
   }
 
   PLOTLY_LEGEND_OPTS
+}
+
+#' Apply legend options to a plotly object
+#'
+#' Uses layout() for standard properties, then directly sets xref and
+#' title.side which the R plotly package strips from layout() calls.
+#' @param p A plotly object
+#' @param opts Legend options list (defaults to PLOTLY_LEGEND_OPTS)
+#' @return The modified plotly object
+apply_plotly_legend <- function(p, opts = PLOTLY_LEGEND_OPTS) {
+  p <- p %>% plotly::layout(legend = opts)
+  p$x$layout$legend$xref <- "paper"
+  p$x$layout$legend$title$side <- "top"
+  p
 }
 
 JS_CODE_SCREEN_SIZE <- '$(document).on("shiny:connected", function(e) {
