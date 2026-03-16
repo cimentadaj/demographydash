@@ -103,7 +103,11 @@ show_forecast_results_ui <- function(input, i18n) {
           uiOutput("pop_age_sex_years_ui"),
           br(),
           downloadButton("all_pop_data", label = i18n$translate("Download All Population Data")),
-          shiny::tags$div(style = "margin-bottom: 1px;"),
+          shiny::br(),
+          shiny::downloadButton("download_asfr", label = i18n$translate("Download ASFR Data")),
+          shiny::br(),
+          shiny::downloadButton("download_life_table", label = i18n$translate("Download Life Table Data")),
+          shiny::br(),
           shiny::div(
             style = "display: block;",
             shiny::downloadButton(ids$download_plot_id, label = i18n$translate("Download Plot")),
