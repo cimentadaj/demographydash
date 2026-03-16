@@ -169,30 +169,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
   )
 
-  # Download handler for ASFR data
-  output$download_asfr <- shiny::downloadHandler(
-    filename = function() paste0("asfr_", input$wpp_country, ".csv"),
-    content = function(file) {
-      res <- simulation_results()
-      if (is.null(res) || is.null(res$asfr)) {
-        stop("No ASFR data available to export.")
-      }
-      utils::write.csv(res$asfr, file, row.names = FALSE)
-    }
-  )
-
-  # Download handler for Life Table data
-  output$download_life_table <- shiny::downloadHandler(
-    filename = function() paste0("life_table_", input$wpp_country, ".csv"),
-    content = function(file) {
-      res <- simulation_results()
-      if (is.null(res) || is.null(res$life_table)) {
-        stop("No life table data available to export.")
-      }
-      utils::write.csv(res$life_table, file, row.names = FALSE)
-    }
-  )
-
   results_safe <- reactive({
     res <- simulation_results()
     req(!is.null(res))
