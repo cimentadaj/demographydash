@@ -125,7 +125,6 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     )
 
     remove_last_year <- c(
-      "population_by_age_and_sex",
       "population_by_broad_age_group",
       "population_by_time",
       "yadr",
@@ -245,7 +244,7 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
   output$pop_age_sex_years_ui <- renderUI({
     years <- pop_age_sex_years()
     if (is.null(years) || length(years) == 0) return(NULL)
-    default_year <- wpp_starting_year() + 1
+    default_year <- wpp_starting_year()
     selected_year <- if (default_year %in% years) default_year else years[[1]]
 
     selectInput(

@@ -467,6 +467,11 @@
       "es": "Tipo"
     },
     {
+      "en": "Simulation",
+      "fr": "Simulation",
+      "es": "Simulación"
+    },
+    {
       "en": "Age Scale",
       "fr": "Échelle d'Âge",
       "es": "Escala de edad"
@@ -1142,14 +1147,14 @@
       "es": "Proyección de la ONU"
     },
     {
-      "en": "95% PI",
-      "fr": "IC 95%",
-      "es": "IC 95%"
-    },
-    {
       "en": "95% UN PI",
       "fr": "IC 95% ONU",
       "es": "IC 95% ONU"
+    },
+    {
+      "en": "95% PI",
+      "fr": "IC 95%",
+      "es": "IC 95%"
     },
     {
       "en": "95% Lower bound PI",
@@ -1262,9 +1267,9 @@
       "es": "Esperanza de vida a lo largo del tiempo"
     },
     {
-      "en": "Projected Net Migration",
-      "fr": "Migration nette projetée",
-      "es": "Migración neta proyectada"
+      "en": "Net Migration (Estimates and Projection)",
+      "fr": "Migration nette (Estimations et projection)",
+      "es": "Migración neta (Estimaciones y proyección)"
     },
     {
       "en": "Download Plot",
@@ -1787,6 +1792,36 @@
       "es": "Datos de población inicial de una fuente personalizada. Use 'Personalizar' para modificar o volver a los datos de la ONU."
     },
     {
+      "en": "TFR data from UN sources. Use 'Customize' to paste custom data or edit UN data.",
+      "fr": "Données de fécondité provenant de sources ONU. Utilisez 'Personnaliser' pour coller des données personnalisées ou modifier les données ONU.",
+      "es": "Datos de fecundidad de fuentes de la ONU. Use 'Personalizar' para pegar datos personalizados o editar los datos de la ONU."
+    },
+    {
+      "en": "TFR data from custom source. Use 'Customize' to modify or switch back to UN data.",
+      "fr": "Données de fécondité provenant d'une source personnalisée. Utilisez 'Personnaliser' pour modifier ou revenir aux données ONU.",
+      "es": "Datos de fecundidad de una fuente personalizada. Use 'Personalizar' para modificar o volver a los datos de la ONU."
+    },
+    {
+      "en": "Life expectancy data from UN sources. Use 'Customize' to paste custom data or edit UN data.",
+      "fr": "Données d'espérance de vie provenant de sources ONU. Utilisez 'Personnaliser' pour coller des données personnalisées ou modifier les données ONU.",
+      "es": "Datos de esperanza de vida de fuentes de la ONU. Use 'Personalizar' para pegar datos personalizados o editar los datos de la ONU."
+    },
+    {
+      "en": "Life expectancy data from custom source. Use 'Customize' to modify or switch back to UN data.",
+      "fr": "Données d'espérance de vie provenant d'une source personnalisée. Utilisez 'Personnaliser' pour modifier ou revenir aux données ONU.",
+      "es": "Datos de esperanza de vida de una fuente personalizada. Use 'Personalizar' para modificar o volver a los datos de la ONU."
+    },
+    {
+      "en": "Migration data from UN sources. Use 'Customize' to paste custom data or edit UN data.",
+      "fr": "Données de migration provenant de sources ONU. Utilisez 'Personnaliser' pour coller des données personnalisées ou modifier les données ONU.",
+      "es": "Datos de migración de fuentes de la ONU. Use 'Personalizar' para pegar datos personalizados o editar los datos de la ONU."
+    },
+    {
+      "en": "Migration data from custom source. Use 'Customize' to modify or switch back to UN data.",
+      "fr": "Données de migration provenant d'une source personnalisée. Utilisez 'Personnaliser' pour modifier ou revenir aux données ONU.",
+      "es": "Datos de migración de una fuente personalizada. Use 'Personalizar' para modificar o volver a los datos de la ONU."
+    },
+    {
       "en": "Add a new simulation",
       "fr": "Ajouter une nouvelle simulation",
       "es": "Agregar una nueva simulación"
@@ -1825,6 +1860,21 @@
       "en": "Need changes? Use the sidebar to revisit inputs or click Run Projection again from the Migration section.",
       "fr": "Besoin de modifications ? Utilisez le menu latéral pour revenir sur les entrées ou cliquez de nouveau sur Exécuter la projection depuis la section Migration.",
       "es": "¿Necesita cambios? Use la barra lateral para revisar las entradas o haga clic nuevamente en Ejecutar proyección desde la sección Migración."
+    },
+    {
+      "en": "Choose which result to compare across simulations—population, fertility, life expectancy, migration, and more.",
+      "fr": "Choisissez quel résultat comparer entre les simulations—population, fécondité, espérance de vie, migration, etc.",
+      "es": "Elija qué resultado comparar entre las simulaciones: población, fecundidad, esperanza de vida, migración y más."
+    },
+    {
+      "en": "The comparison chart shows each simulation's projection overlaid with the UN projection for reference.",
+      "fr": "Le graphique de comparaison montre la projection de chaque simulation superposée à la projection de l'ONU comme référence.",
+      "es": "El gráfico de comparación muestra la proyección de cada simulación superpuesta con la proyección de la ONU como referencia."
+    },
+    {
+      "en": "Use the sidebar to navigate back to inputs or individual indicator pages to adjust your simulations.",
+      "fr": "Utilisez le menu latéral pour revenir aux entrées ou aux pages individuelles des indicateurs pour ajuster vos simulations.",
+      "es": "Use la barra lateral para volver a las entradas o a las páginas individuales de indicadores para ajustar sus simulaciones."
     },
     {
       "en": "Click here to add a new simulation. Each simulation can have different settings.",

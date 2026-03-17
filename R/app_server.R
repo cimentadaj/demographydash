@@ -664,7 +664,7 @@ app_server <- function(input, output, session) {
   cbr_tfr_compare_tab_idx <- match("CBR and TFR", COMPARE_TAB_NAMES)
   tfr_compare_tab_idx <- match("Projected Total Fertility Rate", COMPARE_TAB_NAMES)
   e0_compare_tab_idx <- match("Life Expectancy Over Time", COMPARE_TAB_NAMES)
-  mig_compare_tab_idx <- match("Projected Net Migration", COMPARE_TAB_NAMES)
+  mig_compare_tab_idx <- match("Net Migration (Estimates and Projection)", COMPARE_TAB_NAMES)
   death_birth_compare_tab_idx <- match("Deaths and Births", COMPARE_TAB_NAMES)
   dependency_compare_tab_idx <- match("YADR and OADR", COMPARE_TAB_NAMES)
 
@@ -3764,6 +3764,30 @@ observeEvent(input$nav_forecast, {
     }
   })
 
+  observeEvent(input$compare_help, {
+    if (current_tab() == "compare_page") {
+      compare_steps <- list(
+        list(
+          element = "#compare_select_plot_tab",
+          intro = i18n$translate("Choose which result to compare across simulations—population, fertility, life expectancy, migration, and more."),
+          position = "right"
+        ),
+        list(
+          element = "#compare_plot_container",
+          intro = i18n$translate("The comparison chart shows each simulation's projection overlaid with the UN projection for reference."),
+          position = "left"
+        ),
+        list(
+          element = "#left_menu .menu-inner",
+          intro = i18n$translate("Use the sidebar to navigate back to inputs or individual indicator pages to adjust your simulations."),
+          position = "right",
+          scrollTo = FALSE
+        )
+      )
+      rintrojs::introjs(session, options = list(steps = compare_steps, scrollToElement = FALSE))
+    }
+  })
+
   # TODO: remove this and import directly run_forecast. Need to fix
   # dependency issue
   library(OPPPserver)
@@ -3780,6 +3804,17 @@ observeEvent(input$nav_forecast, {
   
   # Track data source for population (UN Data or Custom Data)
   pop_data_source <- reactiveVal("UN Data")
+  tfr_data_source <- reactiveVal("UN Data")
+  e0_data_source <- reactiveVal("UN Data")
+  mig_data_source <- reactiveVal("UN Data")
+
+  # Caches for UN/Custom data in TFR, e0, migration modals
+  tfr_un_cache <- reactiveVal(NULL)
+  tfr_custom_cache <- reactiveVal(NULL)
+  e0_un_cache <- reactiveVal(NULL)
+  e0_custom_cache <- reactiveVal(NULL)
+  mig_un_cache <- reactiveVal(NULL)
+  mig_custom_cache <- reactiveVal(NULL)
 
   # Observe changes to inputs and reset committed data (skip during restoration/reset)
   observeEvent(list(input$wpp_country, input$wpp_starting_year, input$wpp_ending_year, input$toggle_region), {
@@ -3809,6 +3844,15 @@ observeEvent(input$nav_forecast, {
       committed_e0_rv(NULL)
       committed_mig_rv(NULL)
       pop_data_source("UN Data")  # Reset to UN Data when country/year changes
+      tfr_data_source("UN Data")
+      e0_data_source("UN Data")
+      mig_data_source("UN Data")
+      tfr_un_cache(NULL)
+      tfr_custom_cache(NULL)
+      e0_un_cache(NULL)
+      e0_custom_cache(NULL)
+      mig_un_cache(NULL)
+      mig_custom_cache(NULL)
       data_source$tfr <- "downloaded"
       data_source$e0  <- "downloaded"
       data_source$mig <- "downloaded"
@@ -3984,7 +4028,10 @@ observeEvent(input$nav_forecast, {
     e0_to_commit_rv = committed_e0_rv,
     mig_to_commit_rv = committed_mig_rv,
     restoring_inputs = restoring_inputs,
-    save_population_files = save_population_files
+    save_population_files = save_population_files,
+    tfr_data_source = tfr_data_source,
+    e0_data_source = e0_data_source,
+    mig_data_source = mig_data_source
   )
 
   # Handle all customize actions
@@ -4022,7 +4069,16 @@ observeEvent(input$nav_forecast, {
     restored_location = restored_location,
     restored_aggregation = restored_aggregation,
     restoring_inputs = restoring_inputs,
-    sim_base_dir = sim_base_dir
+    sim_base_dir = sim_base_dir,
+    tfr_data_source = tfr_data_source,
+    e0_data_source = e0_data_source,
+    mig_data_source = mig_data_source,
+    tfr_un_cache = tfr_un_cache,
+    tfr_custom_cache = tfr_custom_cache,
+    e0_un_cache = e0_un_cache,
+    e0_custom_cache = e0_custom_cache,
+    mig_un_cache = mig_un_cache,
+    mig_custom_cache = mig_custom_cache
   )
 
 
@@ -4070,7 +4126,7 @@ observeEvent(input$begin, {
       }
 
       # Determine current selections for plot generation
-      current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else (wpp_starting_year() + 1)
+      current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else wpp_starting_year()
       current_age_group <- if (!is.null(input$age_pop_time) && length(unique(results$population_by_time$age)) > 0) input$age_pop_time else unique(results$population_by_time$age)[1]
 
       # Generate all plots non-reactively

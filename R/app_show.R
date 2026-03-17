@@ -251,10 +251,41 @@ show_pop_results_ui <- function(data_source = "UN Data", i18n = NULL) {
 #' @importFrom plotly plotlyOutput
 #' @export
 #'
-show_tfr_results_ui <- function() {
+show_tfr_results_ui <- function(data_source = "UN Data", i18n = NULL) {
+  label_text <- if (!is.null(i18n)) i18n$t(data_source) else data_source
+  tooltip_text <- if (!is.null(i18n)) {
+    if (data_source == "UN Data") {
+      i18n$t("TFR data from UN sources. Use 'Customize' to paste custom data or edit UN data.")
+    } else {
+      i18n$t("TFR data from custom source. Use 'Customize' to modify or switch back to UN data.")
+    }
+  } else {
+    if (data_source == "UN Data") {
+      "TFR data from UN sources. Use 'Customize' to paste custom data or edit UN data."
+    } else {
+      "TFR data from custom source. Use 'Customize' to modify or switch back to UN data."
+    }
+  }
+
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px;",
+    style = "display: flex; flex-direction: column; gap: 10px;",
+    div(
+      style = "display: flex; justify-content: center; margin-bottom: 10px;",
+      shiny.fluent::TooltipHost(
+        content = tooltip_text,
+        tags$span(
+          style = paste0(
+            "display: inline-block; padding: 6px 14px; border: none; border-radius: 4px; ",
+            "font-size: 0.9em; color: #ffffff; background-color: #2185d0; cursor: help; ",
+            "transition: all 0.2s ease; font-weight: 500;"
+          ),
+          onmouseover = "this.style.backgroundColor='#1678c2';",
+          onmouseout = "this.style.backgroundColor='#2185d0';",
+          label_text
+        )
+      )
+    ),
     div(
       style = "flex: 3;",
       plotlyOutput("plot_tfr_custom", height = "600px", width = "100%")
@@ -270,10 +301,41 @@ show_tfr_results_ui <- function() {
 #' @importFrom plotly plotlyOutput
 #' @export
 #'
-show_e0_results_ui <- function() {
+show_e0_results_ui <- function(data_source = "UN Data", i18n = NULL) {
+  label_text <- if (!is.null(i18n)) i18n$t(data_source) else data_source
+  tooltip_text <- if (!is.null(i18n)) {
+    if (data_source == "UN Data") {
+      i18n$t("Life expectancy data from UN sources. Use 'Customize' to paste custom data or edit UN data.")
+    } else {
+      i18n$t("Life expectancy data from custom source. Use 'Customize' to modify or switch back to UN data.")
+    }
+  } else {
+    if (data_source == "UN Data") {
+      "Life expectancy data from UN sources. Use 'Customize' to paste custom data or edit UN data."
+    } else {
+      "Life expectancy data from custom source. Use 'Customize' to modify or switch back to UN data."
+    }
+  }
+
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px;",
+    style = "display: flex; flex-direction: column; gap: 10px;",
+    div(
+      style = "display: flex; justify-content: center; margin-bottom: 10px;",
+      shiny.fluent::TooltipHost(
+        content = tooltip_text,
+        tags$span(
+          style = paste0(
+            "display: inline-block; padding: 6px 14px; border: none; border-radius: 4px; ",
+            "font-size: 0.9em; color: #ffffff; background-color: #2185d0; cursor: help; ",
+            "transition: all 0.2s ease; font-weight: 500;"
+          ),
+          onmouseover = "this.style.backgroundColor='#1678c2';",
+          onmouseout = "this.style.backgroundColor='#2185d0';",
+          label_text
+        )
+      )
+    ),
     div(
       style = "flex: 3;",
       plotlyOutput("plot_e0_custom", height = "600px", width = "100%")
@@ -282,10 +344,41 @@ show_e0_results_ui <- function() {
 }
 
 
-show_mig_results_ui <- function() {
+show_mig_results_ui <- function(data_source = "UN Data", i18n = NULL) {
+  label_text <- if (!is.null(i18n)) i18n$t(data_source) else data_source
+  tooltip_text <- if (!is.null(i18n)) {
+    if (data_source == "UN Data") {
+      i18n$t("Migration data from UN sources. Use 'Customize' to paste custom data or edit UN data.")
+    } else {
+      i18n$t("Migration data from custom source. Use 'Customize' to modify or switch back to UN data.")
+    }
+  } else {
+    if (data_source == "UN Data") {
+      "Migration data from UN sources. Use 'Customize' to paste custom data or edit UN data."
+    } else {
+      "Migration data from custom source. Use 'Customize' to modify or switch back to UN data."
+    }
+  }
+
   div(
     class = "ui raised very padded container segment",
-    style = "display: flex; align-items: flex-start; gap: 10px;",
+    style = "display: flex; flex-direction: column; gap: 10px;",
+    div(
+      style = "display: flex; justify-content: center; margin-bottom: 10px;",
+      shiny.fluent::TooltipHost(
+        content = tooltip_text,
+        tags$span(
+          style = paste0(
+            "display: inline-block; padding: 6px 14px; border: none; border-radius: 4px; ",
+            "font-size: 0.9em; color: #ffffff; background-color: #2185d0; cursor: help; ",
+            "transition: all 0.2s ease; font-weight: 500;"
+          ),
+          onmouseover = "this.style.backgroundColor='#1678c2';",
+          onmouseout = "this.style.backgroundColor='#2185d0';",
+          label_text
+        )
+      )
+    ),
     div(
       style = "flex: 3;",
       plotlyOutput("plot_mig_custom", height = "600px", width = "100%")
@@ -303,10 +396,10 @@ show_mig_results_ui <- function() {
 #' @importFrom shinyjs hide show
 #' @export
 #'
-show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
+show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n, tfr_data_source = NULL) {
   hide("pop_page")
   show("tfr_page")
-  compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
+  compute_tfr(reactive_tfr, wpp_ending_year, input, output, i18n, tfr_data_source = tfr_data_source)
 }
 
 #' Compute the TFR page
@@ -318,7 +411,7 @@ show_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
 #' @importFrom shiny renderUI
 #' @export
 #'
-compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
+compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n, tfr_data_source = NULL) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
   try({
@@ -327,7 +420,11 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
     print(utils::head(as.data.frame(dt), 5))
   }, silent = TRUE)
   create_tfr_plot(reactive_tfr(), end_year = wpp_ending_year(), country = input$wpp_country, i18n)
-  output$show_tfr_results_ui <- renderUI(show_tfr_results_ui())
+  output$show_tfr_results_ui <- renderUI({
+    # Evaluate data source reactively inside renderUI so badge updates on Apply
+    ds <- if (!is.null(tfr_data_source)) tfr_data_source() else "UN Data"
+    show_tfr_results_ui(data_source = ds, i18n = i18n)
+  })
 }
 
 #' Show and compute the e0 page
@@ -341,16 +438,16 @@ compute_tfr <- function(reactive_tfr, wpp_ending_year, input, output, i18n) {
 #' @importFrom shiny.semantic hide_modal
 #' @export
 #'
-show_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
+show_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n, e0_data_source = NULL) {
   hide("tfr_page")
   show("e0_page")
-  compute_e0(reactive_e0, wpp_ending_year, input, output, i18n)
+  compute_e0(reactive_e0, wpp_ending_year, input, output, i18n, e0_data_source = e0_data_source)
 }
 
-show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
+show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n, mig_data_source = NULL) {
   hide("e0_page")
   show("mig_page")
-  compute_mig(reactive_mig, wpp_ending_year, input, output, i18n)
+  compute_mig(reactive_mig, wpp_ending_year, input, output, i18n, mig_data_source = mig_data_source)
 }
 
 
@@ -363,7 +460,7 @@ show_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
 #' @importFrom shiny renderUI
 #' @export
 #'
-compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
+compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n, e0_data_source = NULL) {
   # Repeated the create_tfr_plot here because it allows the spinner
   # around the page to register the time spent
   try({
@@ -378,11 +475,14 @@ compute_e0 <- function(reactive_e0, wpp_ending_year, input, output, i18n) {
     i18n
   )
 
-  output$show_e0_results_ui <- renderUI(show_e0_results_ui())
+  output$show_e0_results_ui <- renderUI({
+    ds <- if (!is.null(e0_data_source)) e0_data_source() else "UN Data"
+    show_e0_results_ui(data_source = ds, i18n = i18n)
+  })
 }
 
 
-compute_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
+compute_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n, mig_data_source = NULL) {
   try({
     dt <- reactive_mig()
     cat("[MIG_DEBUG] PLOT input head (reactive_mig before plotting):\n");
@@ -394,7 +494,10 @@ compute_mig <- function(reactive_mig, wpp_ending_year, input, output, i18n) {
     country = input$wpp_country,
     i18n
   )
-  output$show_mig_results_ui <- renderUI(show_mig_results_ui())
+  output$show_mig_results_ui <- renderUI({
+    ds <- if (!is.null(mig_data_source)) mig_data_source() else "UN Data"
+    show_mig_results_ui(data_source = ds, i18n = i18n)
+  })
 }
 
 

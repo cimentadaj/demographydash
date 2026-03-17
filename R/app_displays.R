@@ -339,14 +339,26 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
       expand = expansion(mult = 0),
       labels = label_number(big.mark = "")
     ) +
-    labs(title = plt_title) +
+    labs(
+      title = plt_title,
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
+    ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
       plot.title = element_text(size = DOWNLOAD_PLOT_SIZE$title),
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -357,12 +369,10 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   Year <- NULL
   Simulation <- NULL
@@ -377,6 +387,7 @@ create_pop_time_compare_plot <- function(dt, input_age, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(pop_dt)
@@ -925,7 +936,10 @@ create_tfr_compare_plot <- function(dt, i18n) {
     ) +
     labs(
       title = plt_title,
-      y = i18n$translate("Births per woman")
+      y = i18n$translate("Births per woman"),
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
@@ -933,7 +947,14 @@ create_tfr_compare_plot <- function(dt, i18n) {
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -944,12 +965,10 @@ create_tfr_compare_plot <- function(dt, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   Year <- NULL
   Simulation <- NULL
@@ -964,6 +983,7 @@ create_tfr_compare_plot <- function(dt, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(tfr_dt)
@@ -1086,7 +1106,10 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
     ) +
     labs(
       title = plt_title,
-      y = i18n$translate("Life Expectancy (years)")
+      y = i18n$translate("Life Expectancy (years)"),
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
@@ -1094,7 +1117,14 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -1105,12 +1135,10 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
     plt +
@@ -1121,6 +1149,7 @@ create_e0_compare_plot <- function(dt, selected_sex, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(e0_dt)
@@ -1199,7 +1228,7 @@ create_mig_compare_plot <- function(dt, i18n) {
   ribbon_dt <- mig_dt[Type == i18n$translate("UN Projection")]
 
   compare_label <- i18n$translate("Comparison")
-  title_base <- i18n$translate("Projected Net Migration")
+  title_base <- i18n$translate("Net Migration (Estimates and Projection)")
   plt_title <- paste0(title_base, " (", compare_label, ")")
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
@@ -1223,7 +1252,10 @@ create_mig_compare_plot <- function(dt, i18n) {
     ) +
     labs(
       title = plt_title,
-      y = i18n$translate("Net Migration")
+      y = i18n$translate("Net Migration"),
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
@@ -1231,7 +1263,14 @@ create_mig_compare_plot <- function(dt, i18n) {
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -1242,12 +1281,10 @@ create_mig_compare_plot <- function(dt, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
     plt +
@@ -1258,6 +1295,7 @@ create_mig_compare_plot <- function(dt, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(mig_dt)
@@ -1380,7 +1418,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     scale_y_continuous(limits = c(min_y, max_y), expand = expansion(mult = 0)) +
     labs(
       title = plt_title,
-      y = i18n$translate(var_name)
+      y = i18n$translate(var_name),
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
@@ -1388,7 +1429,14 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -1399,12 +1447,10 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
     plt +
@@ -1413,6 +1459,7 @@ create_deaths_births_compare_plot <- function(dt_list, option, i18n) {
     theme(plot.title = element_text(size = plt_title_adapted$font_size))
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(melt_dt)
@@ -1541,7 +1588,10 @@ create_dependency_compare_plot <- function(dt_list, option, i18n) {
     ) +
     labs(
       title = plt_title,
-      y = i18n$translate(var_name)
+      y = i18n$translate(var_name),
+      color = i18n$translate("Simulation"),
+      linetype = i18n$translate("Type"),
+      fill = NULL
     ) +
     theme_minimal(base_size = DOWNLOAD_PLOT_SIZE$font) +
     theme(
@@ -1549,7 +1599,14 @@ create_dependency_compare_plot <- function(dt_list, option, i18n) {
       legend.position = "bottom"
     )
 
+  pi_label <- i18n$translate("95% UN PI")
+
   if (nrow(ribbon_dt) > 0) {
+    ribbon_fill_values <- stats::setNames(rep("steelblue", length(sim_levels)), sim_levels)
+    ribbon_labels <- stats::setNames(
+      paste0(sim_levels, ", ", pi_label),
+      sim_levels
+    )
     plt <- plt +
       geom_ribbon(
         data = ribbon_dt,
@@ -1560,12 +1617,10 @@ create_dependency_compare_plot <- function(dt_list, option, i18n) {
           fill = .data[["Simulation"]]
         ),
         inherit.aes = FALSE,
-        alpha = 0.12
+        alpha = 0.18
       ) +
-      scale_fill_manual(values = color_palette)
+      scale_fill_manual(values = ribbon_fill_values, labels = ribbon_labels, name = NULL)
   }
-
-  plt <- plt + ggplot2::guides(fill = "none")
 
   plt_visible <-
     plt +
@@ -1576,6 +1631,7 @@ create_dependency_compare_plot <- function(dt_list, option, i18n) {
     )
 
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
+    fix_plotly_ribbon_legend(pi_label = pi_label, sim_names = sim_levels) %>%
     apply_plotly_legend()
 
   export_dt <- data.table::copy(melt_dt)

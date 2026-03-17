@@ -10,7 +10,7 @@ TAB_NAMES <- c(
   "CDR and Life Expectancy",
   "CBR and TFR",
   "Life Expectancy Over Time",
-  "Projected Net Migration"
+  "Net Migration (Estimates and Projection)"
 )
 
 COMPARE_TAB_NAMES <- c(
@@ -25,7 +25,7 @@ COMPARE_TAB_NAMES <- c(
   "CDR and Life Expectancy",
   "CBR and TFR",
   "Life Expectancy Over Time",
-  "Projected Net Migration"
+  "Net Migration (Estimates and Projection)"
 )
 
 # Font size of text from a plot
@@ -60,6 +60,36 @@ apply_plotly_legend <- function(p, opts = PLOTLY_LEGEND_OPTS) {
   p <- p %>% plotly::layout(legend = opts)
   p$x$layout$legend$xref <- "paper"
   p$x$layout$legend$title$side <- "top"
+  p
+}
+
+#' Fix plotly legend for comparison plots with ribbon traces
+#'
+#' After ggplotly conversion, ribbon traces get messy legend entries.
+#' This function labels each ribbon trace with its simulation name
+#' and the PI label, so users can toggle each simulation's CI
+#' independently in the plotly legend.
+#' @param p A plotly object
+#' @param pi_label Label for the prediction interval ribbon
+#' @param sim_names Character vector of simulation names (in order)
+#' @return The modified plotly object
+fix_plotly_ribbon_legend <- function(p, pi_label = "95% UN PI", sim_names = NULL) {
+  ribbon_idx <- 0
+  for (i in seq_along(p$x$data)) {
+    trace <- p$x$data[[i]]
+    is_ribbon <- !is.null(trace$fill) && trace$fill == "toself"
+    if (is_ribbon) {
+      ribbon_idx <- ribbon_idx + 1
+      if (!is.null(sim_names) && ribbon_idx <= length(sim_names)) {
+        label <- paste0(sim_names[ribbon_idx], ", ", pi_label)
+      } else {
+        label <- pi_label
+      }
+      p$x$data[[i]]$name <- label
+      p$x$data[[i]]$showlegend <- TRUE
+      p$x$data[[i]]$legendgroup <- label
+    }
+  }
   p
 }
 

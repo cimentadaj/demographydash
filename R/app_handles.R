@@ -220,6 +220,94 @@ create_modal_ui <- function(modal_id, header_title, output_id, file_input_id, do
   )
 }
 
+#' Create Enhanced Modal UI for TFR, e0, and Migration
+#'
+#' @description
+#' Creates a modal with close button, UN Data / Custom Data tabs,
+#' and an editable data table. Simpler than the population modal
+#' (no age-type/OAG/interpolation options).
+#'
+#' @param modal_id A string specifying the ID of the modal.
+#' @param header_title A string containing the title text for the modal header.
+#' @param output_id A string specifying the ID of the rhandsontable output.
+#' @param file_input_id A string specifying the ID for the fileInput element.
+#' @param download_button_id A string specifying the ID for the downloadButton element.
+#' @param hide_button_id A string specifying the ID for the actionButton used to close the modal.
+#' @param i18n The internationalization object.
+#'
+#' @return A modal UI element with close button and UN/Custom tabs.
+#'
+#' @importFrom rhandsontable rHandsontableOutput
+#' @importFrom shiny.semantic modal icon
+#' @importFrom shiny tags div actionButton downloadButton br
+#' @export
+#'
+create_enhanced_modal_ui <- function(modal_id, header_title, output_id, file_input_id, download_button_id, hide_button_id, i18n = NULL) {
+  modal(
+    id = modal_id,
+    header = div(
+      div(
+        style = "display: flex; justify-content: space-between; align-items: center;",
+        header_title,
+        div(
+          style = "display: flex; gap: 5px; align-items: center;",
+          action_button("customize_help", if (!is.null(i18n)) i18n$t("Instructions") else "Instructions", class = "ui red button"),
+          tags$button(
+            class = "ui icon button",
+            style = "background: transparent; border: none; font-size: 1.2em; cursor: pointer; padding: 5px;",
+            onclick = paste0("$('#", modal_id, "').modal('hide');"),
+            icon("close")
+          )
+        )
+      ),
+      # UN Data / Custom Data tabs
+      div(
+        class = "ui two item menu",
+        style = "margin-top: 15px;",
+        tags$a(
+          id = paste0(modal_id, "_source_un"),
+          class = "item active",
+          onclick = paste0(
+            "$('#", modal_id, "_source_un').addClass('active'); ",
+            "$('#", modal_id, "_source_custom').removeClass('active'); ",
+            "Shiny.setInputValue('", modal_id, "_source', 'UN Data');"
+          ),
+          icon("database"),
+          if (!is.null(i18n)) i18n$t("UN Data") else "UN Data"
+        ),
+        tags$a(
+          id = paste0(modal_id, "_source_custom"),
+          class = "item",
+          onclick = paste0(
+            "$('#", modal_id, "_source_custom').addClass('active'); ",
+            "$('#", modal_id, "_source_un').removeClass('active'); ",
+            "Shiny.setInputValue('", modal_id, "_source', 'Custom Data');"
+          ),
+          icon("upload"),
+          if (!is.null(i18n)) i18n$t("Custom Data") else "Custom Data"
+        )
+      )
+    ),
+    rHandsontableOutput(output_id),
+    footer = div(
+      div(
+        class = "footer-container",
+        div(
+          class = "button-container",
+          div(
+            style = "display: flex; gap: 5px",
+            shiny::downloadButton(download_button_id, if (!is.null(i18n)) i18n$t("Download") else "Download", class = "ui blue button"),
+            actionButton(paste0(modal_id, "_ok_btn"), if (!is.null(i18n)) i18n$t("Apply") else "Apply", class = "ui positive button")
+          )
+        ),
+      ),
+      br(),
+      div(i18n$t("Edit the table or paste your own data form an Excel sheet. Click on the 'Apply' button to save your changes."), style = "color: #8B0000; font-weight: bold; font-size: 12px;")
+    ),
+    class = "small"
+  )
+}
+
 #' Create Enhanced Population Modal UI
 #'
 #' @description
@@ -577,6 +665,15 @@ handle_customize_data <- function(
     resetting_simulation = NULL,
     just_restored_data = NULL,
     opening_modal = NULL,
+    tfr_data_source = NULL,
+    e0_data_source = NULL,
+    mig_data_source = NULL,
+    tfr_un_cache = NULL,
+    tfr_custom_cache = NULL,
+    e0_un_cache = NULL,
+    e0_custom_cache = NULL,
+    mig_un_cache = NULL,
+    mig_custom_cache = NULL,
     restored_location = NULL,
     restored_aggregation = NULL,
     restoring_inputs = NULL,
@@ -599,7 +696,17 @@ handle_customize_data <- function(
       }
     }
 
-    location_selector_ui(input, i18n, selected_value = sel, force_mode = force_mode)
+    # Isolate input$wpp_country to prevent re-render loop when user types
+    # The renderUI should only re-trigger on toggle_region changes
+    isolated_input <- list(
+      toggle_region = input$toggle_region,
+      wpp_country = isolate(input$wpp_country)
+    )
+    mock_input <- list(
+      toggle_region = isolated_input$toggle_region,
+      wpp_country = isolated_input$wpp_country
+    )
+    location_selector_ui(mock_input, i18n, selected_value = sel, force_mode = force_mode)
   })
 
   observeEvent(input$customize_pop, {
@@ -666,16 +773,35 @@ handle_customize_data <- function(
   observeEvent(input$customize_tfr, {
     show_modal("modal_tfr")
     current_tab("modal_tfr")
+    # Set tab based on current data source
+    ds <- if (!is.null(tfr_data_source)) tfr_data_source() else "UN Data"
+    if (ds == "Custom Data") {
+      shinyjs::runjs("setTimeout(function() { $('#modal_tfr_source_custom').click(); }, 100);")
+    } else {
+      shinyjs::runjs("setTimeout(function() { $('#modal_tfr_source_un').click(); }, 100);")
+    }
   })
 
   observeEvent(input$customize_e0, {
     show_modal("modal_e0")
     current_tab("modal_e0")
+    ds <- if (!is.null(e0_data_source)) e0_data_source() else "UN Data"
+    if (ds == "Custom Data") {
+      shinyjs::runjs("setTimeout(function() { $('#modal_e0_source_custom').click(); }, 100);")
+    } else {
+      shinyjs::runjs("setTimeout(function() { $('#modal_e0_source_un').click(); }, 100);")
+    }
   })
 
   observeEvent(input$customize_mig, {
     show_modal("modal_mig")
     current_tab("modal_mig")
+    ds <- if (!is.null(mig_data_source)) mig_data_source() else "UN Data"
+    if (ds == "Custom Data") {
+      shinyjs::runjs("setTimeout(function() { $('#modal_mig_source_custom').click(); }, 100);")
+    } else {
+      shinyjs::runjs("setTimeout(function() { $('#modal_mig_source_un').click(); }, 100);")
+    }
   })
 
   # Add reactive values for enhanced population modal with separate tab states
@@ -1111,14 +1237,38 @@ handle_customize_data <- function(
       hot_col(c(i18n$t("Female (in thousands)"), i18n$t("Male (in thousands)")), type = "numeric", format = "0,0.0")
   })
 
+  # --- TFR tab switch handler ---
+  observeEvent(input$modal_tfr_source, {
+    # Auto-save current table data to appropriate cache before switching
+    tryCatch({
+      prev_source <- if (input$modal_tfr_source == "Custom Data") "UN Data" else "Custom Data"
+      if (!is.null(input$tmp_tfr_dt)) {
+        tbl_data <- rhandsontable::hot_to_r(input$tmp_tfr_dt)
+        names(tbl_data) <- c("year", "tfr")
+        if (prev_source == "UN Data" && !is.null(tfr_un_cache)) {
+          tfr_un_cache(tbl_data)
+        } else if (prev_source == "Custom Data" && !is.null(tfr_custom_cache)) {
+          tfr_custom_cache(tbl_data)
+        }
+      }
+    }, error = function(e) cat("[TFR_TAB_SWITCH] Error saving cache:", conditionMessage(e), "\n"))
+  }, ignoreInit = TRUE)
+
   output$tmp_tfr_dt <- renderRHandsontable({
-    res <- current_tfr_reactive()
+    active_tab <- input$modal_tfr_source %||% "UN Data"
+    if (active_tab == "Custom Data") {
+      res <- if (!is.null(tfr_custom_cache)) tfr_custom_cache() else NULL
+      if (is.null(res)) res <- current_tfr_reactive()
+    } else {
+      res <- if (!is.null(tfr_un_cache)) tfr_un_cache() else NULL
+      if (is.null(res)) res <- current_tfr_reactive()
+    }
     try({
-      cat("[TFR_DEBUG] Customize RAW head (as shown in table):\n");
+      cat("[TFR_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))
     }, silent = TRUE)
     names(res) <- c(
-      i18n$t("Year"), 
+      i18n$t("Year"),
       i18n$t("TFR")
     )
     rhandsontable(
@@ -1129,15 +1279,38 @@ handle_customize_data <- function(
     )
   })
 
+  # --- e0 tab switch handler ---
+  observeEvent(input$modal_e0_source, {
+    tryCatch({
+      prev_source <- if (input$modal_e0_source == "Custom Data") "UN Data" else "Custom Data"
+      if (!is.null(input$tmp_e0_dt)) {
+        tbl_data <- rhandsontable::hot_to_r(input$tmp_e0_dt)
+        names(tbl_data) <- c("year", "e0M", "e0F")
+        if (prev_source == "UN Data" && !is.null(e0_un_cache)) {
+          e0_un_cache(tbl_data)
+        } else if (prev_source == "Custom Data" && !is.null(e0_custom_cache)) {
+          e0_custom_cache(tbl_data)
+        }
+      }
+    }, error = function(e) cat("[E0_TAB_SWITCH] Error saving cache:", conditionMessage(e), "\n"))
+  }, ignoreInit = TRUE)
+
   output$tmp_e0_dt <- renderRHandsontable({
-    res <- current_e0_reactive()
+    active_tab <- input$modal_e0_source %||% "UN Data"
+    if (active_tab == "Custom Data") {
+      res <- if (!is.null(e0_custom_cache)) e0_custom_cache() else NULL
+      if (is.null(res)) res <- current_e0_reactive()
+    } else {
+      res <- if (!is.null(e0_un_cache)) e0_un_cache() else NULL
+      if (is.null(res)) res <- current_e0_reactive()
+    }
     try({
-      cat("[E0_DEBUG] Customize RAW head (as shown in table):\n");
+      cat("[E0_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))
     }, silent = TRUE)
     names(res) <- c(
-      i18n$t("Year"), 
-      i18n$t("Males"), 
+      i18n$t("Year"),
+      i18n$t("Males"),
       i18n$t("Females")
     )
     rhandsontable(
@@ -1148,14 +1321,37 @@ handle_customize_data <- function(
     )
   })
 
+  # --- Migration tab switch handler ---
+  observeEvent(input$modal_mig_source, {
+    tryCatch({
+      prev_source <- if (input$modal_mig_source == "Custom Data") "UN Data" else "Custom Data"
+      if (!is.null(input$tmp_mig_dt)) {
+        tbl_data <- rhandsontable::hot_to_r(input$tmp_mig_dt)
+        names(tbl_data) <- c("year", "mig")
+        if (prev_source == "UN Data" && !is.null(mig_un_cache)) {
+          mig_un_cache(tbl_data)
+        } else if (prev_source == "Custom Data" && !is.null(mig_custom_cache)) {
+          mig_custom_cache(tbl_data)
+        }
+      }
+    }, error = function(e) cat("[MIG_TAB_SWITCH] Error saving cache:", conditionMessage(e), "\n"))
+  }, ignoreInit = TRUE)
+
   output$tmp_mig_dt <- renderRHandsontable({
-    res <- current_mig_reactive()
+    active_tab <- input$modal_mig_source %||% "UN Data"
+    if (active_tab == "Custom Data") {
+      res <- if (!is.null(mig_custom_cache)) mig_custom_cache() else NULL
+      if (is.null(res)) res <- current_mig_reactive()
+    } else {
+      res <- if (!is.null(mig_un_cache)) mig_un_cache() else NULL
+      if (is.null(res)) res <- current_mig_reactive()
+    }
     try({
-      cat("[MIG_DEBUG] Customize RAW head (as shown in table):\n");
+      cat("[MIG_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))
     }, silent = TRUE)
     names(res) <- c(
-      i18n$t("Year"), 
+      i18n$t("Year"),
       i18n$t("Migration")
     )
     rhandsontable(
@@ -1186,7 +1382,7 @@ handle_customize_data <- function(
 
 
   output$popup_tfr <- renderUI({
-    create_modal_ui(
+    create_enhanced_modal_ui(
       modal_id = "modal_tfr",
       header_title = paste0(i18n$t("Total Fertility Rate for"), " ", input$wpp_country, " ", i18n$t("in analysis period.")),
       output_id = "tmp_tfr_dt",
@@ -1199,7 +1395,7 @@ handle_customize_data <- function(
 
 
   output$popup_e0 <- renderUI({
-    create_modal_ui(
+    create_enhanced_modal_ui(
       modal_id = "modal_e0",
       header_title = paste0(i18n$t("Life Expectancy for"), " ", input$wpp_country, " ", i18n$t("in analysis period.")),
       output_id = "tmp_e0_dt",
@@ -1211,7 +1407,7 @@ handle_customize_data <- function(
   })
 
   output$popup_mig <- renderUI({
-    create_modal_ui(
+    create_enhanced_modal_ui(
       modal_id = "modal_mig",
       header_title = paste0(i18n$t("Migration data for"), " ", input$wpp_country, " ", i18n$t("in analysis period.")),
       output_id = "tmp_mig_dt",
@@ -1352,27 +1548,47 @@ handle_customize_data <- function(
 
   observeEvent(input$modal_tfr_ok_btn, {
     req(input$tmp_tfr_dt)
-    
+
     tryCatch({
       # Get raw data from table
       data <- rhandsontable::hot_to_r(input$tmp_tfr_dt)
-      
+
+      # Standardize column names
+      names(data) <- c("year", "tfr")
+
+      # Save to active tab's cache
+      active_tab <- input$modal_tfr_source %||% "UN Data"
+      if (active_tab == "UN Data" && !is.null(tfr_un_cache)) {
+        tfr_un_cache(data)
+      } else if (active_tab == "Custom Data" && !is.null(tfr_custom_cache)) {
+        tfr_custom_cache(data)
+      }
+
       # SAVE RAW INPUT DATA with correct parameter context
       tryCatch({
         save_tfr_files(trigger = "modal_tfr_ok", raw_data_override = data)
       }, error = function(e) {
         cat("[PHASE5] Error saving raw TFR data:", conditionMessage(e), "\n")
       })
-      
+
       # Update reactive value (this is the data used by the app)
       tfr_to_commit_rv(data)
-      
+
+      # Update data source tracker
+      if (!is.null(tfr_data_source)) {
+        if (active_tab == "Custom Data") {
+          tfr_data_source("Custom Data")
+        } else {
+          tfr_data_source("UN Data")
+        }
+      }
+
       # Close modal
       shiny.semantic::hide_modal("modal_tfr")
-      
+
       # Show success message
       showNotification(i18n$t("TFR data updated successfully"), type = "message", duration = 3)
-      
+
     }, error = function(e) {
       # Handle any errors in the modal processing
       showNotification(paste("Error updating TFR data:", conditionMessage(e)), type = "error", duration = 5)
@@ -1381,27 +1597,47 @@ handle_customize_data <- function(
 
   observeEvent(input$modal_e0_ok_btn, {
     req(input$tmp_e0_dt)
-    
+
     tryCatch({
       # Get raw data from table
       data <- rhandsontable::hot_to_r(input$tmp_e0_dt)
-      
+
+      # Standardize column names
+      names(data) <- c("year", "e0M", "e0F")
+
+      # Save to active tab's cache
+      active_tab <- input$modal_e0_source %||% "UN Data"
+      if (active_tab == "UN Data" && !is.null(e0_un_cache)) {
+        e0_un_cache(data)
+      } else if (active_tab == "Custom Data" && !is.null(e0_custom_cache)) {
+        e0_custom_cache(data)
+      }
+
       # SAVE RAW INPUT DATA with correct parameter context
       tryCatch({
         save_e0_files(trigger = "modal_e0_ok", raw_data_override = data)
       }, error = function(e) {
         cat("[PHASE6] Error saving raw e0 data:", conditionMessage(e), "\n")
       })
-      
+
       # Update reactive value (this is the data used by the app)
       e0_to_commit_rv(data)
-      
+
+      # Update data source tracker
+      if (!is.null(e0_data_source)) {
+        if (active_tab == "Custom Data") {
+          e0_data_source("Custom Data")
+        } else {
+          e0_data_source("UN Data")
+        }
+      }
+
       # Close modal
       shiny.semantic::hide_modal("modal_e0")
-      
+
       # Show success message
       showNotification(i18n$t("Life expectancy data updated successfully"), type = "message", duration = 3)
-      
+
     }, error = function(e) {
       # Handle any errors in the modal processing
       showNotification(paste("Error updating e0 data:", conditionMessage(e)), type = "error", duration = 5)
@@ -1410,27 +1646,47 @@ handle_customize_data <- function(
 
   observeEvent(input$modal_mig_ok_btn, {
     req(input$tmp_mig_dt)
-    
+
     tryCatch({
       # Get raw data from table
       data <- rhandsontable::hot_to_r(input$tmp_mig_dt)
-      
+
+      # Standardize column names
+      names(data) <- c("year", "mig")
+
+      # Save to active tab's cache
+      active_tab <- input$modal_mig_source %||% "UN Data"
+      if (active_tab == "UN Data" && !is.null(mig_un_cache)) {
+        mig_un_cache(data)
+      } else if (active_tab == "Custom Data" && !is.null(mig_custom_cache)) {
+        mig_custom_cache(data)
+      }
+
       # SAVE RAW INPUT DATA with correct parameter context
       tryCatch({
         save_mig_files(trigger = "modal_mig_ok", raw_data_override = data)
       }, error = function(e) {
         cat("[PHASE6] Error saving raw migration data:", conditionMessage(e), "\n")
       })
-      
+
       # Update reactive value (this is the data used by the app)
       mig_to_commit_rv(data)
-      
+
+      # Update data source tracker
+      if (!is.null(mig_data_source)) {
+        if (active_tab == "Custom Data") {
+          mig_data_source("Custom Data")
+        } else {
+          mig_data_source("UN Data")
+        }
+      }
+
       # Close modal
       shiny.semantic::hide_modal("modal_mig")
-      
+
       # Show success message
       showNotification(i18n$t("Migration data updated successfully"), type = "message", duration = 3)
-      
+
     }, error = function(e) {
       # Handle any errors in the modal processing
       showNotification(paste("Error updating migration data:", conditionMessage(e)), type = "error", duration = 5)
@@ -1458,7 +1714,19 @@ handle_customize_data <- function(
     })
 
   output$download_pop <- shiny::downloadHandler(
-    filename = function() paste0("population_", cnt_years(), ".csv"),
+    filename = function() {
+      # Determine age type suffix from current modal state
+      age_suffix <- tryCatch({
+        ds <- input$modal_population_source %||% "UN Data"
+        at <- if (ds == "UN Data") {
+          input$modal_population_un_age_type %||% "Single Ages"
+        } else {
+          input$modal_population_age_type %||% "Single Ages"
+        }
+        if (at == "5-Year Groups") "_5yr" else "_1yr"
+      }, error = function(e) "")
+      paste0("population_", cnt_years(), age_suffix, ".csv")
+    },
     content = function(file) {
       # Download exactly what's visible in the table
       req(input$tmp_pop_dt)
@@ -1531,7 +1799,11 @@ handle_navigation <- function(
   mig_to_commit_rv = NULL,
   restoring_inputs = NULL,
   # Save functions
-  save_population_files = NULL
+  save_population_files = NULL,
+  # Data source trackers
+  tfr_data_source = NULL,
+  e0_data_source = NULL,
+  mig_data_source = NULL
 ) {
 
   processing <- reactiveVal(TRUE)
@@ -1641,7 +1913,7 @@ handle_navigation <- function(
         }
       }
     }, silent = TRUE)
-    show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n)
+    show_tfr(reactive_tfr, wpp_ending_year, input, output, i18n, tfr_data_source = tfr_data_source)
   })
 
   observeEvent(input$nav_e0, {
@@ -1671,7 +1943,7 @@ handle_navigation <- function(
         }
       }
     }, silent = TRUE)
-    show_e0(reactive_e0, wpp_ending_year, input, output, i18n)
+    show_e0(reactive_e0, wpp_ending_year, input, output, i18n, e0_data_source = e0_data_source)
   })
 
   observeEvent(input$nav_mig, {
@@ -1696,7 +1968,7 @@ handle_navigation <- function(
               if (file.exists(mig_path)) { dt <- data.table::fread(mig_path); if (nrow(dt)>0){ names(dt)<-c("year","mig"); suppressWarnings({dt$year<-as.numeric(dt$year)}); suppressWarnings({dt$mig<-as.numeric(dt$mig)}); mig_to_commit_rv(as.data.frame(dt)) } }
             }
           }, silent = TRUE)
-          show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
+          show_mig(reactive_mig, wpp_ending_year, input, output, i18n, mig_data_source = mig_data_source)
           local_obs$destroy()
         }
       }, ignoreInit = FALSE)
@@ -1720,7 +1992,7 @@ handle_navigation <- function(
     }, silent = TRUE)
     curr_sig <- paste0(input$toggle_region, "|", input$wpp_country, "|", input$wpp_starting_year, "|", input$wpp_ending_year)
     cat("[PAGE_COMPUTE_DEBUG] page=mig sim=", input$sim_switcher, " curr_sig=", curr_sig, "\n", sep = "")
-    show_mig(reactive_mig, wpp_ending_year, input, output, i18n)
+    show_mig(reactive_mig, wpp_ending_year, input, output, i18n, mig_data_source = mig_data_source)
   })
 
   observeEvent(input$forward_pop_page, {
@@ -1930,7 +2202,7 @@ handle_report_download <- function(simulation_results, wpp_starting_year, wpp_en
     }
     
     # Determine current selections for plot generation
-    current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else (wpp_starting_year() + 1)
+    current_pop_year <- if (!is.null(input$pop_age_sex_years)) input$pop_age_sex_years else wpp_starting_year()
     current_age_group <- if (!is.null(input$age_pop_time) && length(unique(results$population_by_time$age)) > 0) input$age_pop_time else unique(results$population_by_time$age)[1]
     current_sex <- if (!is.null(input$sex_e0_time)) input$sex_e0_time else "Total"
     current_pop_display <- if (!is.null(input$radio_population_by_broad_age_group)) input$radio_population_by_broad_age_group else "Absolute"
