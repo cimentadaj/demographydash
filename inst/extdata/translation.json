@@ -1950,6 +1950,16 @@
       "en": "Simulations",
       "fr": "Simulations",
       "es": "Simulaciones"
+    },
+    {
+      "en": "Fertility",
+      "fr": "Fécondité",
+      "es": "Fecundidad"
+    },
+    {
+      "en": "Mortality",
+      "fr": "Mortalité",
+      "es": "Mortalidad"
     }
   ]
 }

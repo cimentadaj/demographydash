@@ -1242,8 +1242,8 @@ app_server <- function(input, output, session) {
     nav_items <- list(
       list(page = "input_page", trigger = "nav_input", label = i18n$translate("Projection Settings")),
       list(page = "pop_page", trigger = "nav_pop", label = i18n$translate("Population")),
-      list(page = "tfr_page", trigger = "nav_tfr", label = i18n$translate("TFR")),
-      list(page = "e0_page", trigger = "nav_e0", label = i18n$translate("Life Expectancy")),
+      list(page = "tfr_page", trigger = "nav_tfr", label = i18n$translate("Fertility")),
+      list(page = "e0_page", trigger = "nav_e0", label = i18n$translate("Mortality")),
       list(page = "mig_page", trigger = "nav_mig", label = i18n$translate("Migration"))
     )
 
@@ -1278,7 +1278,7 @@ app_server <- function(input, output, session) {
       current_page <- nav_items[[1]]$page
     }
 
-    nav_nodes <- lapply(nav_items, function(item) {
+    make_nav_node <- function(item) {
       active <- identical(item$page, current_page)
       indicator_class <- if (active) "dot circle icon nav-status-icon active" else "circle outline icon nav-status-icon"
       shiny::tags$div(
@@ -1287,9 +1287,20 @@ app_server <- function(input, output, session) {
         shiny::tags$i(class = indicator_class),
         shiny::tags$span(item$label)
       )
-    })
+    }
 
-    shiny::tags$div(class = "ui list", do.call(shiny::tagList, nav_nodes))
+    # Build nav with dividers around Projection Settings
+    divider <- shiny::tags$div(class = "ui divider", style = "margin: 6px 0;")
+    settings_node <- make_nav_node(nav_items[[1]])
+    data_nodes <- lapply(nav_items[-1], make_nav_node)
+
+    shiny::tags$div(
+      class = "ui list",
+      divider,
+      settings_node,
+      divider,
+      do.call(shiny::tagList, data_nodes)
+    )
   })
 
   # Initialize sim from URL (if present)
