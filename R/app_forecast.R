@@ -201,6 +201,27 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     }
   )
 
+  # Download handler: ALL summary statistics as one multi-sheet workbook (one
+  # sheet per indicator), similar to the WPP 2024 downloads countries ask for.
+  output$download_all_summary_stats <- shiny::downloadHandler(
+    filename = function() {
+      cnt <- tryCatch(input$wpp_country, error = function(e) NULL) %||% "country"
+      sy <- tryCatch(wpp_starting_year(), error = function(e) NA)
+      ey <- tryCatch(wpp_ending_year(), error = function(e) NA)
+      paste0("summary_statistics_", gsub("[^A-Za-z0-9]+", "_", cnt), "_", sy, "-", ey, ".xlsx")
+    },
+    content = function(file) {
+      res <- simulation_results()
+      if (is.null(res)) stop("No forecast results available to export.")
+      # Keep only the non-empty tabular indicators (drop scalars like country/units).
+      sheets <- Filter(function(x) is.data.frame(x) && nrow(x) > 0, res)
+      if (length(sheets) == 0) stop("No tabular results available to export.")
+      # Excel sheet names: max 31 chars and unique.
+      names(sheets) <- make.unique(substr(names(sheets), 1, 31), sep = "_")
+      openxlsx::write.xlsx(sheets, file = file)
+    }
+  )
+
   results_safe <- reactive({
     res <- simulation_results()
     req(!is.null(res))

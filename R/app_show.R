@@ -108,6 +108,8 @@ show_forecast_results_ui <- function(input, i18n) {
           shiny::br(),
           shiny::downloadButton("download_life_table", label = i18n$translate("Download Life Table Data")),
           shiny::br(),
+          shiny::downloadButton("download_all_summary_stats", label = i18n$translate("Download all summary statistics")),
+          shiny::br(),
           shiny::div(
             style = "display: block;",
             shiny::downloadButton(ids$download_plot_id, label = i18n$translate("Download Plot")),
