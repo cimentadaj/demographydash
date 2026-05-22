@@ -332,7 +332,8 @@ app_ui <- function(request) {
         ),
 
         uiOutput("confirm_remove_sim_modal"),
-        
+        uiOutput("new_sim_modal_holder"),
+
         # Main content
         div(
           id = "main_content",
@@ -345,14 +346,23 @@ app_ui <- function(request) {
         div(
           id = "input_page",
           class = "ui raised very padded text container segment responsive-container",
-          div(
-            style = "display: flex; justify-content: flex-end; margin-bottom: 10px;",
-            action_button("input_help", i18n$translate("Instructions"), class = "ui red button")
-          ),
-          div(
-            class = "ui form",
-            show_input_ui(i18n),
-            uiOutput("next_pop_page")
+          # Empty state shown when there are no simulations yet (workflow redesign)
+          div(id = "input_empty_state", uiOutput("input_empty_state_ui")),
+          # Projection-settings form: kept mounted (so create-time update*Input() calls
+          # always find the widgets) and toggled against the empty state by sim count.
+          shinyjs::hidden(
+            div(
+              id = "input_form_wrap",
+              div(
+                style = "display: flex; justify-content: flex-end; margin-bottom: 10px;",
+                action_button("input_help", i18n$translate("Instructions"), class = "ui red button")
+              ),
+              div(
+                class = "ui form",
+                show_input_ui(i18n),
+                uiOutput("next_pop_page")
+              )
+            )
           )
         )
       ),

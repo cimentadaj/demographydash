@@ -1494,37 +1494,82 @@ app_server <- function(input, output, session) {
     shiny.semantic::updateSelectInput(session, "sim_switcher", selected = input$sim_from_url)
   })
 
-    # New Simulation inline flow (sidebar)
-  new_sim_form_visible <- reactiveVal(FALSE)
-  observeEvent(input$add_sim, {
+    # New Simulation flow — opens a centered "New simulation" modal (workflow redesign).
+  new_sim_form_visible <- reactiveVal(FALSE)  # retained for compatibility; no longer drives UI
+
+  # Open the naming modal from either the sidebar button or the empty-state CTA.
+  open_new_sim_modal <- function() {
     if (length(names(simulations$data)) >= 3) {
       shiny::showNotification(i18n$translate("You can only keep up to three simulations at a time"), type = "warning")
-      new_sim_form_visible(FALSE)
       return()
     }
-    new_sim_form_visible(TRUE)
-  })
+    try({ shiny::updateTextInput(session, "new_sim_name", value = "") }, silent = TRUE)
+    shiny.semantic::show_modal("new_sim_modal")
+  }
+  observeEvent(input$add_sim, { open_new_sim_modal() })
+  observeEvent(input$add_sim_cta, { open_new_sim_modal() })
 
-  output$new_sim_inline <- shiny::renderUI({
-    if (!isTRUE(new_sim_form_visible())) return(NULL)
-    shiny::div(
-      class = "ui form",
-      shiny::div(class = "required field",
-                shiny::tags$label(i18n$translate("Simulation Name")),
-                shiny::textInput("new_sim_name", label = NULL, placeholder = i18n$translate("Enter a simulation name"), width = "100%")
+  # The "New simulation" modal (name -> Cancel / Create), mirroring confirm_remove_sim.
+  # NB: the holder uiOutput id must differ from the modal id, else show_modal()'s
+  # JS selector matches the wrapper div instead of the modal (dimmer, no dialog).
+  output$new_sim_modal_holder <- shiny::renderUI({
+    input$selected_language
+    shiny.semantic::modal(
+      id = "new_sim_modal",
+      header = shiny::div(class = "ui header", i18n$translate("New simulation")),
+      shiny::div(
+        shiny::tags$p(class = "sub header", style = "color:#5a6472; margin-bottom:12px;",
+                      i18n$translate("Give your simulation a name, then configure its settings.")),
+        shiny::div(class = "ui form",
+          shiny::div(class = "required field",
+            shiny::tags$label(i18n$translate("Simulation name")),
+            shiny::textInput("new_sim_name", label = NULL,
+                             placeholder = i18n$translate("Enter a simulation name"), width = "100%")
+          )
+        )
       ),
-      shiny::div(style = "display:flex; gap:6px; margin:6px 0;",
-                 shiny.semantic::action_button("create_sim_confirm", i18n$translate("Create"), class = "ui primary button"),
-                 shiny.semantic::action_button("cancel_sim_create", i18n$translate("Cancel"), class = "ui button"))
+      footer = shiny::div(
+        class = "actions",
+        shiny.semantic::action_button("cancel_sim_create", i18n$translate("Cancel"), class = "ui button"),
+        shiny.semantic::action_button("create_sim_confirm", i18n$translate("Create"), class = "ui primary button")
+      ),
+      class = "small"
     )
   })
 
-  observeEvent(input$cancel_sim_create, { new_sim_form_visible(FALSE) })
+  # Empty-state main panel shown when there are no simulations yet.
+  output$input_empty_state_ui <- shiny::renderUI({
+    input$selected_language
+    shiny::div(
+      class = "input-empty-state",
+      style = "text-align:center; padding:56px 16px; max-width:560px; margin:0 auto;",
+      shiny::div(
+        style = "width:72px; height:72px; border-radius:50%; background:#e8efff; color:#2563eb; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:28px;",
+        shiny::icon("plus")
+      ),
+      shiny::tags$h2(style = "margin:0 0 8px; font-weight:600;", i18n$translate("Create a simulation to get started")),
+      shiny::tags$p(style = "color:#5a6472; margin:0 0 24px;",
+                    i18n$translate("Name your simulation, then configure projection settings.")),
+      shiny.semantic::action_button("add_sim_cta", i18n$translate("Add a new simulation"),
+                                    icon = icon("plus"), class = "ui primary button")
+    )
+  })
 
+  # Toggle empty-state vs the projection-settings form based on simulation count.
+  # show_input_ui stays mounted (just CSS-hidden) so the create handler's
+  # update*Input() calls always target existing widgets.
   observe({
-    if (length(names(simulations$data)) >= 3) {
-      new_sim_form_visible(FALSE)
+    n <- length(names(simulations$data))
+    if (n == 0) {
+      shinyjs::show("input_empty_state"); shinyjs::hide("input_form_wrap")
+    } else {
+      shinyjs::hide("input_empty_state"); shinyjs::show("input_form_wrap")
     }
+  })
+
+  observeEvent(input$cancel_sim_create, {
+    new_sim_form_visible(FALSE)
+    try({ shiny.semantic::hide_modal("new_sim_modal") }, silent = TRUE)
   })
 
   # Central widget management functions
@@ -2000,9 +2045,10 @@ app_server <- function(input, output, session) {
     # Set flag to prevent restoration logic when simulation switcher is updated
     creating_new_sim(TRUE)
     
-    # Hide the inline form
+    # Hide the naming modal
     new_sim_form_visible(FALSE)
-    
+    try({ shiny.semantic::hide_modal("new_sim_modal") }, silent = TRUE)
+
     # Navigate to input page for new simulation
     # Hide any currently visible page
     for (page in c("landing_page", "pop_page", "tfr_page", "e0_page", "mig_page", "forecast_page", "compare_page", "results_page")) {
