@@ -2507,7 +2507,7 @@ observeEvent(input$nav_forecast, {
       ))
     }
 
-    if (identical(selected_name, "Projected Net Migration")) {
+    if (identical(selected_name, "Net Migration (Estimates and Projection)")) {
       dataset <- compare_mig_data()
       if (is.null(dataset) || nrow(dataset) == 0) {
         return(div(
