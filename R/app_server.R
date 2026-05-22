@@ -704,7 +704,10 @@ app_server <- function(input, output, session) {
     if (length(years) == 0) return(NULL)
     selected_year <- suppressWarnings(as.numeric(input$compare_pyramid_year))
     if (length(selected_year) != 1 || is.na(selected_year) || !(selected_year %in% years)) {
-      selected_year <- years[[1]]
+      # Default to the user's projection start year (consistent with the
+      # Projection Results pyramid) rather than the dataset minimum (e.g. 1949).
+      start_year <- suppressWarnings(tryCatch(as.numeric(wpp_starting_year()), error = function(e) NA_real_))
+      selected_year <- if (length(start_year) == 1 && !is.na(start_year) && start_year %in% years) start_year else years[[1]]
     }
     selected_year
   }
