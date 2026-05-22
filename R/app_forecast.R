@@ -247,11 +247,16 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     default_year <- wpp_starting_year()
     selected_year <- if (default_year %in% years) default_year else years[[1]]
 
-    selectInput(
-      inputId = "pop_age_sex_years",
-      label = i18n$t("Select year"),
-      choices = years,
-      selected = selected_year
+    # Use the same semantic search-selection widget as the projection-settings
+    # year fields. The base shiny selectInput (selectize.js) is unstable while
+    # typing here, jumping between adjacent years (e.g. typing 2025 lands on
+    # 2026), which users saw as 2000/2001 flickering back and forth.
+    untheme::create_field_set(
+      "calendar",
+      i18n$t("Select year"),
+      "pop_age_sex_years",
+      years,
+      selected_year
     )
   })
   ##### Reactive Widgets end #####
