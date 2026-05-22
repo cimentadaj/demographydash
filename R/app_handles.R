@@ -1263,6 +1263,9 @@ handle_customize_data <- function(
       res <- if (!is.null(tfr_un_cache)) tfr_un_cache() else NULL
       if (is.null(res)) res <- current_tfr_reactive()
     }
+    # Limit the editable rows to the projection's end year: showing entries up to
+    # 2100 when the user restricted the end year to e.g. 2025 is confusing.
+    res <- limit_rows_to_end_year(res, wpp_ending_year)
     try({
       cat("[TFR_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))
@@ -1304,6 +1307,7 @@ handle_customize_data <- function(
       res <- if (!is.null(e0_un_cache)) e0_un_cache() else NULL
       if (is.null(res)) res <- current_e0_reactive()
     }
+    res <- limit_rows_to_end_year(res, wpp_ending_year)
     try({
       cat("[E0_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))
@@ -1346,6 +1350,7 @@ handle_customize_data <- function(
       res <- if (!is.null(mig_un_cache)) mig_un_cache() else NULL
       if (is.null(res)) res <- current_mig_reactive()
     }
+    res <- limit_rows_to_end_year(res, wpp_ending_year)
     try({
       cat("[MIG_DEBUG] Customize RAW head (tab:", active_tab, "):\n");
       print(utils::head(as.data.frame(res), 5))

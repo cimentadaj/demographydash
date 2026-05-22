@@ -570,3 +570,27 @@ transform_5yr_to_single <- function(data, country, ref_year) {
     ref_year = ref_year
   )
 }
+
+#' Limit a year-indexed data frame to the projection end year
+#'
+#' @description
+#' Keeps only the rows whose calendar year is at or before the selected
+#' projection end year. Used by the editable TFR / life-expectancy / migration
+#' input tables so they show the projection range the user chose instead of
+#' always running through 2100. The first column is assumed to be the year.
+#'
+#' @param df A data frame whose first column is the calendar year, or NULL.
+#' @param end_year A reactive expression or plain value giving the end year.
+#' @return `df` filtered to year <= end year; returned unchanged when `df` is
+#'   NULL/empty or the end year is unavailable.
+#' @export
+limit_rows_to_end_year <- function(df, end_year) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0 || ncol(df) == 0) return(df)
+  ey <- tryCatch({
+    v <- if (is.function(end_year)) end_year() else end_year
+    as.numeric(v)
+  }, error = function(e) NA_real_)
+  if (length(ey) != 1 || is.na(ey)) return(df)
+  yr <- suppressWarnings(as.numeric(df[[1]]))
+  df[is.na(yr) | yr <= ey, , drop = FALSE]
+}
