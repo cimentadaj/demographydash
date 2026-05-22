@@ -88,6 +88,24 @@ fix_plotly_ribbon_legend <- function(p, pi_label = "95% UN PI", sim_names = NULL
       p$x$data[[i]]$name <- label
       p$x$data[[i]]$showlegend <- TRUE
       p$x$data[[i]]$legendgroup <- label
+    } else {
+      # Clean line-trace legend names. ggplotly names multi-aesthetic line traces
+      # like "(Sim, Type, 1)"; the trailing numeric group index confused users
+      # ("what is 'UN Projection, 1'?"). Strip the parentheses and the trailing
+      # integer so the legend reads e.g. "Vietnam TFR1, UN Projection".
+      nm <- trace$name
+      if (!is.null(nm) && nzchar(nm)) {
+        m <- regmatches(nm, regexec("^\\((.*)\\)$", nm))[[1]]
+        if (length(m) == 2) {
+          parts <- trimws(strsplit(m[[2]], ",", fixed = TRUE)[[1]])
+          if (length(parts) > 1 && grepl("^[0-9]+$", parts[length(parts)])) {
+            parts <- parts[-length(parts)]
+          }
+          new_nm <- paste(parts, collapse = ", ")
+          p$x$data[[i]]$name <- new_nm
+          if (!is.null(p$x$data[[i]]$legendgroup)) p$x$data[[i]]$legendgroup <- new_nm
+        }
+      }
     }
   }
   p
