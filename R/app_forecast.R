@@ -139,9 +139,18 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
         x[x$year != 2101]
       }
     )
-    # Save results for reuse on sim switch
-    try({ saveRDS(res, results_rds) }, silent = TRUE)
-    cat("[PHASE9] Forecast results saved to:", results_rds, "\n")
+    # Save results for reuse on sim switch. A silent failure here is the root
+    # cause of "charts vanish on simulation switch": the in-memory result still
+    # renders for the computing session, but the switch reloads from disk and
+    # finds nothing. Log any failure and verify the file actually landed.
+    save_err <- tryCatch({ saveRDS(res, results_rds); NULL }, error = function(e) conditionMessage(e))
+    if (!is.null(save_err)) {
+      cat("[PHASE9][ERROR] saveRDS FAILED for", results_rds, "->", save_err, "\n")
+    } else if (!file.exists(results_rds)) {
+      cat("[PHASE9][ERROR] saveRDS reported success but file is missing:", results_rds, "\n")
+    } else {
+      cat("[PHASE9] Forecast results saved to:", results_rds, "(", file.info(results_rds)$size, "bytes )\n")
+    }
     res
   })
 

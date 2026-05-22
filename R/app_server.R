@@ -1387,24 +1387,18 @@ app_server <- function(input, output, session) {
       sim_progressed(progressed)
       input_next_clicked(isTRUE(progressed) && !identical(saved_sig, NULL) && identical(saved_sig, curr_sig))
       # Restore state debug can be enabled here if needed
-      # If last page is forecast, set up UI and load saved results only (no compute on switch)
+      # If last page is forecast, set up UI and load saved results only (no compute on switch).
+      # Bind the forecast UI immediately (do NOT defer behind observeEvent(restoring_inputs())):
+      # the previous deferral raced — if restoring_inputs() flipped TRUE->FALSE between the
+      # isTRUE() check and the observer registration, the observer never fired, setup_forecast_ui
+      # was never called, output$show_forecast_results_ui was never re-bound, and the charts stayed
+      # blank on switch. begin_forecast()'s forecast_res reactive already guards against computing
+      # while restoring (returns NULL) and depends reactively on restoring_inputs(), so it
+      # re-evaluates and loads the saved results from disk as soon as restore completes.
       if (identical(desired_page, "forecast_page")) {
-        cat("[SIM_SWITCH] Last page was forecast, setting up load-only mode for sim:", selected_sim, "\n")
-
-        if (isTRUE(restoring_inputs())) {
-          cat("[SIM_SWITCH] Inputs still restoring, delaying forecast UI setup\n")
-          local_obs <- NULL
-          local_obs <- observeEvent(restoring_inputs(), {
-            if (!isTRUE(restoring_inputs())) {
-              cat("[SIM_SWITCH] Restore complete, setting up forecast UI in load mode for sim:", selected_sim, "\n")
-              setup_forecast_ui(selected_sim, mode = "load")
-              local_obs$destroy()
-            }
-          }, ignoreInit = FALSE)
-        } else {
-          cat("[SIM_SWITCH] No restore in progress, setting up forecast UI in load mode for sim:", selected_sim, "\n")
-          setup_forecast_ui(selected_sim, mode = "load")
-        }
+        cat("[SIM_SWITCH] Last page was forecast; binding forecast UI in load mode for sim:", selected_sim,
+            "(restoring =", isTRUE(restoring_inputs()), ")\n")
+        setup_forecast_ui(selected_sim, mode = "load")
       }
     } else {
       cat("[PHASE8] No saved data found for simulation:", selected_sim, "\n")
