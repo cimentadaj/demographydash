@@ -224,7 +224,28 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
       if (length(sheets) == 0) stop("No tabular results available to export.")
       # Excel sheet names: max 31 chars and unique.
       names(sheets) <- make.unique(substr(names(sheets), 1, 31), sep = "_")
-      openxlsx::write.xlsx(sheets, file = file)
+
+      # Lead with a metadata/README sheet so the file is self-describing
+      # (country, projection range, and the units the counts are expressed in).
+      cnt <- tryCatch(res$country %||% input$wpp_country, error = function(e) input$wpp_country)
+      u <- tryCatch(res$units, error = function(e) NULL)
+      units_txt <- if (!is.null(u) && length(u) == 1 && is.numeric(u)) {
+        paste0("Population, birth and death counts are in units of ",
+               format(u, big.mark = ","), if (identical(as.numeric(u), 1000)) " (thousands)." else ".")
+      } else {
+        "See indicator definitions."
+      }
+      sy <- tryCatch(wpp_starting_year(), error = function(e) NA)
+      ey <- tryCatch(wpp_ending_year(), error = function(e) NA)
+      meta <- data.frame(
+        Field = c("Country / region", "Projection start year", "Projection end year",
+                  "Units", "Number of indicator sheets", "Generated"),
+        Value = c(as.character(cnt %||% ""), as.character(sy), as.character(ey),
+                  units_txt, as.character(length(sheets)),
+                  format(Sys.time(), "%Y-%m-%d %H:%M")),
+        stringsAsFactors = FALSE
+      )
+      openxlsx::write.xlsx(c(list(metadata = meta), sheets), file = file)
     }
   )
 
