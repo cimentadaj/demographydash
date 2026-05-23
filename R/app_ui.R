@@ -300,9 +300,13 @@ app_ui <- function(request) {
         max-width: 100% !important;
         min-width: 100% !important;
       }
-      "))
+      ")),
+      # App-level accessibility/polish overrides (cross-cutting task): label
+      # contrast to WCAG AA + accessible names on the search-selection widgets.
+      if (file.exists(app_sys("app/www/custom.css"))) shiny::includeCSS(app_sys("app/www/custom.css"))
     ),
     tags$script(JS_CODE_SCREEN_SIZE),
+    if (file.exists(app_sys("app/www/custom.js"))) shiny::includeScript(app_sys("app/www/custom.js")),
     shiny.i18n::usei18n(i18n),
     useShinyjs(),
     introjsUI(),

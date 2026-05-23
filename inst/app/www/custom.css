@@ -1,0 +1,21 @@
+/* App-level accessibility/polish overrides (cross-cutting task).
+   Auto-bundled by golem::bundle_resources(). */
+
+/* WCAG AA contrast for the grey field labels produced by untheme::create_field_set
+   ("Select a country", "Select year", "Starting Year", ...). The default
+   rgba(0,0,0,0.6) (~#666) on the #e8e8e8 label pill measured ~3.6:1, below the
+   4.5:1 floor for normal text. Darkening the text clears AA comfortably. */
+.field > .main.label,
+.ui.label.main.label,
+a.ui.label.main.label,
+label.main.label {
+  color: #3a3f4b !important;
+}
+
+/* Visible keyboard focus ring on the search-selection inputs (was none),
+   so keyboard users can see where they are. */
+.field .ui.selection.dropdown input.search:focus,
+.field .ui.search.dropdown > input.search:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
