@@ -2691,11 +2691,15 @@ observeEvent(input$nav_forecast, {
 
     selected_year <- get_active_compare_pyramid_year(dataset)
 
-    selectInput(
-      "compare_pyramid_year",
+    # Use the stable semantic search-selection widget (same fix as the
+    # Projection Results pyramid year): the base selectInput/selectize mislands
+    # when a full year is typed.
+    untheme::create_field_set(
+      "calendar",
       i18n$translate("Select year"),
-      choices = stats::setNames(as.character(years), years),
-      selected = as.character(selected_year)
+      "compare_pyramid_year",
+      years,
+      selected_year
     )
   })
 
