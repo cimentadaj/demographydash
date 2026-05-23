@@ -114,7 +114,10 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
     # Call the run_forecast function with the processed data
     cat("[PHASE9] Running forecast into results_dir:", results_dir, "\n")
     res <- run_forecast(
-      country = input$wpp_country,
+      # Collapse ambiguous region names (e.g. "Australia/New Zealand") to a single
+      # canonical code so run_forecast's country_code == un_code subset doesn't
+      # error on a length-2 RHS; plain country/region names pass through unchanged.
+      country = resolve_wpp_location(input$wpp_country),
       start_year = wpp_starting_year(),
       end_year = wpp_ending_year(),
       output_dir = results_dir,
@@ -123,6 +126,9 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
       e0 = e0,
       mig = mig
     )
+    # Keep the human-readable name on the results metadata (run_forecast stores
+    # whatever `country` it was given, which may now be a numeric code).
+    res[["country"]] <- input$wpp_country
 
     remove_last_year <- c(
       "population_by_broad_age_group",

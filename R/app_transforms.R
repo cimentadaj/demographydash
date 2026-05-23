@@ -594,3 +594,26 @@ limit_rows_to_end_year <- function(df, end_year) {
   yr <- suppressWarnings(as.numeric(df[[1]]))
   df[is.na(yr) | yr <= ey, , drop = FALSE]
 }
+
+#' Resolve a WPP location name to a single, unambiguous code for run_forecast()
+#'
+#' @description
+#' A few WPP-2024 region names appear under two location records (e.g.
+#' "Australia/New Zealand" -> codes 927 & 1836; "Latin America and the Caribbean"
+#' -> 904 & 1830). OPPPserver::get_country_code() matches by name and returns
+#' BOTH codes, after which run_forecast()'s internal `country_code == un_code`
+#' data.table subset errors with "RHS of == is length 2". When a name collides,
+#' collapse it to the canonical standard M49 code (the smaller code) and return
+#' that numeric code, which run_forecast() accepts directly. Non-colliding names
+#' (the vast majority) are returned unchanged so labels/titles stay human-readable.
+#'
+#' @param location A country/region name (character) as chosen in the selector.
+#' @return The original `location` when it resolves to 0 or 1 code, otherwise the
+#'   single canonical numeric code.
+#' @export
+resolve_wpp_location <- function(location) {
+  if (is.null(location) || length(location) != 1 || !nzchar(location)) return(location)
+  code <- tryCatch(OPPPserver:::get_country_code(location), error = function(e) NULL)
+  if (is.null(code) || length(code) <= 1) return(location)
+  min(code)
+}

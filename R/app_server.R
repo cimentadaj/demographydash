@@ -1743,7 +1743,7 @@ app_server <- function(input, output, session) {
         target_loc <- tryCatch({ loaded_data$metadata$country }, error = function(e) NULL)
         if (!is.null(target_loc)) {
           choices <- tryCatch({
-            if (identical(val, i18n$translate("Region")) || identical(val, "Region")) OPPPserver::get_wpp_regions() else OPPPserver::get_wpp_countries()
+            if (identical(val, i18n$translate("Region")) || identical(val, "Region")) unique(OPPPserver::get_wpp_regions()) else OPPPserver::get_wpp_countries()
           }, error = function(e) NULL)
           if (!is.null(choices)) {
             cat("[RESTORE_SELECTOR_DEBUG] Forcing selector rebuild | mode:", val, " choices_len:", length(choices), " target:", target_loc, "\n")

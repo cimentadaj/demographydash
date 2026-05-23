@@ -35,7 +35,9 @@ location_selector_ui <- function(input, i18n, selected_value = NULL, force_mode 
   } else {
     is_region <- length(input$toggle_region) != 0 && input$toggle_region == i18n$translate("Region")
   }
-  choices <- if (is_region) OPPPserver::get_wpp_regions() else OPPPserver::get_wpp_countries()
+  # unique(): a few WPP region names appear twice in the locations table, so
+  # get_wpp_regions() returns duplicate entries — collapse them in the selector.
+  choices <- if (is_region) unique(OPPPserver::get_wpp_regions()) else OPPPserver::get_wpp_countries()
   label <- if (is_region) i18n$translate("Select a region") else i18n$translate("Select a country")
   # Determine the selected value: prefer provided selected_value if valid, else keep current input if valid
   selected <- NULL
