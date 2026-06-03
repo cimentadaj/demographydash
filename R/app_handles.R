@@ -819,17 +819,25 @@ handle_customize_data <- function(
   # Note: last_active_modal_tab is now passed as parameter from main server scope
   un_data_reset_trigger <- reactiveVal(0)  # Trigger to force table re-render on reset
   
-  # On simulation reset, clear only UN caches and force re-render.
+  # On simulation reset, clear modal caches and force re-render.
   # app_server handles cross-sim clearing of custom_data_configs to avoid races.
   observeEvent(modal_reset_trigger(), {
     if (!is.null(modal_reset_trigger())) {
       current_configs <- custom_data_configs()
-      cat("[MODAL_RESET] (handles) Pre-reset — UN caches will be cleared; configs count:", length(current_configs), "keys:", paste(names(current_configs), collapse=", "), "\n")
-      un_data_single_cache(NULL)   # Clear UN data caches
+      cat("[MODAL_RESET] (handles) Pre-reset — modal caches will be cleared; configs count:", length(current_configs), "keys:", paste(names(current_configs), collapse=", "), "\n")
+      un_data_single_cache(NULL)   # Population UN data caches
       un_data_5yr_cache(NULL)
+      # F/M/M caches — clear so the modal opens fresh from reactive_tfr/e0/mig
+      # (UN Data) for the new active sim, matching the population behavior.
+      if (!is.null(tfr_un_cache))     tfr_un_cache(NULL)
+      if (!is.null(tfr_custom_cache)) tfr_custom_cache(NULL)
+      if (!is.null(e0_un_cache))      e0_un_cache(NULL)
+      if (!is.null(e0_custom_cache))  e0_custom_cache(NULL)
+      if (!is.null(mig_un_cache))     mig_un_cache(NULL)
+      if (!is.null(mig_custom_cache)) mig_custom_cache(NULL)
       # Force the data table to re-render on next open for both UN and Custom
       un_data_reset_trigger(un_data_reset_trigger() + 1)
-      cat("[MODAL_RESET] (handles) UN caches cleared; table re-render scheduled\n")
+      cat("[MODAL_RESET] (handles) modal caches cleared; table re-render scheduled\n")
     }
   }, ignoreInit = TRUE)
   
@@ -1239,7 +1247,13 @@ handle_customize_data <- function(
 
   # --- TFR tab switch handler ---
   observeEvent(input$modal_tfr_source, {
-    # Auto-save current table data to appropriate cache before switching
+    # Auto-save current table data to appropriate cache before switching.
+    # Guard: skip if no committed data exists yet for this sim — the
+    # rhandsontable input value (input$tmp_tfr_dt) may still carry edits
+    # from a previously-active sim that haven't been pushed back by the
+    # browser, which would re-contaminate the cache we just cleared in
+    # modal_reset_trigger.
+    if (!is.null(tfr_to_commit_rv) && is.null(tfr_to_commit_rv())) return()
     tryCatch({
       prev_source <- if (input$modal_tfr_source == "Custom Data") "UN Data" else "Custom Data"
       if (!is.null(input$tmp_tfr_dt)) {
@@ -1284,6 +1298,8 @@ handle_customize_data <- function(
 
   # --- e0 tab switch handler ---
   observeEvent(input$modal_e0_source, {
+    # See TFR handler above for guard rationale.
+    if (!is.null(e0_to_commit_rv) && is.null(e0_to_commit_rv())) return()
     tryCatch({
       prev_source <- if (input$modal_e0_source == "Custom Data") "UN Data" else "Custom Data"
       if (!is.null(input$tmp_e0_dt)) {
@@ -1327,6 +1343,8 @@ handle_customize_data <- function(
 
   # --- Migration tab switch handler ---
   observeEvent(input$modal_mig_source, {
+    # See TFR handler above for guard rationale.
+    if (!is.null(mig_to_commit_rv) && is.null(mig_to_commit_rv())) return()
     tryCatch({
       prev_source <- if (input$modal_mig_source == "Custom Data") "UN Data" else "Custom Data"
       if (!is.null(input$tmp_mig_dt)) {

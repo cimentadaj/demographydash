@@ -701,7 +701,16 @@ app_server <- function(input, output, session) {
   get_compare_pyramid_years <- function(dataset) {
     if (is.null(dataset) || nrow(dataset) == 0) return(numeric(0))
     if (!"year" %in% names(dataset)) return(numeric(0))
-    years <- sort(unique(dataset$year))
+    # Intersection (not union) across sims so the picker never offers a
+    # year missing from one of the sims — otherwise that sim is silently
+    # dropped from the pyramid (see plan: Mengjia 2026-06-03).
+    years <- if ("simulation" %in% names(dataset)) {
+      years_by_sim <- split(dataset$year, as.character(dataset$simulation))
+      if (length(years_by_sim) >= 1) Reduce(intersect, years_by_sim) else dataset$year
+    } else {
+      dataset$year
+    }
+    years <- sort(unique(years))
     years[is.finite(years)]
   }
 
@@ -2051,6 +2060,9 @@ app_server <- function(input, output, session) {
     
     # Reset data source flags
     pop_data_source("UN Data")
+    tfr_data_source("UN Data")
+    e0_data_source("UN Data")
+    mig_data_source("UN Data")
     data_source$tfr <- "downloaded"
     data_source$e0 <- "downloaded"
     data_source$mig <- "downloaded"
