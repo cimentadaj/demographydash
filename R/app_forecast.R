@@ -245,6 +245,104 @@ begin_forecast <- function(reactive_pop, reactive_tfr, reactive_e0, reactive_mig
                   format(Sys.time(), "%Y-%m-%d %H:%M")),
         stringsAsFactors = FALSE
       )
+
+      # Column dictionary — append to the metadata sheet so users can decode
+      # each indicator's headers without leaving the file. Sheet-agnostic
+      # defaults cover the common columns; sheet_overrides patch the few
+      # cases where the same column name means something different (e.g.
+      # "age" is single-year almost everywhere but a broad group on
+      # population_by_broad_age_group, and an exact age x in life_table).
+      column_descriptions <- list(
+        year = "Calendar year",
+        age = "Age (single year, 0-100+)",
+        sex = "B = both sexes, M = male, F = female",
+        pop = "Total population count (in the units listed above)",
+        popF = "Female population count",
+        popM = "Male population count",
+        pop_percent = "Share of total population (%)",
+        tfr = "Total fertility rate (children per woman)",
+        growth_rate = "Annual population growth rate (%)",
+        annual_growth_rate = "Annual population growth rate (%)",
+        asfr = "Age-specific fertility rate (births per woman in age group)",
+        e0 = "Life expectancy at birth (years)",
+        birth = "Number of births",
+        birth_rate = "Crude birth rate (births per 1,000 population)",
+        cbr = "Crude birth rate (births per 1,000 population)",
+        death = "Number of deaths",
+        death_rate = "Crude death rate (deaths per 1,000 population)",
+        cdr = "Crude death rate (deaths per 1,000 population)",
+        oadr = "Old-age dependency ratio (population 65+ per 100 working-age 15-64)",
+        yadr = "Youth-age dependency ratio (population 0-14 per 100 working-age 15-64)",
+        percent65 = "Share of population aged 65 and over (%)",
+        median_age = "Median age of the population (years)",
+        mig = "Net migration (immigrants minus emigrants)",
+        lx = "Life table: survivors at exact age x",
+        dx = "Life table: deaths between exact ages x and x+1",
+        qx = "Life table: probability of dying between exact ages x and x+1",
+        Lx = "Life table: person-years lived between exact ages x and x+1",
+        Tx = "Life table: person-years lived above exact age x",
+        ex = "Life expectancy at exact age x (years)",
+        un_pop_median = "WPP 2024 projected population (median)",
+        un_pop_95low = "WPP 2024 population: 95% prediction interval (lower bound)",
+        un_pop_95high = "WPP 2024 population: 95% prediction interval (upper bound)",
+        un_tfr_median = "WPP 2024 projected TFR (median)",
+        un_tfr_95low = "WPP 2024 TFR: 95% prediction interval (lower bound)",
+        un_tfr_95high = "WPP 2024 TFR: 95% prediction interval (upper bound)",
+        un_e0_median = "WPP 2024 projected life expectancy (median)",
+        un_e0_95low = "WPP 2024 life expectancy: 95% prediction interval (lower bound)",
+        un_e0_95high = "WPP 2024 life expectancy: 95% prediction interval (upper bound)",
+        un_mig_median = "WPP 2024 projected net migration (median)",
+        un_mig_95low = "WPP 2024 net migration: 95% prediction interval (lower bound)",
+        un_mig_95high = "WPP 2024 net migration: 95% prediction interval (upper bound)",
+        un_births_median = "WPP 2024 projected births (median)",
+        un_births_95low = "WPP 2024 births: 95% prediction interval (lower bound)",
+        un_births_95high = "WPP 2024 births: 95% prediction interval (upper bound)",
+        un_deaths_median = "WPP 2024 projected deaths (median)",
+        un_deaths_95low = "WPP 2024 deaths: 95% prediction interval (lower bound)",
+        un_deaths_95high = "WPP 2024 deaths: 95% prediction interval (upper bound)",
+        un_cbr_median = "WPP 2024 projected crude birth rate (median)",
+        un_cbr_95low = "WPP 2024 CBR: 95% prediction interval (lower bound)",
+        un_cbr_95high = "WPP 2024 CBR: 95% prediction interval (upper bound)",
+        un_cdr_median = "WPP 2024 projected crude death rate (median)",
+        un_cdr_95low = "WPP 2024 CDR: 95% prediction interval (lower bound)",
+        un_cdr_95high = "WPP 2024 CDR: 95% prediction interval (upper bound)"
+      )
+      sheet_overrides <- list(
+        population_by_broad_age_group = list(
+          age = "Broad age group (e.g. 0-14, 15-24, 25-64, 65+)"
+        ),
+        life_table = list(
+          age = "Exact age x (years)"
+        )
+      )
+      describe_col <- function(sheet_name, col) {
+        ov <- sheet_overrides[[sheet_name]]
+        if (!is.null(ov) && !is.null(ov[[col]])) return(ov[[col]])
+        d <- column_descriptions[[col]]
+        if (is.null(d)) "" else d
+      }
+      dict_rows <- lapply(names(sheets), function(s) {
+        cols <- colnames(sheets[[s]])
+        if (length(cols) == 0) return(NULL)
+        pairs <- vapply(cols, function(co) {
+          desc <- describe_col(s, co)
+          if (!nzchar(desc)) co else paste0(co, ": ", desc)
+        }, character(1))
+        data.frame(
+          Field = s,
+          Value = paste(pairs, collapse = "; "),
+          stringsAsFactors = FALSE
+        )
+      })
+      dict_rows <- Filter(Negate(is.null), dict_rows)
+      if (length(dict_rows) > 0) {
+        dict_df <- do.call(rbind, dict_rows)
+        spacer <- data.frame(Field = c("", "Column dictionary"),
+                             Value = c("", ""),
+                             stringsAsFactors = FALSE)
+        meta <- rbind(meta, spacer, dict_df)
+      }
+
       openxlsx::write.xlsx(c(list(metadata = meta), sheets), file = file)
     }
   )

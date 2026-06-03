@@ -181,6 +181,30 @@ app_server <- function(input, output, session) {
   sim_draft_name <- reactiveVal(NULL)
   pending_sim_removal <- reactiveVal(NULL)
 
+  # When the active sim changes (switch or delete-of-current) we want the
+  # Compare-Simulations pyramid year selector to fall back to the new active
+  # sim's start year — i.e. ignore whatever year was selected for the
+  # previous sim. Plain updateSelectInput() is not enough: deleting the
+  # current sim from inside the Compare view unmounts the selector widget,
+  # so the queued update has no live target, and on the next Compare visit
+  # the renderUI rebuilds the widget reading the stale input value, which
+  # is still in-range and therefore wins over the start-year fallback.
+  #
+  # Instead we keep a sticky "force-default" token that gets set on every
+  # sim change and gets cleared as soon as the user explicitly picks a
+  # year. get_active_compare_pyramid_year() consults the token before it
+  # trusts the input value.
+  compare_pyramid_year_force_default <- reactiveVal(NULL)
+  observeEvent(simulations$current, {
+    compare_pyramid_year_force_default(Sys.time())
+    shiny.semantic::updateSelectInput(session, "compare_pyramid_year", selected = NULL)
+  }, ignoreInit = TRUE, ignoreNULL = FALSE)
+  observeEvent(input$compare_pyramid_year, {
+    # The user (or the widget remount) just produced a value — honor it
+    # going forward, until the next active-sim change.
+    compare_pyramid_year_force_default(NULL)
+  }, ignoreInit = TRUE)
+
   # Track last computed signature to invalidate results when inputs change
   last_computed_signature <- reactiveVal(NULL)
 
@@ -702,11 +726,36 @@ app_server <- function(input, output, session) {
   get_active_compare_pyramid_year <- function(dataset) {
     years <- get_compare_pyramid_years(dataset)
     if (length(years) == 0) return(NULL)
-    selected_year <- suppressWarnings(as.numeric(input$compare_pyramid_year))
+    # While the force-default token is set (active sim just changed, user
+    # hasn't picked a year for the new sim yet), ignore the stale input
+    # value so we fall through to the start-year default below.
+    force_default <- !is.null(compare_pyramid_year_force_default())
+    selected_year <- if (force_default) {
+      NA_real_
+    } else {
+      suppressWarnings(as.numeric(input$compare_pyramid_year))
+    }
     if (length(selected_year) != 1 || is.na(selected_year) || !(selected_year %in% years)) {
-      # Default to the user's projection start year (consistent with the
-      # Projection Results pyramid) rather than the dataset minimum (e.g. 1949).
-      start_year <- suppressWarnings(tryCatch(as.numeric(wpp_starting_year()), error = function(e) NA_real_))
+      # Default to the active sim's start year (consistent with the
+      # Projection Results pyramid) rather than the dataset minimum (e.g.
+      # 1949). Read from the active sim's metadata.json rather than
+      # wpp_starting_year() to avoid a race where the live input field
+      # hasn't yet been restored to the newly-active sim's value after a
+      # sim switch/delete.
+      start_year <- NA_real_
+      active_sim <- simulations$current
+      if (!is.null(active_sim) && nzchar(active_sim)) {
+        meta_path <- file.path(sim_base_dir, active_sim, "metadata.json")
+        if (file.exists(meta_path)) {
+          start_year <- tryCatch(
+            as.numeric(jsonlite::read_json(meta_path, simplifyVector = TRUE)$start_year),
+            error = function(e) NA_real_
+          )
+        }
+      }
+      if (is.na(start_year)) {
+        start_year <- suppressWarnings(tryCatch(as.numeric(wpp_starting_year()), error = function(e) NA_real_))
+      }
       selected_year <- if (length(start_year) == 1 && !is.na(start_year) && start_year %in% years) start_year else years[[1]]
     }
     selected_year
