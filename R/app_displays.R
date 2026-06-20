@@ -478,9 +478,68 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
   pop_dt <- pop_dt[!is.na(value_signed)]
   if (nrow(pop_dt) == 0) return(NULL)
 
-  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels_present)), sim_levels_present)
+  un_label <- i18n$translate("UN Projection")
+  dt_dt <- data.table::as.data.table(dt)
+  has_un <- all(c("un_popM_median", "un_popF_median") %in% names(dt_dt))
+  un_pop_dt <- NULL
+  if (has_un) {
+    un_raw <- unique(dt_dt[
+      year == selected_year & !is.na(un_popM_median) & !is.na(un_popF_median),
+      .(age, un_popM_median, un_popF_median)
+    ])
+    if (nrow(un_raw) > 0) {
+      un_raw[, AgeRaw := as.character(age)]
+      un_long <- data.table::melt(
+        un_raw,
+        id.vars = "AgeRaw",
+        measure.vars = c("un_popM_median", "un_popF_median"),
+        variable.name = "SexVar",
+        value.name = "Population"
+      )
+      un_long[, SexBase := ifelse(SexVar == "un_popM_median", "Males", "Females")]
+      un_long[, SexVar := NULL]
+      un_long[, Population := as.numeric(Population)]
+      un_long <- un_long[!is.na(Population)]
+      if (identical(scale_type, "relative") && nrow(un_long) > 0) {
+        un_long[, total_un := sum(Population, na.rm = TRUE)]
+        un_long[, Population := ifelse(total_un > 0, Population / total_un * 100, NA_real_)]
+        un_long[, total_un := NULL]
+      }
+      un_long[, value_signed := ifelse(SexBase == "Males", -Population, Population)]
+      un_long[, value_signed := round(value_signed, 3)]
+      un_long[, value_abs := round(abs(value_signed), 3)]
+      un_long <- un_long[!is.na(value_signed)]
+      un_long[, Age := factor(AgeRaw, levels = age_levels)]
+      un_long[, Simulation := un_label]
+      un_long[, Sex := sex_labels[SexBase]]
+      un_long[, Sex := factor(Sex, levels = sex_labels)]
+      un_long <- un_long[!is.na(Age)]
+      if (nrow(un_long) > 0) {
+        un_pop_dt <- un_long[, .(Age, Simulation, Sex, value_signed, value_abs)]
+      }
+    }
+  }
 
-  max_abs <- suppressWarnings(max(abs(pop_dt$value_signed), na.rm = TRUE))
+  all_sim_levels <- if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
+    c(sim_levels_present, un_label)
+  } else {
+    sim_levels_present
+  }
+  pop_dt[, Simulation := factor(as.character(Simulation), levels = all_sim_levels)]
+  if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
+    un_pop_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
+  }
+
+  color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels_present)), sim_levels_present)
+  if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
+    color_palette <- c(color_palette, stats::setNames("black", un_label))
+  }
+
+  all_signed <- pop_dt$value_signed
+  if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
+    all_signed <- c(all_signed, un_pop_dt$value_signed)
+  }
+  max_abs <- suppressWarnings(max(abs(all_signed), na.rm = TRUE))
   if (!is.finite(max_abs) || max_abs <= 0) {
     max_abs <- 1
   }
@@ -540,6 +599,10 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
     value_signed,
     value_abs
   )]
+
+  if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
+    plot_dt <- data.table::rbindlist(list(plot_dt, un_pop_dt), use.names = TRUE, fill = TRUE)
+  }
 
   if (identical(scale_type, "relative")) {
     value_formatter <- scales::label_number(accuracy = 0.1, suffix = "%")
@@ -668,7 +731,6 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
 
   sim_levels <- unique(pop_dt$Simulation)
   if (length(sim_levels) == 0) return(NULL)
-  pop_dt[, Simulation := factor(Simulation, levels = sim_levels)]
 
   axis_suffix <- if (identical(scale_type, "percent")) {
     i18n$translate("(Percent)")
@@ -680,7 +742,59 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   pop_dt[, Value := round(Value, 3)]
   data.table::setnames(pop_dt, "Value", value_label)
 
+  un_label <- i18n$translate("UN Projection")
+  dt_dt <- data.table::as.data.table(dt)
+  has_un_median <- "un_pop_median" %in% names(dt_dt) && any(!is.na(dt_dt$un_pop_median))
+  has_un_pi <- has_un_median &&
+    all(c("un_pop_95low", "un_pop_95high") %in% names(dt_dt)) &&
+    identical(scale_type, "absolute") &&
+    any(!is.na(dt_dt$un_pop_95low))
+
+  un_dt <- NULL
+  un_ribbon_dt <- NULL
+  if (has_un_median) {
+    pi_cols <- intersect(c("un_pop_95low", "un_pop_95high"), names(dt_dt))
+    un_raw <- unique(dt_dt[
+      !is.na(un_pop_median),
+      c("year", "age", "un_pop_median", pi_cols),
+      with = FALSE
+    ])
+    un_raw[, AgeRaw := as.character(age)]
+    un_raw[, Age := age_lookup[AgeRaw]]
+    un_raw[, Age := factor(Age, levels = levels(pop_dt$Age))]
+    un_raw <- un_raw[!is.na(Age)]
+    if (nrow(un_raw) > 0) {
+      if (identical(scale_type, "percent")) {
+        un_raw[, total_un := sum(un_pop_median, na.rm = TRUE), by = year]
+        un_raw[, un_value := ifelse(total_un > 0, un_pop_median / total_un * 100, NA_real_)]
+      } else {
+        un_raw[, un_value := un_pop_median]
+      }
+      un_raw[, Year := year]
+      un_raw[, Simulation := un_label]
+      un_raw[, un_value := round(un_value, 3)]
+      un_dt <- un_raw[!is.na(un_value), .(Year, Age, Simulation, un_value)]
+      data.table::setnames(un_dt, "un_value", value_label)
+      if (has_un_pi) {
+        un_ribbon_dt <- un_raw[
+          !is.na(un_pop_95low) & !is.na(un_pop_95high),
+          .(Year, Age, Low = round(un_pop_95low, 3), High = round(un_pop_95high, 3))
+        ]
+      }
+    }
+  }
+
+  all_sim_levels <- if (!is.null(un_dt) && nrow(un_dt) > 0) c(sim_levels, un_label) else sim_levels
+  pop_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
+  if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    un_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
+  }
+
   numeric_vals <- pop_dt[[value_label]]
+  if (!is.null(un_dt) && nrow(un_dt) > 0) numeric_vals <- c(numeric_vals, un_dt[[value_label]])
+  if (!is.null(un_ribbon_dt) && nrow(un_ribbon_dt) > 0) {
+    numeric_vals <- c(numeric_vals, un_ribbon_dt$Low, un_ribbon_dt$High)
+  }
   min_y <- suppressWarnings(min(numeric_vals, na.rm = TRUE))
   max_y <- suppressWarnings(max(numeric_vals, na.rm = TRUE))
   if (!is.finite(min_y) || !is.finite(max_y)) return(NULL)
@@ -690,6 +804,9 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   max_y <- max_y + buffer_max
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    color_palette <- c(color_palette, stats::setNames("black", un_label))
+  }
   linetype_options <- c("solid", "longdash", "dotdash", "twodash", "dotted", "longdashdot")
   age_levels_factor <- levels(pop_dt$Age)
   linetype_values <- stats::setNames(rep(linetype_options, length.out = length(age_levels_factor)), age_levels_factor)
@@ -699,15 +816,35 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   plt_title <- paste0(i18n$translate("Population by Broad Age Groups"), " (", compare_label, ") - ", scale_label)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  plot_input <- if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    data.table::rbindlist(list(pop_dt, un_dt), use.names = TRUE, fill = TRUE)
+  } else {
+    pop_dt
+  }
+
   plt <- ggplot(
-    pop_dt,
+    plot_input,
     aes(
       x = .data[["Year"]],
       y = .data[[value_label]],
       color = .data[["Simulation"]],
       group = interaction(.data[["Simulation"]], .data[["Age"]])
     )
-  ) +
+  )
+
+  if (!is.null(un_ribbon_dt) && nrow(un_ribbon_dt) > 0) {
+    plt <- plt +
+      geom_ribbon(
+        data = un_ribbon_dt,
+        aes(x = .data[["Year"]], ymin = .data[["Low"]], ymax = .data[["High"]], group = .data[["Age"]]),
+        inherit.aes = FALSE,
+        fill = "grey60",
+        alpha = 0.18,
+        color = NA
+      )
+  }
+
+  plt <- plt +
     geom_line(aes(linetype = .data[["Age"]])) +
     scale_color_manual(values = color_palette) +
     scale_linetype_manual(values = linetype_values, na.translate = FALSE) +
@@ -737,7 +874,7 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
     apply_plotly_legend()
 
-  export_dt <- data.table::copy(pop_dt)
+  export_dt <- data.table::copy(plot_input)
   export_dt[, `:=`(
     Age = as.character(Age),
     Simulation = as.character(Simulation)
@@ -781,12 +918,42 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
 
   sim_levels <- unique(growth_dt$Simulation)
   if (length(sim_levels) == 0) return(NULL)
-  growth_dt[, Simulation := factor(Simulation, levels = sim_levels)]
-  growth_dt[, AgeRaw := NULL]
 
   growth_dt[, `Population Growth Rate` := round(`Population Growth Rate`, 3)]
 
+  un_label <- i18n$translate("UN Projection")
+  dt_dt <- data.table::as.data.table(dt)
+  has_un <- "un_growth_rate_median" %in% names(dt_dt) && any(!is.na(dt_dt$un_growth_rate_median))
+
+  un_dt <- NULL
+  if (has_un) {
+    un_raw <- unique(dt_dt[
+      age != "Total" & !is.na(un_growth_rate_median),
+      .(year, age, un_growth_rate_median)
+    ])
+    un_raw[, AgeRaw := as.character(age)]
+    un_raw[, Age := age_lookup[AgeRaw]]
+    un_raw[, Age := factor(Age, levels = levels(growth_dt$Age))]
+    un_raw <- un_raw[!is.na(Age)]
+    if (nrow(un_raw) > 0) {
+      un_raw[, Year := year]
+      un_raw[, Simulation := un_label]
+      un_raw[, `Population Growth Rate` := round(as.numeric(un_growth_rate_median), 3)]
+      un_dt <- un_raw[, .(Year, Age, Simulation, `Population Growth Rate`)]
+    }
+  }
+
+  all_sim_levels <- if (!is.null(un_dt) && nrow(un_dt) > 0) c(sim_levels, un_label) else sim_levels
+  growth_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
+  growth_dt[, AgeRaw := NULL]
+  if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    un_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
+  }
+
   numeric_vals <- growth_dt[["Population Growth Rate"]]
+  if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    numeric_vals <- c(numeric_vals, un_dt[["Population Growth Rate"]])
+  }
   min_y <- suppressWarnings(min(numeric_vals, na.rm = TRUE))
   max_y <- suppressWarnings(max(numeric_vals, na.rm = TRUE))
   if (!is.finite(min_y) || !is.finite(max_y)) return(NULL)
@@ -796,6 +963,9 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
   max_y <- max_y + buffer_max
 
   color_palette <- stats::setNames(scales::hue_pal()(length(sim_levels)), sim_levels)
+  if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    color_palette <- c(color_palette, stats::setNames("black", un_label))
+  }
   linetype_options <- c("solid", "longdash", "dotdash", "twodash", "dotted", "longdashdot")
   age_levels_factor <- levels(growth_dt$Age)
   linetype_values <- stats::setNames(rep(linetype_options, length.out = length(age_levels_factor)), age_levels_factor)
@@ -804,8 +974,14 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
   plt_title <- paste0(i18n$translate("Population Growth Rate by Age"), " (", compare_label, ")")
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  plot_input <- if (!is.null(un_dt) && nrow(un_dt) > 0) {
+    data.table::rbindlist(list(growth_dt, un_dt), use.names = TRUE, fill = TRUE)
+  } else {
+    growth_dt
+  }
+
   plt <- ggplot(
-    growth_dt,
+    plot_input,
     aes(
       x = .data[["Year"]],
       y = .data[["Population Growth Rate"]],
@@ -838,7 +1014,7 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
   plt_visible <- ggplotly(plt_visible, tooltip = c("x", "y", "colour", "linetype")) %>%
     apply_plotly_legend()
 
-  export_dt <- data.table::copy(growth_dt)
+  export_dt <- data.table::copy(plot_input)
   export_dt[, `:=`(
     Age = as.character(Age),
     Simulation = as.character(Simulation)
