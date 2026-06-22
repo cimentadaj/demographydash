@@ -483,15 +483,19 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
   has_un <- all(c("un_popM_median", "un_popF_median") %in% names(dt_dt))
   un_pop_dt <- NULL
   if (has_un) {
+    # Keep `simulation` so each sim's country-specific UN reference becomes its
+    # own line (otherwise mixed-country sims share one group and the line
+    # zigzags between Spain's UN value and China's UN value at every age).
     un_raw <- unique(dt_dt[
       year == selected_year & !is.na(un_popM_median) & !is.na(un_popF_median),
-      .(age, un_popM_median, un_popF_median)
+      .(simulation, age, un_popM_median, un_popF_median)
     ])
     if (nrow(un_raw) > 0) {
       un_raw[, AgeRaw := as.character(age)]
+      un_raw[, sim_orig := as.character(simulation)]
       un_long <- data.table::melt(
         un_raw,
-        id.vars = "AgeRaw",
+        id.vars = c("AgeRaw", "sim_orig"),
         measure.vars = c("un_popM_median", "un_popF_median"),
         variable.name = "SexVar",
         value.name = "Population"
@@ -501,7 +505,8 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
       un_long[, Population := as.numeric(Population)]
       un_long <- un_long[!is.na(Population)]
       if (identical(scale_type, "relative") && nrow(un_long) > 0) {
-        un_long[, total_un := sum(Population, na.rm = TRUE)]
+        # Normalise per sim so each country's UN reference sums to 100%
+        un_long[, total_un := sum(Population, na.rm = TRUE), by = sim_orig]
         un_long[, Population := ifelse(total_un > 0, Population / total_un * 100, NA_real_)]
         un_long[, total_un := NULL]
       }
@@ -515,7 +520,7 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
       un_long[, Sex := factor(Sex, levels = sex_labels)]
       un_long <- un_long[!is.na(Age)]
       if (nrow(un_long) > 0) {
-        un_pop_dt <- un_long[, .(Age, Simulation, Sex, value_signed, value_abs)]
+        un_pop_dt <- un_long[, .(Age, Simulation, Sex, sim_orig, value_signed, value_abs)]
       }
     }
   }
@@ -599,6 +604,9 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
     value_signed,
     value_abs
   )]
+  # sim_orig keeps per-sim line grouping so each country's UN reference draws
+  # as its own line; for projection rows it equals the sim itself.
+  plot_dt[, sim_orig := as.character(Simulation)]
 
   if (!is.null(un_pop_dt) && nrow(un_pop_dt) > 0) {
     plot_dt <- data.table::rbindlist(list(plot_dt, un_pop_dt), use.names = TRUE, fill = TRUE)
@@ -629,11 +637,11 @@ create_pop_pyramid_compare_plot <- function(dt, selected_year, i18n, scale_type 
       x = .data[["Age"]],
       y = .data[["value_signed"]],
       color = .data[["Simulation"]],
-      group = interaction(.data[["Simulation"]], .data[["Sex"]]),
+      group = interaction(.data[["Simulation"]], .data[["Sex"]], .data[["sim_orig"]]),
       text = .data[["tooltip"]]
     )
   ) +
-    ggplot2::geom_line(linewidth = 0.6, aes(group = interaction(.data[["Simulation"]], .data[["Sex"]]))) +
+    ggplot2::geom_line(linewidth = 0.6, aes(group = interaction(.data[["Simulation"]], .data[["Sex"]], .data[["sim_orig"]]))) +
     scale_color_manual(values = color_palette) +
     scale_y_continuous(
       limits = c(-limit, limit),
@@ -754,18 +762,22 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   un_ribbon_dt <- NULL
   if (has_un_median) {
     pi_cols <- intersect(c("un_pop_95low", "un_pop_95high"), names(dt_dt))
+    # Keep `simulation` so each sim's country-specific UN reference becomes its
+    # own line; otherwise mixed-country sims zigzag between countries' UN values.
     un_raw <- unique(dt_dt[
       !is.na(un_pop_median),
-      c("year", "age", "un_pop_median", pi_cols),
+      c("simulation", "year", "age", "un_pop_median", pi_cols),
       with = FALSE
     ])
     un_raw[, AgeRaw := as.character(age)]
     un_raw[, Age := age_lookup[AgeRaw]]
     un_raw[, Age := factor(Age, levels = levels(pop_dt$Age))]
     un_raw <- un_raw[!is.na(Age)]
+    un_raw[, sim_orig := as.character(simulation)]
     if (nrow(un_raw) > 0) {
       if (identical(scale_type, "percent")) {
-        un_raw[, total_un := sum(un_pop_median, na.rm = TRUE), by = year]
+        # Normalise per (sim, year) so each country's UN reference sums to 100%
+        un_raw[, total_un := sum(un_pop_median, na.rm = TRUE), by = c("sim_orig", "year")]
         un_raw[, un_value := ifelse(total_un > 0, un_pop_median / total_un * 100, NA_real_)]
       } else {
         un_raw[, un_value := un_pop_median]
@@ -773,12 +785,13 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
       un_raw[, Year := year]
       un_raw[, Simulation := un_label]
       un_raw[, un_value := round(un_value, 3)]
-      un_dt <- un_raw[!is.na(un_value), .(Year, Age, Simulation, un_value)]
+      un_dt <- un_raw[!is.na(un_value), .(Year, Age, Simulation, sim_orig, un_value)]
       data.table::setnames(un_dt, "un_value", value_label)
       if (has_un_pi) {
         un_ribbon_dt <- un_raw[
           !is.na(un_pop_95low) & !is.na(un_pop_95high),
-          .(Year, Age, Low = round(un_pop_95low, 3), High = round(un_pop_95high, 3))
+          .(Year, Age, sim_orig,
+            Low = round(un_pop_95low, 3), High = round(un_pop_95high, 3))
         ]
       }
     }
@@ -816,6 +829,10 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
   plt_title <- paste0(i18n$translate("Population by Broad Age Groups"), " (", compare_label, ") - ", scale_label)
   plt_title_adapted <- adjust_title_and_font(PLOTLY_TEXT_SIZE$type, plt_title)
 
+  # sim_orig keeps per-sim line grouping so each country's UN reference draws
+  # as its own line; for projection rows it equals the sim itself.
+  pop_dt[, sim_orig := as.character(Simulation)]
+
   plot_input <- if (!is.null(un_dt) && nrow(un_dt) > 0) {
     data.table::rbindlist(list(pop_dt, un_dt), use.names = TRUE, fill = TRUE)
   } else {
@@ -828,7 +845,7 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
       x = .data[["Year"]],
       y = .data[[value_label]],
       color = .data[["Simulation"]],
-      group = interaction(.data[["Simulation"]], .data[["Age"]])
+      group = interaction(.data[["Simulation"]], .data[["Age"]], .data[["sim_orig"]])
     )
   )
 
@@ -836,7 +853,8 @@ create_pop_broad_age_compare_plot <- function(dt, scale_type, i18n) {
     plt <- plt +
       geom_ribbon(
         data = un_ribbon_dt,
-        aes(x = .data[["Year"]], ymin = .data[["Low"]], ymax = .data[["High"]], group = .data[["Age"]]),
+        aes(x = .data[["Year"]], ymin = .data[["Low"]], ymax = .data[["High"]],
+            group = interaction(.data[["Age"]], .data[["sim_orig"]])),
         inherit.aes = FALSE,
         fill = "grey60",
         alpha = 0.18,
@@ -927,9 +945,11 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
 
   un_dt <- NULL
   if (has_un) {
+    # Keep `simulation` so each sim's country-specific UN reference becomes its
+    # own line; otherwise mixed-country sims zigzag between countries' UN values.
     un_raw <- unique(dt_dt[
       age != "Total" & !is.na(un_growth_rate_median),
-      .(year, age, un_growth_rate_median)
+      .(simulation, year, age, un_growth_rate_median)
     ])
     un_raw[, AgeRaw := as.character(age)]
     un_raw[, Age := age_lookup[AgeRaw]]
@@ -938,14 +958,18 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
     if (nrow(un_raw) > 0) {
       un_raw[, Year := year]
       un_raw[, Simulation := un_label]
+      un_raw[, sim_orig := as.character(simulation)]
       un_raw[, `Population Growth Rate` := round(as.numeric(un_growth_rate_median), 3)]
-      un_dt <- un_raw[, .(Year, Age, Simulation, `Population Growth Rate`)]
+      un_dt <- un_raw[, .(Year, Age, Simulation, sim_orig, `Population Growth Rate`)]
     }
   }
 
   all_sim_levels <- if (!is.null(un_dt) && nrow(un_dt) > 0) c(sim_levels, un_label) else sim_levels
   growth_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
   growth_dt[, AgeRaw := NULL]
+  # sim_orig keeps per-sim line grouping so each country's UN reference draws
+  # as its own line; for projection rows it equals the sim itself.
+  growth_dt[, sim_orig := as.character(Simulation)]
   if (!is.null(un_dt) && nrow(un_dt) > 0) {
     un_dt[, Simulation := factor(Simulation, levels = all_sim_levels)]
   }
@@ -986,7 +1010,7 @@ create_growth_rate_compare_plot <- function(dt, i18n) {
       x = .data[["Year"]],
       y = .data[["Population Growth Rate"]],
       color = .data[["Simulation"]],
-      group = interaction(.data[["Simulation"]], .data[["Age"]])
+      group = interaction(.data[["Simulation"]], .data[["Age"]], .data[["sim_orig"]])
     )
   ) +
     geom_line(aes(linetype = .data[["Age"]])) +
